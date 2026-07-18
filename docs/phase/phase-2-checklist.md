@@ -5,17 +5,17 @@ dashboard is `phase-2.md`.
 
 ## SC-01: Shared Management Model and Profile Boundaries
 
-Status: OPEN
+Status: DONE
 
-- [ ] Define management scope, registration origin, managed Subsystem instance,
+- [x] Define management scope, registration origin, managed Subsystem instance,
   and registration lease semantics shared by standalone and control-plane use.
-- [ ] Define Phase 1 registration compatibility and required protocol evolution
+- [x] Define Phase 1 registration compatibility and required protocol evolution
   behavior.
-- [ ] Define which profile facts are projected to operators and which remain
+- [x] Define which profile facts are projected to operators and which remain
   internal diagnostics.
-- [ ] Define standalone and control-plane assembly responsibilities without
+- [x] Define standalone and control-plane assembly responsibilities without
   creating standalone-only instance entities.
-- [ ] Record the stable decisions in `docs/design` and testable behavior in
+- [x] Record the stable decisions in `docs/design` and testable behavior in
   `docs/spec` before implementation.
 
 Acceptance evidence:

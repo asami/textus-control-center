@@ -2,15 +2,14 @@
 
 Stage Status:
 
-- Current status: OPEN
-- Current step: SC-01 - Freeze the shared standalone/control-plane model and
-  configuration boundary.
+- Current status: IN PROGRESS
+- Current step: SC-02 - Define standalone locator and credential bootstrap.
 - Owner: Textus Control Center Phase 2
 - Update rule: Update this block and `phase-2-checklist.md` whenever a stable
   checklist state changes. Close the phase only when every in-scope checklist
   item is complete or explicitly relocated.
 
-status = open
+status = in-progress
 
 ## 1. Purpose
 
@@ -58,8 +57,8 @@ profile.
 
 ## 4. Active Work Stack
 
-- A (OPEN): SC-01 - Freeze shared management model and profile boundaries.
-- B (OPEN): SC-02 - Define standalone locator and credential bootstrap.
+- A (DONE): SC-01 - Freeze shared management model and profile boundaries.
+- B (IN PROGRESS): SC-02 - Define standalone locator and credential bootstrap.
 - C (OPEN): SC-03 - Implement standalone Control Center assembly/state.
 - D (OPEN): SC-04 - Integrate automatic local `cncf` launcher registration.
 - E (OPEN): SC-05 - Integrate automatic local `textus` launcher registration.
@@ -68,7 +67,7 @@ profile.
 
 ## 5. Development Items
 
-- [ ] SC-01: Freeze the shared management model and standalone/control-plane
+- [x] SC-01: Freeze the shared management model and standalone/control-plane
   boundaries.
 - [ ] SC-02: Define local locator, credential-reference, and configuration
   precedence contracts.
