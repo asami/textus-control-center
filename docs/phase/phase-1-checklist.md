@@ -52,18 +52,18 @@ Acceptance evidence:
 
 ## TA-03: Registered-Instance Model and Operations
 
-Status: OPEN
+Status: DONE
 
-- [ ] Implement the persistent registered Subsystem instance model.
-- [ ] Implement idempotent register behavior.
-- [ ] Implement heartbeat update behavior.
-- [ ] Implement normal deregistration/termination behavior.
-- [ ] Implement list and detail queries.
-- [ ] Implement deterministic stale-state derivation using an injected runtime
+- [x] Implement the persistent registered Subsystem instance model.
+- [x] Implement idempotent register behavior.
+- [x] Implement heartbeat update behavior.
+- [x] Implement normal deregistration/termination behavior.
+- [x] Implement list and detail queries.
+- [x] Implement deterministic stale-state derivation using an injected runtime
   clock.
-- [ ] Preserve registration attempts or structured failure evidence without
+- [x] Preserve registration attempts or structured failure evidence without
   copying secrets into persistent records.
-- [ ] Add Given/When/Then executable specifications and property-based coverage
+- [x] Add Given/When/Then executable specifications and property-based coverage
   for identity, ordering, and stale-time boundaries.
 
 Acceptance evidence:
@@ -71,6 +71,15 @@ Acceptance evidence:
 - Operations are the single behavior boundary for every projection.
 - Repeated registration and heartbeat delivery are safe.
 - List ordering and status derivation are deterministic.
+
+Evidence:
+
+- `SubsystemRegistrySpec` covers idempotency, ownership, conflicts, stopped
+  records, deterministic ordering, and generated stale-time boundaries.
+- Concrete Cozy ActionCalls persist the model and project only safe operator
+  fields; the internal registration principal is never returned.
+- `ComponentFactorySpec` proves that `SubsystemInventory` is the sole domain
+  service exposed by the component.
 
 ## TA-04: Command and REST Projections
 

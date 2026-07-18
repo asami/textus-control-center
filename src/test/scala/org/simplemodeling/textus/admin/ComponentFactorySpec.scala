@@ -3,6 +3,9 @@
  */
 package org.simplemodeling.textus.admin
 
+import org.goldenport.configuration.{Configuration, ConfigurationTrace, ResolvedConfiguration}
+import org.goldenport.cncf.component.{Component, ComponentCreate, ComponentOrigin}
+import org.goldenport.cncf.subsystem.Subsystem
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -19,5 +22,29 @@ class ComponentFactorySpec extends AnyWordSpec with GivenWhenThen with Matchers 
       Then("the factory provides the Textus Admin primary component")
       primary shouldBe impl.TextusAdminPrimaryFactory
     }
+
+    "publish only the inventory service rather than generic Entity operations" in {
+      Given("a Textus Admin component assembled into a subsystem")
+      val component = _component()
+
+      When("CNCF projects the component service boundary")
+      val services = component.protocol.services.services.map(_.name)
+
+      Then("only SubsystemInventory is published as a domain service")
+      services.filterNot(name => Set("meta", "system").contains(name)) shouldBe
+        Vector(TextusAdminComponent.SubsystemInventoryService.name)
+    }
+  }
+
+  private def _component(): Component = {
+    val subsystem = Subsystem(
+      name = "textus-admin-component-factory-spec",
+      configuration = ResolvedConfiguration(Configuration.empty, ConfigurationTrace.empty)
+    )
+    val bundle = new impl.ComponentFactory().create(ComponentCreate(subsystem, ComponentOrigin.Main))
+    subsystem.add(bundle)
+    subsystem.components.find(_.name == TextusAdminComponent.name).getOrElse(
+      fail("Textus Admin component is missing")
+    )
   }
 }

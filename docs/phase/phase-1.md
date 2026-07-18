@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: TA-03 - Implement the registered-instance model and Operations.
+- Current step: TA-04 - Provide Command and REST projections.
 - Owner: Textus Admin Phase 1
 - Update rule: Update this block and `phase-1-checklist.md` whenever a stable
   checklist state changes. Close the phase only when every in-scope checklist
@@ -51,7 +51,7 @@ start, stop, or restart control.
 - A (DONE): TA-01 - Freeze the inventory, registration, status, and security
   contract.
 - B (DONE): TA-02 - Bootstrap and validate the Cozy CAR project.
-- C (OPEN): TA-03 - Implement the registered-instance model and Operations.
+- C (DONE): TA-03 - Implement the registered-instance model and Operations.
 - D (OPEN): TA-04 - Provide command and REST projections.
 - E (OPEN): TA-05 - Provide the operation-backed Web inventory UI.
 - F (OPEN): TA-06 - Integrate `textus-launcher` registration.
@@ -63,7 +63,7 @@ start, stop, or restart control.
 
 - [x] TA-01: Freeze the inventory, registration, status, and security contract.
 - [x] TA-02: Bootstrap and validate the Cozy CAR project.
-- [ ] TA-03: Implement the registered-instance model and Operations.
+- [x] TA-03: Implement the registered-instance model and Operations.
 - [ ] TA-04: Provide command and REST projections.
 - [ ] TA-05: Provide the operation-backed Web inventory UI.
 - [ ] TA-06: Integrate `textus-launcher` registration.

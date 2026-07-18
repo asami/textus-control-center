@@ -164,21 +164,22 @@ GetSubsystemResult
 
 ### ATTRIBUTE
 
-| name             | type     | multiplicity |
-|------------------|----------|--------------|
-| id               | entityid | 1            |
-| instanceId       | SubsystemInstanceId | 1            |
-| protocolVersion  | int      | 1            |
-| launcherKind     | LauncherKind | 1            |
-| target           | SubsystemTarget | 1            |
-| subsystemName    | SubsystemName | ?            |
-| subsystemVersion | SubsystemVersion | ?            |
-| runtimeVersion   | RuntimeVersion | ?            |
-| baseUrl          | SubsystemBaseUrl | 1            |
-| hostLabel        | HostLabel | 1            |
-| startedAt        | instant  | 1            |
-| lastSeenAt       | instant  | 1            |
-| launcherState    | LauncherState | 1            |
+| name                    | type                    | multiplicity | confidentiality |
+|-------------------------|-------------------------|--------------|-----------------|
+| id                      | entityid                | 1            |                 |
+| instanceId              | SubsystemInstanceId     | 1            |                 |
+| protocolVersion         | int                     | 1            |                 |
+| launcherKind            | LauncherKind            | 1            |                 |
+| target                  | SubsystemTarget         | 1            |                 |
+| subsystemName           | SubsystemName           | ?            |                 |
+| subsystemVersion        | SubsystemVersion        | ?            |                 |
+| runtimeVersion          | RuntimeVersion          | ?            |                 |
+| baseUrl                 | SubsystemBaseUrl        | 1            |                 |
+| hostLabel               | HostLabel               | 1            |                 |
+| startedAt               | instant                 | 1            |                 |
+| lastSeenAt              | instant                 | 1            |                 |
+| launcherState           | LauncherState           | 1            |                 |
+| registrationPrincipalId | RegistrationPrincipalId | 1            | internal        |
 
 # COMMAND
 
@@ -313,6 +314,14 @@ GetSubsystemResult
 | value | string | 1            |
 
 ## LauncherState
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## RegistrationPrincipalId
 
 ### ATTRIBUTE
 
