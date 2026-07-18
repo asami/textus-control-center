@@ -32,17 +32,17 @@ Acceptance evidence:
 
 ## TA-02: Cozy CAR Bootstrap
 
-Status: OPEN
+Status: DONE
 
-- [ ] Run `cozy init component` in the empty `textus-admin` repository using
+- [x] Run `cozy init component` in the empty `textus-admin` repository using
   derived Textus Admin names and `0.1.0-SNAPSHOT`.
-- [ ] Verify `project.yaml`, `build.sbt`, `project/plugins.sbt`, and the starter
+- [x] Verify `project.yaml`, `build.sbt`, `project/plugins.sbt`, and the starter
   CML.
-- [ ] Install `ai/directive` and root `AGENT.md`/`RULE.md` links when absent.
-- [ ] Replace generic starter vocabulary only through the intended CML and
+- [x] Install `ai/directive` and root `AGENT.md`/`RULE.md` links when absent.
+- [x] Replace generic starter vocabulary only through the intended CML and
   generated extension points.
-- [ ] Pass `sbt cozyGenerate` and `sbt compile`.
-- [ ] Pass initial generated tests and CNCF CAR lint.
+- [x] Pass `sbt cozyGenerate` and `sbt compile`.
+- [x] Pass initial generated tests and CNCF CAR lint.
 
 Acceptance evidence:
 

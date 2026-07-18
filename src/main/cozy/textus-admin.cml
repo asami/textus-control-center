@@ -1,0 +1,351 @@
+# COMPONENT
+
+## TextusAdmin
+
+### PACKAGE
+
+org.simplemodeling.textus.admin
+
+### DESCRIPTION
+
+Textus Admin CAR bundle root for the launcher-started Subsystem inventory.
+
+### COMPONENTLET
+
+#### public-subsystem-inventory
+
+#### subsystem-inventory-admin
+
+# COMPONENTLET
+
+## public-subsystem-inventory
+
+- component :: TextusAdmin
+- kind :: participant
+
+### DESCRIPTION
+
+Machine-facing Subsystem registration participant.
+
+# COMPONENTLET
+
+## subsystem-inventory-admin
+
+- component :: TextusAdmin
+- kind :: participant
+
+### DESCRIPTION
+
+Human-facing Subsystem inventory administration participant.
+
+# SERVICE
+
+## SubsystemInventory
+
+### DESCRIPTION
+
+Versioned launcher registration and administrative inventory operations.
+
+### OPERATION
+
+#### registerSubsystem
+
+##### DESCRIPTION
+
+Creates or idempotently refreshes one launcher-owned Subsystem instance.
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+RegisterSubsystem
+
+##### OUTPUT
+
+###### TYPE
+
+RegisterSubsystemResult
+
+#### heartbeatSubsystem
+
+##### DESCRIPTION
+
+Refreshes one registered launcher-owned Subsystem instance.
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+HeartbeatSubsystem
+
+##### OUTPUT
+
+###### TYPE
+
+HeartbeatSubsystemResult
+
+#### deregisterSubsystem
+
+##### DESCRIPTION
+
+Records normal termination without deleting the Subsystem instance.
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+DeregisterSubsystem
+
+##### OUTPUT
+
+###### TYPE
+
+DeregisterSubsystemResult
+
+#### listSubsystems
+
+##### DESCRIPTION
+
+Lists registered Subsystem instances for human administration.
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ListSubsystems
+
+##### OUTPUT
+
+###### TYPE
+
+ListSubsystemsResult
+
+#### getSubsystem
+
+##### DESCRIPTION
+
+Loads one registered Subsystem instance for human administration.
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetSubsystem
+
+##### OUTPUT
+
+###### TYPE
+
+GetSubsystemResult
+
+# ENTITY
+
+## RegisteredSubsystem
+
+### ATTRIBUTE
+
+| name             | type     | multiplicity |
+|------------------|----------|--------------|
+| id               | entityid | 1            |
+| instanceId       | SubsystemInstanceId | 1            |
+| protocolVersion  | int      | 1            |
+| launcherKind     | LauncherKind | 1            |
+| target           | SubsystemTarget | 1            |
+| subsystemName    | SubsystemName | ?            |
+| subsystemVersion | SubsystemVersion | ?            |
+| runtimeVersion   | RuntimeVersion | ?            |
+| baseUrl          | SubsystemBaseUrl | 1            |
+| hostLabel        | HostLabel | 1            |
+| startedAt        | instant  | 1            |
+| lastSeenAt       | instant  | 1            |
+| launcherState    | LauncherState | 1            |
+
+# COMMAND
+
+## RegisterSubsystem
+
+### ATTRIBUTE
+
+| name             | type    | multiplicity |
+|------------------|---------|--------------|
+| protocolVersion  | int     | 1            |
+| instanceId       | string  | 1            |
+| launcherKind     | string  | 1            |
+| target           | string  | 1            |
+| subsystemName    | string  | ?            |
+| subsystemVersion | string  | ?            |
+| runtimeVersion   | string  | ?            |
+| baseUrl          | string  | 1            |
+| hostLabel        | string  | 1            |
+| startedAt        | instant | 1            |
+| launcherState    | string  | 1            |
+
+## HeartbeatSubsystem
+
+### ATTRIBUTE
+
+| name             | type    | multiplicity |
+|------------------|---------|--------------|
+| protocolVersion  | int     | 1            |
+| instanceId       | string  | 1            |
+| launcherKind     | string  | 1            |
+| target           | string  | 1            |
+| subsystemName    | string  | ?            |
+| subsystemVersion | string  | ?            |
+| runtimeVersion   | string  | ?            |
+| baseUrl          | string  | 1            |
+| hostLabel        | string  | 1            |
+| startedAt        | instant | 1            |
+| launcherState    | string  | 1            |
+
+## DeregisterSubsystem
+
+### ATTRIBUTE
+
+| name       | type   | multiplicity |
+|------------|--------|--------------|
+| instanceId | string | 1            |
+
+# QUERY
+
+## ListSubsystems
+
+### ATTRIBUTE
+
+| name   | type   | multiplicity |
+|--------|--------|--------------|
+| text   | string | ?            |
+| offset | int    | ?            |
+| limit  | int    | ?            |
+
+## GetSubsystem
+
+### ATTRIBUTE
+
+| name       | type   | multiplicity |
+|------------|--------|--------------|
+| instanceId | string | 1            |
+
+# VALUE
+
+## SubsystemInstanceId
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## LauncherKind
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## SubsystemTarget
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## SubsystemName
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## SubsystemVersion
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## RuntimeVersion
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## SubsystemBaseUrl
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## HostLabel
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## LauncherState
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## RegisterSubsystemResult
+
+### EXTENDS
+
+OperationResult
+
+## HeartbeatSubsystemResult
+
+### EXTENDS
+
+OperationResult
+
+## DeregisterSubsystemResult
+
+### EXTENDS
+
+OperationResult
+
+## ListSubsystemsResult
+
+### EXTENDS
+
+OperationResult
+
+## GetSubsystemResult
+
+### EXTENDS
+
+OperationResult

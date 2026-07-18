@@ -1,0 +1,18 @@
+expose:
+  textus-admin.subsystem-management.register-subsystem: protected
+  textus-admin.subsystem-management.list-subsystems: public
+form:
+  textus-admin.subsystem-management.register-subsystem:
+    enabled: true
+    successRedirect: /web/${component}/admin/entities/subsystem-instance/${result.id}
+    stayOnError: true
+    controls:
+      description:
+        type: textarea
+  textus-admin.subsystem-management.list-subsystems:
+    enabled: true
+    successRedirect: /web/${component}/admin/entities/subsystem-instance
+    stayOnError: true
+admin:
+  entity.subsystem-instance:
+    totalCount: optional

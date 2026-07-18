@@ -1,8 +1,8 @@
 # Phase 1 - Launcher-Started Subsystem Inventory
 
 Stage Status:
-- Current status: OPEN
-- Current step: TA-02 - Bootstrap the Cozy CAR project.
+- Current status: IN_PROGRESS
+- Current step: TA-03 - Implement the registered-instance model and Operations.
 - Owner: Textus Admin Phase 1
 - Update rule: Update this block and `phase-1-checklist.md` whenever a stable
   checklist state changes. Close the phase only when every in-scope checklist
@@ -50,7 +50,7 @@ start, stop, or restart control.
 
 - A (DONE): TA-01 - Freeze the inventory, registration, status, and security
   contract.
-- B (OPEN): TA-02 - Bootstrap and validate the Cozy CAR project.
+- B (DONE): TA-02 - Bootstrap and validate the Cozy CAR project.
 - C (OPEN): TA-03 - Implement the registered-instance model and Operations.
 - D (OPEN): TA-04 - Provide command and REST projections.
 - E (OPEN): TA-05 - Provide the operation-backed Web inventory UI.
@@ -62,7 +62,7 @@ start, stop, or restart control.
 ## 5. Development Items
 
 - [x] TA-01: Freeze the inventory, registration, status, and security contract.
-- [ ] TA-02: Bootstrap and validate the Cozy CAR project.
+- [x] TA-02: Bootstrap and validate the Cozy CAR project.
 - [ ] TA-03: Implement the registered-instance model and Operations.
 - [ ] TA-04: Provide command and REST projections.
 - [ ] TA-05: Provide the operation-backed Web inventory UI.
