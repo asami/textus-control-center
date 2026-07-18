@@ -149,6 +149,12 @@ Web UI. When the key is absent, the built-in provider authenticates no launcher
 requests; an enabled launcher continues its target server startup while its
 registration requests are rejected normally.
 
+The Phase 1 standalone assembly supplies a distinct local CNCF operator
+subject for protected inventory reads. A request with bearer authentication
+material never falls back to that local subject. Production deployments replace
+the local subject with a human identity provider while preserving the separate
+launcher machine provider.
+
 ## 9. Projections
 
 Command, automatic REST, and Web UI project the same list/detail Operation

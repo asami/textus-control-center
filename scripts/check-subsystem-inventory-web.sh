@@ -18,6 +18,8 @@ rg -F -- 'id="instances"' "$page" >/dev/null
 rg -F -- 'const endpoint = "/rest/v1/textus-admin/subsystem-inventory"' "$script" >/dev/null
 rg -F -- 'request("list-subsystems?offset=0&limit=100")' "$script" >/dev/null
 rg -F -- 'request(`get-subsystem?instanceId=${encodeURIComponent(instanceId)}`)' "$script" >/dev/null
+rg -F -- 'instanceId: record.instance_id' "$script" >/dev/null
+rg -F -- 'dashboardUrl: record.dashboard_url' "$script" >/dev/null
 rg -F -- 'dashboardUrl' "$script" >/dev/null
 rg -F -- 'systemAdminUrl' "$script" >/dev/null
 rg -F -- 'credentials: "same-origin"' "$script" >/dev/null

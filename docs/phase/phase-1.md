@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: TA-04 - Provide Command and REST projections.
+- Current step: TA-06 - Validate `textus-launcher` cross-server registration.
 - Owner: Textus Admin Phase 1
 - Update rule: Update this block and `phase-1-checklist.md` whenever a stable
   checklist state changes. Close the phase only when every in-scope checklist
@@ -52,10 +52,10 @@ start, stop, or restart control.
   contract.
 - B (DONE): TA-02 - Bootstrap and validate the Cozy CAR project.
 - C (DONE): TA-03 - Implement the registered-instance model and Operations.
-- D (OPEN): TA-04 - Provide command and REST projections.
-- E (OPEN): TA-05 - Provide the operation-backed Web inventory UI.
+- D (DONE): TA-04 - Provide command and REST projections.
+- E (DONE): TA-05 - Provide the operation-backed Web inventory UI.
 - F (OPEN): TA-06 - Integrate `textus-launcher` registration.
-- G (OPEN): TA-07 - Integrate canonical `cncf-launcher` registration.
+- G (DONE): TA-07 - Integrate canonical `cncf-launcher` registration.
 - H (OPEN): TA-08 - Complete cross-launcher executable scenarios and Phase 1
   closure.
 
@@ -64,10 +64,10 @@ start, stop, or restart control.
 - [x] TA-01: Freeze the inventory, registration, status, and security contract.
 - [x] TA-02: Bootstrap and validate the Cozy CAR project.
 - [x] TA-03: Implement the registered-instance model and Operations.
-- [ ] TA-04: Provide command and REST projections.
-- [ ] TA-05: Provide the operation-backed Web inventory UI.
+- [x] TA-04: Provide command and REST projections.
+- [x] TA-05: Provide the operation-backed Web inventory UI.
 - [ ] TA-06: Integrate `textus-launcher` registration.
-- [ ] TA-07: Integrate canonical `cncf-launcher` registration.
+- [x] TA-07: Integrate canonical `cncf-launcher` registration.
 - [ ] TA-08: Complete cross-launcher validation and close Phase 1.
 
 Detailed task tracking and acceptance evidence are in

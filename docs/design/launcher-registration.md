@@ -116,6 +116,12 @@ inventory reads. Future IdP/user-account providers can be assembled beside it:
 an unmatched bearer token is passed through instead of being treated as a
 machine-token failure.
 
+The packaged standalone assembly also declares a local CNCF operator subject
+for the protected command, REST, and Web inventory reads. It is distinct from
+the launcher service principal and is bypassed whenever a bearer credential is
+present. A production assembly replaces this local subject with its human IdP
+or user-account provider; the machine provider remains limited to registration.
+
 Textus Admin binds an accepted instance to the authenticated machine principal
 that registered it. Later heartbeat and deregistration requests must present
 that same principal; they cannot use the registry to request lifecycle control

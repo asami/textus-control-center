@@ -240,7 +240,11 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusAdminComponent.Su
         SecurityContext.Privilege.System,
         SecurityContext.Privilege.Internal
       )
-      if (subject.isAuthenticated && privileges.exists(privilege => subject.hasPrivilege(privilege.name)))
+      if (subject.isAuthenticated && privileges.exists { privilege =>
+        subject.hasPrivilege(privilege.name) ||
+        subject.hasCapability(privilege.name) ||
+        subject.hasRole(privilege.name)
+      })
         Consequence.unit
       else Consequence.securityPermissionDenied("Subsystem inventory requires administrative authorization.")
     }

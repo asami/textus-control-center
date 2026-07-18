@@ -83,15 +83,15 @@ Evidence:
 
 ## TA-04: Command and REST Projections
 
-Status: OPEN
+Status: DONE
 
 - [x] Expose list and detail through canonical CNCF command selectors.
 - [x] Support canonical structured output suitable for scripts.
 - [x] Expose register, heartbeat, deregister, list, and detail through automatic
   REST.
-- [ ] Verify REST status and structured `Conclusion` mapping for invalid,
+- [x] Verify REST status and structured `Conclusion` mapping for invalid,
   unauthorized, missing, and conflicting requests.
-- [ ] Verify command and REST return the same semantic read model.
+- [x] Verify command and REST return the same semantic read model.
 - [x] Document command examples and REST routes generated from the accepted
   component/service/operation names.
 
@@ -99,8 +99,9 @@ Current evidence:
 
 - `scripts/check-admin-read-flows.sh` verifies the generated Command selector,
   operation tree, and automatic REST routes in `TextusAdmin.meta.openapi`.
-- A local server probe verifies that anonymous REST list requests receive the
-  same administrative authorization conclusion as the Command path.
+- The canonical command list selector executes with structured output; a
+  deployed-CAR REST probe returns the same safe projection and preserves the
+  normal structured authorization and invalid-request responses.
 
 Acceptance evidence:
 
@@ -109,7 +110,7 @@ Acceptance evidence:
 
 ## TA-05: Web Inventory UI
 
-Status: OPEN
+Status: DONE
 
 - [x] Declare the Web admin page through CNCF Web packaging/descriptor
   mechanisms.
@@ -140,7 +141,10 @@ Current evidence:
   absence of external CDN dependencies.
 - `sbt cozyBuildCAR` and `jar tf` verify that the CAR contains the page and
   assets. The direct classpath development server does not serve CAR static
-  assets, so deployed-CAR browser verification remains part of TA-08.
+  assets.
+- A deployed-CAR browser probe renders the CNCF-launched instance with its
+  status, identity, target, runtime, base URL, last-seen time, and Dashboard /
+  System Admin links.
 
 ## TA-06: Textus Launcher Integration
 
@@ -166,24 +170,32 @@ Acceptance evidence:
 
 ## TA-07: CNCF Launcher Integration
 
-Status: OPEN
+Status: DONE
 
-- [ ] Define the same opt-in Textus Admin integration for canonical CNCF
+- [x] Define the same opt-in Textus Admin integration for canonical CNCF
   launcher configuration.
-- [ ] Integrate `cncf server` current-project execution.
-- [ ] Integrate `cncf <target> server` target-first execution.
-- [ ] Use the shared versioned protocol semantics without depending on
+- [x] Integrate `cncf server` current-project execution.
+- [x] Integrate `cncf <target> server` target-first execution.
+- [x] Use the shared versioned protocol semantics without depending on
   deprecated `cncf dev server` state.
-- [ ] Send bounded heartbeat and normal termination notifications.
-- [ ] Preserve server startup when Textus Admin is unavailable or rejects the
+- [x] Send bounded heartbeat and normal termination notifications.
+- [x] Preserve server startup when Textus Admin is unavailable or rejects the
   registration.
-- [ ] Add executable specifications equivalent to the Textus launcher coverage.
+- [x] Add executable specifications equivalent to the Textus launcher coverage.
 
 Acceptance evidence:
 
 - Representative current-project and target-first server invocations appear
   in Textus Admin through the canonical launcher path.
 - Launcher help and documentation teach only the canonical integration path.
+
+Evidence:
+
+- `CncfLauncherSpec` covers current-project and target-first lifecycles,
+  bounded HTTP requests, rejected registration isolation, and query encoding.
+- A deployed-CAR integration run records `running` heartbeat state and, after
+  Ctrl-C, the shutdown hook records `stopped`; a pre-hook interruption expires
+  to `stale` as designed.
 
 ## TA-08: Cross-Launcher Validation and Closure
 

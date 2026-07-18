@@ -7,6 +7,15 @@ security:
   authentication:
     convention: enabled
     fallback_privilege: disabled
+    local_subject:
+      id: textus-admin-local-operator
+      roles:
+        - operator
+      capabilities:
+        - operator
+      security_level: operator
+      attributes:
+        installation: standalone
     providers:
       - name: textus-admin-launcher-registration
         component: textus-admin

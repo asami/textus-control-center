@@ -104,6 +104,23 @@
     return body?.message || body?.error?.message || body?.conclusion?.message || `The inventory request failed (HTTP ${status}).`;
   }
 
+  function inventoryRecord(record) {
+    return {
+      ...record,
+      instanceId: record.instance_id,
+      launcherKind: record.launcher_kind,
+      subsystemName: record.subsystem_name,
+      subsystemVersion: record.subsystem_version,
+      runtimeVersion: record.runtime_version,
+      baseUrl: record.base_url,
+      hostLabel: record.host_label,
+      startedAt: record.started_at,
+      lastSeenAt: record.last_seen_at,
+      dashboardUrl: record.dashboard_url,
+      systemAdminUrl: record.system_admin_url
+    };
+  }
+
   async function request(path) {
     const response = await fetch(`${endpoint}/${path}`, { credentials: "same-origin" });
     const body = await response.json().catch(() => ({}));
@@ -116,7 +133,7 @@
     elements.loading.hidden = false;
     try {
       const response = await request("list-subsystems?offset=0&limit=100");
-      records = Array.isArray(response.data) ? response.data : [];
+      records = Array.isArray(response.data) ? response.data.map(inventoryRecord) : [];
       render();
     } catch (error) {
       showError(error.message || "The subsystem inventory could not be loaded.");
@@ -127,11 +144,12 @@
     try {
       const response = await request(`get-subsystem?instanceId=${encodeURIComponent(instanceId)}`);
       elements.detailFields.replaceChildren();
+      const record = inventoryRecord(response);
       ["instanceId", "status", "launcherKind", "target", "subsystemName", "subsystemVersion", "runtimeVersion", "baseUrl", "hostLabel", "startedAt", "lastSeenAt"].forEach((name) => {
         const term = document.createElement("dt");
         term.textContent = name;
         const definition = document.createElement("dd");
-        definition.textContent = name.endsWith("At") ? formatInstant(response[name]) : text(response[name]);
+        definition.textContent = name.endsWith("At") ? formatInstant(record[name]) : text(record[name]);
         elements.detailFields.append(term, definition);
       });
       elements.dialog.showModal();

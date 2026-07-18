@@ -75,6 +75,12 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       loaded.getString("instanceId") shouldBe registered.getString("instanceId")
       loaded.getAny("registrationPrincipalId") shouldBe empty
 
+      When("an authenticated standalone operator capability reads the inventory")
+      val localoperatorresult = _execute(component, fixture.operatorCapabilityContext, Request.ofService("SubsystemInventory", "listSubsystems"))
+
+      Then("the local operator capability is accepted without launcher authority")
+      localoperatorresult.toOption should not be empty
+
       When("the launcher sends a heartbeat and normal termination")
       val heartbeatresult = _execute(component, launchercontext, _registration_request("heartbeatSubsystem", startedat))
       val heartbeated = heartbeatresult
@@ -244,5 +250,8 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
 
     def launcherContextFor(privilege: SecurityContext.Privilege): ExecutionContext =
       build(privilege, Set(Capability(TextusAdminLauncherRegistrationAuthenticationProvider.CAPABILITY)))
+
+    def operatorCapabilityContext: ExecutionContext =
+      build(SecurityContext.Privilege.User, Set(Capability(SecurityContext.Privilege.Operator.name)))
   }
 }
