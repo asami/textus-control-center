@@ -133,6 +133,12 @@ Public selectors and generated REST routes are established after the Cozy
 scaffold fixes the component and service names. Phase 1 must not create an
 unrelated hand-written REST API solely for launcher registration.
 
+The registry persists immutable snapshots for each accepted register, heartbeat,
+and deregister report. Read operations collapse these snapshots to the latest
+record for each `instanceId`, so retries and heartbeat history never create
+duplicate inventory rows. This avoids exposing a generic entity-update surface
+for launcher-managed state.
+
 ## Deferred Scope
 
 The following are intentionally outside this design:

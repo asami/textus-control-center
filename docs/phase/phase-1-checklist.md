@@ -111,23 +111,36 @@ Acceptance evidence:
 
 Status: OPEN
 
-- [ ] Declare the Web admin page through CNCF Web packaging/descriptor
+- [x] Declare the Web admin page through CNCF Web packaging/descriptor
   mechanisms.
-- [ ] Render a responsive Bootstrap/Material instance table.
-- [ ] Show status, launcher kind, target, Subsystem/runtime versions when known,
+- [x] Render a responsive Bootstrap instance table.
+- [x] Show status, launcher kind, target, Subsystem/runtime versions when known,
   base URL, and last-seen time.
-- [ ] Link to the managed Subsystem System Dashboard and System Admin pages.
-- [ ] Provide empty, loading, stale, stopped, and structured error states.
-- [ ] Enforce normal CNCF admin authorization.
-- [ ] Verify that Web list/detail behavior executes the same Operations as
+- [x] Link to the managed Subsystem System Dashboard and System Admin pages.
+- [x] Provide empty, loading, stale, stopped, and structured error states.
+- [x] Enforce normal CNCF admin authorization.
+- [x] Verify that Web list/detail behavior executes the same Operations as
   command and REST.
-- [ ] Add browser/static Web executable coverage without external CDN
+- [x] Add static Web executable coverage without external CDN
   dependencies.
 
 Acceptance evidence:
 
 - The CAR packages all required Web assets.
 - The page contains no UI-only registry or direct persistence mutation path.
+
+Current evidence:
+
+- `src/main/web/textus-admin` provides the inventory table and detail dialog;
+  it calls only the automatic `list-subsystems` and `get-subsystem` Operation
+  routes with same-origin administrator credentials.
+- `scripts/check-subsystem-inventory-web.sh` verifies the packaged-page
+  contract, operation routes, protected selectors, responsive Bootstrap table,
+  styling, and
+  absence of external CDN dependencies.
+- `sbt cozyBuildCAR` and `jar tf` verify that the CAR contains the page and
+  assets. The direct classpath development server does not serve CAR static
+  assets, so deployed-CAR browser verification remains part of TA-08.
 
 ## TA-06: Textus Launcher Integration
 

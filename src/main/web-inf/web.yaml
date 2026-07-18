@@ -3,4 +3,4 @@ apps:
     path: /web/textus-admin
     kind: static-form
     root: /web/textus-admin
-    route: /web/{component}/textus-admin
+    route: /web/textus-admin

@@ -247,7 +247,7 @@ GetSubsystemResult
 |------------|--------|--------------|
 | instanceId | string | 1            |
 
-# VALUE
+# DATATYPE
 
 ## SubsystemInstanceId
 
@@ -328,6 +328,8 @@ GetSubsystemResult
 | name  | type   | multiplicity |
 |-------|--------|--------------|
 | value | string | 1            |
+
+# VALUE
 
 ## RegisterSubsystemResult
 

@@ -12,6 +12,7 @@ import org.goldenport.cncf.component.{Component, ComponentCreate, ComponentId}
 import org.goldenport.cncf.directive.Query
 import org.goldenport.cncf.entity.{EntityQuery, EntitySearchScope, EntityVisibilityScope}
 import org.goldenport.cncf.entity.runtime.EntityQueryFieldResolver
+import org.goldenport.cncf.context.SecurityContext
 import org.goldenport.cncf.security.SecuritySubject
 import org.goldenport.cncf.unitofwork.ExecUowM
 import org.goldenport.protocol.operation.OperationResponse
@@ -19,9 +20,9 @@ import org.goldenport.record.Record
 import org.simplemodeling.textus.admin.TextusAdminComponent
 import org.simplemodeling.textus.admin.entity.{RegisteredSubsystem as RegisteredSubsystemEntity}
 import org.simplemodeling.textus.admin.entity.create.{RegisteredSubsystem as RegisteredSubsystemCreate}
+import org.simplemodeling.textus.admin.entity.create.RegisteredSubsystem.given
 import org.simplemodeling.textus.admin.entity.query.{RegisteredSubsystem as RegisteredSubsystemQuery}
 import org.simplemodeling.textus.admin.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
-import org.simplemodeling.textus.admin.value.*
 
 final class ComponentFactory extends Component.BundleFactory {
   def primaryFactory: Component.PrimaryComponentFactory =
@@ -111,7 +112,7 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusAdminComponent.Su
         current <- exec_from(single_registered(input.instanceId, matches))
         now = core.executionContext.clock.instant()
         next <- exec_from(SubsystemRegistry.register(current.map(to_registry), input, principal, now).fold(registry_error, Consequence.success))
-        stored <- persist(next, current.map(_.id))
+        stored <- persist(next)
       } yield OperationResponse(safe_projection(to_registry(stored), now))
   }
 
@@ -127,7 +128,7 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusAdminComponent.Su
         current <- exec_from(single_registered(input.instanceId, matches))
         now = core.executionContext.clock.instant()
         next <- exec_from(SubsystemRegistry.heartbeat(current.map(to_registry), input, principal, now).fold(registry_error, Consequence.success))
-        stored <- persist(next, current.map(_.id))
+        stored <- persist(next)
       } yield OperationResponse(safe_projection(to_registry(stored), now))
   }
 
@@ -143,7 +144,7 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusAdminComponent.Su
         current <- exec_from(single_registered(instanceid, matches))
         now = core.executionContext.clock.instant()
         next <- exec_from(SubsystemRegistry.deregister(current.map(to_registry), instanceid, principal, now).fold(registry_error, Consequence.success))
-        stored <- persist(next, current.map(_.id))
+        stored <- persist(next)
       } yield OperationResponse(safe_projection(to_registry(stored), now))
   }
 
@@ -159,7 +160,7 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusAdminComponent.Su
         text = action.record.getString("text").map(_.trim.toLowerCase).filter(_.nonEmpty)
         offset = action.record.getInt("offset").getOrElse(0).max(0)
         limit = action.record.getInt("limit").getOrElse(100).max(0)
-        filtered = SubsystemRegistry.ordered(all.map(to_registry)).filter(source => text.forall(matches_text(source, _)))
+        filtered = SubsystemRegistry.ordered(latest_registered(all).map(to_registry)).filter(source => text.forall(matches_text(source, _)))
         page = filtered.drop(offset).take(limit)
       } yield OperationResponse(Record.dataAuto(
         "data" -> page.map(source => safe_projection(source, now)),
@@ -225,7 +226,13 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusAdminComponent.Su
 
     protected final def administrative_principal: Consequence[Unit] = {
       val subject = SecuritySubject.current(using executionContext)
-      if (subject.isAuthenticated && executionContext.security.hasAnyCapability(Vector("operator", "system", "internal")))
+      val privileges = Vector(
+        SecurityContext.Privilege.ApplicationContentManager,
+        SecurityContext.Privilege.Operator,
+        SecurityContext.Privilege.System,
+        SecurityContext.Privilege.Internal
+      )
+      if (subject.isAuthenticated && privileges.exists(privilege => subject.hasPrivilege(privilege.name)))
         Consequence.unit
       else Consequence.securityPermissionDenied("Subsystem inventory requires administrative authorization.")
     }
@@ -240,10 +247,10 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusAdminComponent.Su
           RegisteredSubsystemQuery.collectionId,
           fields.rewrite(Query.fromRecord(Record.dataAuto("instanceId" -> instanceid))),
           scope = EntitySearchScope.Store,
-          visibilityScope = Some(EntityVisibilityScope.Admin)
+          visibilityScope = Some(EntityVisibilityScope.Public)
         )
         result <- entity_search_internal[RegisteredSubsystemEntity](query)
-      } yield result.data.filter(_.instanceId.value == instanceid)
+      } yield result.data.filter(_.instanceId == instanceid)
 
     protected final def find_registered_all: ExecUowM[Vector[RegisteredSubsystemEntity]] =
       for {
@@ -260,80 +267,68 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusAdminComponent.Su
     protected final def single_registered(
       instanceid: String,
       sources: Vector[RegisteredSubsystemEntity]
-    ): Consequence[Option[RegisteredSubsystemEntity]] = sources match {
-      case Vector() => Consequence.success(None)
-      case Vector(source) => Consequence.success(Some(source))
-      case _ => Consequence.stateConflict(s"Multiple registered subsystem records exist for '$instanceid'.")
-    }
+    ): Consequence[Option[RegisteredSubsystemEntity]] =
+      Consequence.success(sources.sortBy(source => (source.lastSeenAt, source.id.print)).lastOption)
+
+    protected final def latest_registered(
+      sources: Vector[RegisteredSubsystemEntity]
+    ): Vector[RegisteredSubsystemEntity] =
+      sources.groupBy(_.instanceId).valuesIterator.flatMap(_.sortBy(source => (source.lastSeenAt, source.id.print)).lastOption).toVector
 
     protected final def to_registry(source: RegisteredSubsystemEntity): RegistrySubsystem =
       RegistrySubsystem(
         source.protocolVersion,
-        source.instanceId.value,
-        source.launcherKind.value,
-        source.target.value,
-        source.subsystemName.map(_.value),
-        source.subsystemVersion.map(_.value),
-        source.runtimeVersion.map(_.value),
-        source.baseUrl.value,
-        source.hostLabel.value,
+        source.instanceId,
+        source.launcherKind,
+        source.target,
+        source.subsystemName,
+        source.subsystemVersion,
+        source.runtimeVersion,
+        source.baseUrl,
+        source.hostLabel,
         source.startedAt,
         source.lastSeenAt,
-        source.launcherState.value,
-        source.registrationPrincipalId.value
+        source.launcherState,
+        source.registrationPrincipalId
       )
 
     protected final def to_create(
-      source: RegistrySubsystem,
-      id: Option[org.simplemodeling.model.datatype.EntityId]
+      source: RegistrySubsystem
     ): RegisteredSubsystemCreate =
       RegisteredSubsystemCreate(
-        id,
-        SubsystemInstanceId(source.instanceId),
+        None,
+        source.instanceId,
         source.protocolVersion,
-        LauncherKind(source.launcherKind),
-        SubsystemTarget(source.target),
-        source.subsystemName.map(SubsystemName.apply),
-        source.subsystemVersion.map(SubsystemVersion.apply),
-        source.runtimeVersion.map(RuntimeVersion.apply),
-        SubsystemBaseUrl(source.baseUrl),
-        HostLabel(source.hostLabel),
+        source.launcherKind,
+        source.target,
+        source.subsystemName,
+        source.subsystemVersion,
+        source.runtimeVersion,
+        source.baseUrl,
+        source.hostLabel,
         source.startedAt,
         source.lastSeenAt,
-        LauncherState(source.launcherState),
-        RegistrationPrincipalId(source.registrationPrincipalId)
+        source.launcherState,
+        source.registrationPrincipalId
       )
 
-    protected final def to_entity(
-      source: RegistrySubsystem,
-      id: org.simplemodeling.model.datatype.EntityId
-    ): RegisteredSubsystemEntity =
-      RegisteredSubsystemEntity(
-        id,
-        SubsystemInstanceId(source.instanceId),
+    protected final def persist(source: RegistrySubsystem): ExecUowM[RegisteredSubsystemEntity] =
+      entity_create(to_create(source)).map(result => RegisteredSubsystemEntity(
+        result.id,
+        source.instanceId,
         source.protocolVersion,
-        LauncherKind(source.launcherKind),
-        SubsystemTarget(source.target),
-        source.subsystemName.map(SubsystemName.apply),
-        source.subsystemVersion.map(SubsystemVersion.apply),
-        source.runtimeVersion.map(RuntimeVersion.apply),
-        SubsystemBaseUrl(source.baseUrl),
-        HostLabel(source.hostLabel),
+        source.launcherKind,
+        source.target,
+        source.subsystemName,
+        source.subsystemVersion,
+        source.runtimeVersion,
+        source.baseUrl,
+        source.hostLabel,
         source.startedAt,
         source.lastSeenAt,
-        LauncherState(source.launcherState),
-        RegistrationPrincipalId(source.registrationPrincipalId)
-      )
-
-    protected final def persist(
-      source: RegistrySubsystem,
-      id: Option[org.simplemodeling.model.datatype.EntityId]
-    ): ExecUowM[RegisteredSubsystemEntity] = id match {
-      case Some(existingid) =>
-        val entity = to_entity(source, existingid)
-        entity_save(entity).map(_ => entity)
-      case None => entity_create(to_create(source, None)).map(result => to_entity(source, result.id))
-    }
+        source.launcherState,
+        source.registrationPrincipalId
+      ))
 
     protected final def safe_projection(source: RegistrySubsystem, now: Instant): Record =
       SubsystemRegistry.projection(source, now, STALE_THRESHOLD) match {
