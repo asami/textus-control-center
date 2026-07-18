@@ -1,0 +1,182 @@
+# Phase 1 - Launcher-Started Subsystem Inventory Checklist
+
+This checklist is the authoritative Phase 1 progress ledger. The summary
+dashboard is `phase-1.md`.
+
+## TA-01: Inventory and Registration Contract
+
+Status: OPEN
+
+- [ ] Define the versioned register, heartbeat, and deregister request/response
+  contract.
+- [ ] Define stable instance identity and duplicate/idempotent registration
+  behavior.
+- [ ] Separate launcher-reported state, heartbeat freshness, and derived
+  operator status.
+- [ ] Define deterministic `starting`, `running`, `stale`, `stopped`, and
+  `unknown` transition rules.
+- [ ] Define the safe projected field set and system-admin-only diagnostics.
+- [ ] Define machine registration authentication separately from human admin
+  authorization.
+- [ ] Define timeout, retry, and failure-isolation behavior for launcher
+  clients.
+- [ ] Record the stable decisions in `docs/design` and testable behavior in
+  `docs/spec` before implementation.
+
+Acceptance evidence:
+
+- A design document fixes responsibilities and invariants.
+- A static specification fixes protocol fields, status derivation,
+  authorization, and compatibility behavior.
+- No Phase 1 behavior depends on deprecated `cncf dev server` state.
+
+## TA-02: Cozy CAR Bootstrap
+
+Status: OPEN
+
+- [ ] Run `cozy init component` in the empty `textus-admin` repository using
+  derived Textus Admin names and `0.1.0-SNAPSHOT`.
+- [ ] Verify `project.yaml`, `build.sbt`, `project/plugins.sbt`, and the starter
+  CML.
+- [ ] Install `ai/directive` and root `AGENT.md`/`RULE.md` links when absent.
+- [ ] Replace generic starter vocabulary only through the intended CML and
+  generated extension points.
+- [ ] Pass `sbt cozyGenerate` and `sbt compile`.
+- [ ] Pass initial generated tests and CNCF CAR lint.
+
+Acceptance evidence:
+
+- The repository has a valid Cozy CAR shape.
+- Generated identifiers and public selectors match the accepted Phase 1
+  naming contract.
+
+## TA-03: Registered-Instance Model and Operations
+
+Status: OPEN
+
+- [ ] Implement the persistent registered Subsystem instance model.
+- [ ] Implement idempotent register behavior.
+- [ ] Implement heartbeat update behavior.
+- [ ] Implement normal deregistration/termination behavior.
+- [ ] Implement list and detail queries.
+- [ ] Implement deterministic stale-state derivation using an injected runtime
+  clock.
+- [ ] Preserve registration attempts or structured failure evidence without
+  copying secrets into persistent records.
+- [ ] Add Given/When/Then executable specifications and property-based coverage
+  for identity, ordering, and stale-time boundaries.
+
+Acceptance evidence:
+
+- Operations are the single behavior boundary for every projection.
+- Repeated registration and heartbeat delivery are safe.
+- List ordering and status derivation are deterministic.
+
+## TA-04: Command and REST Projections
+
+Status: OPEN
+
+- [ ] Expose list and detail through canonical CNCF command selectors.
+- [ ] Support canonical structured output suitable for scripts.
+- [ ] Expose register, heartbeat, deregister, list, and detail through automatic
+  REST.
+- [ ] Verify REST status and structured `Conclusion` mapping for invalid,
+  unauthorized, missing, and conflicting requests.
+- [ ] Verify command and REST return the same semantic read model.
+- [ ] Document command examples and REST routes generated from the accepted
+  component/service/operation names.
+
+Acceptance evidence:
+
+- Executable specifications compare command and REST semantics.
+- No hand-written parallel REST domain path bypasses Operation dispatch.
+
+## TA-05: Web Inventory UI
+
+Status: OPEN
+
+- [ ] Declare the Web admin page through CNCF Web packaging/descriptor
+  mechanisms.
+- [ ] Render a responsive Bootstrap/Material instance table.
+- [ ] Show status, launcher kind, target, Subsystem/runtime versions when known,
+  base URL, and last-seen time.
+- [ ] Link to the managed Subsystem System Dashboard and System Admin pages.
+- [ ] Provide empty, loading, stale, stopped, and structured error states.
+- [ ] Enforce normal CNCF admin authorization.
+- [ ] Verify that Web list/detail behavior executes the same Operations as
+  command and REST.
+- [ ] Add browser/static Web executable coverage without external CDN
+  dependencies.
+
+Acceptance evidence:
+
+- The CAR packages all required Web assets.
+- The page contains no UI-only registry or direct persistence mutation path.
+
+## TA-06: Textus Launcher Integration
+
+Status: OPEN
+
+- [ ] Define opt-in Textus Admin endpoint, timeout, credential reference, host
+  label, and external base URL configuration.
+- [ ] Generate one stable instance identifier per
+  `textus <artifact> server` invocation.
+- [ ] Send versioned registration metadata without leaking credentials or full
+  environment/command-line data.
+- [ ] Send bounded heartbeats while the launcher invocation is alive.
+- [ ] Send normal termination/deregistration when the server invocation exits.
+- [ ] Treat registration, heartbeat, and deregistration failures as observable
+  warnings that do not terminate the managed server.
+- [ ] Add executable specifications for success, timeout, authorization
+  failure, admin outage, retry bounds, and normal termination.
+
+Acceptance evidence:
+
+- A representative `textus <artifact> server` invocation appears in Textus
+  Admin and transitions deterministically on normal exit or heartbeat expiry.
+
+## TA-07: CNCF Launcher Integration
+
+Status: OPEN
+
+- [ ] Define the same opt-in Textus Admin integration for canonical CNCF
+  launcher configuration.
+- [ ] Integrate `cncf server` current-project execution.
+- [ ] Integrate `cncf <target> server` target-first execution.
+- [ ] Use the shared versioned protocol semantics without depending on
+  deprecated `cncf dev server` state.
+- [ ] Send bounded heartbeat and normal termination notifications.
+- [ ] Preserve server startup when Textus Admin is unavailable or rejects the
+  registration.
+- [ ] Add executable specifications equivalent to the Textus launcher coverage.
+
+Acceptance evidence:
+
+- Representative current-project and target-first server invocations appear
+  in Textus Admin through the canonical launcher path.
+- Launcher help and documentation teach only the canonical integration path.
+
+## TA-08: Cross-Launcher Validation and Closure
+
+Status: OPEN
+
+- [ ] Start representative Subsystems through both canonical launchers against
+  one Textus Admin server.
+- [ ] Verify both instances through command, REST, and Web UI.
+- [ ] Verify stable ordering and consistent fields across all projections.
+- [ ] Verify normal termination and forced heartbeat-expiry behavior.
+- [ ] Verify Textus Admin outage does not prevent either managed server from
+  starting.
+- [ ] Run full relevant tests in `textus-admin`, `textus-launcher`, and
+  `cncf-launcher`.
+- [ ] Run CNCF CAR lint for `textus-admin` and resolve actionable findings.
+- [ ] Run final review and resolve actionable naming, specification, security,
+  and protocol findings.
+- [ ] Update strategy/phase status and record every deferred item in a future
+  phase or dedicated deferred list.
+
+Acceptance evidence:
+
+- The required Phase 1 demonstration is repeatable from documented commands.
+- Every Phase 1 checklist item is checked or explicitly relocated before the
+  Stage Status becomes DONE or CLOSED.
