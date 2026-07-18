@@ -5,22 +5,22 @@ dashboard is `phase-1.md`.
 
 ## TA-01: Inventory and Registration Contract
 
-Status: OPEN
+Status: DONE
 
-- [ ] Define the versioned register, heartbeat, and deregister request/response
+- [x] Define the versioned register, heartbeat, and deregister request/response
   contract.
-- [ ] Define stable instance identity and duplicate/idempotent registration
+- [x] Define stable instance identity and duplicate/idempotent registration
   behavior.
-- [ ] Separate launcher-reported state, heartbeat freshness, and derived
+- [x] Separate launcher-reported state, heartbeat freshness, and derived
   operator status.
-- [ ] Define deterministic `starting`, `running`, `stale`, `stopped`, and
-  `unknown` transition rules.
-- [ ] Define the safe projected field set and system-admin-only diagnostics.
-- [ ] Define machine registration authentication separately from human admin
+- [x] Define deterministic `starting`, `running`, `stale`, and `stopped`
+  transition rules.
+- [x] Define the safe projected field set and system-admin-only diagnostics.
+- [x] Define machine registration authentication separately from human admin
   authorization.
-- [ ] Define timeout, retry, and failure-isolation behavior for launcher
+- [x] Define timeout, retry, and failure-isolation behavior for launcher
   clients.
-- [ ] Record the stable decisions in `docs/design` and testable behavior in
+- [x] Record the stable decisions in `docs/design` and testable behavior in
   `docs/spec` before implementation.
 
 Acceptance evidence:

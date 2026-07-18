@@ -115,9 +115,9 @@ or unrestricted command lines. Process identifiers, when retained for local
 diagnostics, are system-admin-only metadata and are not process-control
 authority.
 
-Textus Admin derives an operator-facing status such as `starting`, `running`,
-`stale`, `stopped`, or `unknown` from the recorded launcher state and heartbeat
-freshness. The exact timeout and transition rules must be fixed in a Phase 1
+Textus Admin derives an operator-facing status of `starting`, `running`,
+`stale`, or `stopped` from the recorded launcher state and heartbeat freshness.
+The exact timeout and transition rules must be fixed in a Phase 1
 design/specification before implementation.
 
 ## 5. Configuration and Security Direction

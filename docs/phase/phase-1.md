@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: OPEN
-- Current step: TA-01 - Freeze the inventory and registration contract.
+- Current step: TA-02 - Bootstrap the Cozy CAR project.
 - Owner: Textus Admin Phase 1
 - Update rule: Update this block and `phase-1-checklist.md` whenever a stable
   checklist state changes. Close the phase only when every in-scope checklist
@@ -48,7 +48,7 @@ start, stop, or restart control.
 
 ## 4. Active Work Stack
 
-- A (OPEN): TA-01 - Freeze the inventory, registration, status, and security
+- A (DONE): TA-01 - Freeze the inventory, registration, status, and security
   contract.
 - B (OPEN): TA-02 - Bootstrap and validate the Cozy CAR project.
 - C (OPEN): TA-03 - Implement the registered-instance model and Operations.
@@ -61,7 +61,7 @@ start, stop, or restart control.
 
 ## 5. Development Items
 
-- [ ] TA-01: Freeze the inventory, registration, status, and security contract.
+- [x] TA-01: Freeze the inventory, registration, status, and security contract.
 - [ ] TA-02: Bootstrap and validate the Cozy CAR project.
 - [ ] TA-03: Implement the registered-instance model and Operations.
 - [ ] TA-04: Provide command and REST projections.
