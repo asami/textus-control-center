@@ -8,7 +8,7 @@ import org.goldenport.Consequence
 import org.goldenport.configuration.{Configuration, ConfigurationTrace, ResolvedConfiguration}
 import org.goldenport.cncf.action.Action
 import org.goldenport.cncf.component.{Component, ComponentCreate, ComponentOrigin}
-import org.goldenport.cncf.context.{DataStoreContext, EntityStoreContext, ExecutionContext, Principal, PrincipalId, RuntimeContext, SecurityContext}
+import org.goldenport.cncf.context.{Capability, DataStoreContext, EntityStoreContext, ExecutionContext, Principal, PrincipalId, RuntimeContext, SecurityContext}
 import org.goldenport.cncf.datastore.{DataStore, DataStoreSpace}
 import org.goldenport.cncf.entity.EntityStoreSpace
 import org.goldenport.cncf.event.EventEngine
@@ -17,6 +17,7 @@ import org.goldenport.cncf.unitofwork.{CommitRecorder, UnitOfWork, UnitOfWorkInt
 import org.goldenport.protocol.{Property, Request}
 import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
+import org.simplemodeling.textus.admin.impl.TextusAdminLauncherRegistrationAuthenticationProvider
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -29,8 +30,8 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       Given("an in-memory Textus Admin component with launcher and operator principals")
       val fixture = _fixture()
       val component = _component()
-      val launchercontext = fixture.context_for(SecurityContext.Privilege.Internal)
-      val operatorcontext = fixture.context_for(SecurityContext.Privilege.ApplicationContentManager)
+      val launchercontext = fixture.launcherContextFor(SecurityContext.Privilege.Internal)
+      val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
       val startedat = Instant.parse("2026-07-18T00:00:00Z")
 
       When("a launcher registers a running server instance")
@@ -96,7 +97,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       Given("a Textus Admin component and a launcher-level principal")
       val fixture = _fixture()
       val component = _component()
-      val launchercontext = fixture.context_for(SecurityContext.Privilege.User)
+      val launchercontext = fixture.launcherContextFor(SecurityContext.Privilege.User)
 
       When("the launcher attempts to list the inventory")
       val result = _execute(component, launchercontext, Request.ofService("SubsystemInventory", "listSubsystems"))
@@ -105,12 +106,27 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       result.toOption shouldBe empty
     }
 
+    "reject registration from an authenticated principal without launcher capability" in {
+      Given("a Textus Admin component and a human-level authenticated principal")
+      val fixture = _fixture()
+      val component = _component()
+      val context = fixture.contextFor(SecurityContext.Privilege.User)
+      val startedat = Instant.parse("2026-07-18T00:00:00Z")
+
+      When("the principal attempts a launcher registration")
+      val result = _execute(component, context, _registration_request("registerSubsystem", startedat))
+
+      Then("the operation requires the launcher-registration capability")
+      result.toOption shouldBe empty
+      result.toString should include ("authenticated launcher principal")
+    }
+
     "reject a heartbeat from a different authenticated launcher principal" in {
       Given("a launcher-owned registered instance")
       val fixture = _fixture()
       val component = _component()
-      val ownercontext = fixture.context_for(SecurityContext.Privilege.Internal)
-      val othercontext = fixture.context_for(SecurityContext.Privilege.User)
+      val ownercontext = fixture.launcherContextFor(SecurityContext.Privilege.Internal)
+      val othercontext = fixture.launcherContextFor(SecurityContext.Privilege.User)
       val startedat = Instant.parse("2026-07-18T00:00:00Z")
       _execute(component, ownercontext, _registration_request("registerSubsystem", startedat)).toOption should not be empty
 
@@ -138,7 +154,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       entitystore = Some(EntityStoreContext(entitystorespace))
     )
     val eventengine = EventEngine.noop(DataStore.noop())
-    def build(privilege: SecurityContext.Privilege): ExecutionContext = {
+    def build(privilege: SecurityContext.Privilege, extraCapabilities: Set[Capability]): ExecutionContext = {
       lazy val context: ExecutionContext = ExecutionContext.withSecurityContext(
         ExecutionContext.withRuntimeContext(base, runtime),
         SecurityContext(
@@ -147,7 +163,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
             def attributes: Map[String, String] =
               privilege.attributes + ("access_token" -> s"token-${privilege.principalId.value}")
           },
-          capabilities = privilege.capabilities,
+          capabilities = privilege.capabilities ++ extraCapabilities,
           level = privilege.level,
           subjectKind = privilege.subjectKind
         )
@@ -220,5 +236,13 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       case _ => Vector.empty
     }
 
-  private final case class _Fixture(context_for: SecurityContext.Privilege => ExecutionContext)
+  private final case class _Fixture(
+    build: (SecurityContext.Privilege, Set[Capability]) => ExecutionContext
+  ) {
+    def contextFor(privilege: SecurityContext.Privilege): ExecutionContext =
+      build(privilege, Set.empty)
+
+    def launcherContextFor(privilege: SecurityContext.Privilege): ExecutionContext =
+      build(privilege, Set(Capability(TextusAdminLauncherRegistrationAuthenticationProvider.CAPABILITY)))
+  }
 }

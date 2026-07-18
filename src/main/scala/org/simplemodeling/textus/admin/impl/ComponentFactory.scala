@@ -13,6 +13,7 @@ import org.goldenport.cncf.directive.Query
 import org.goldenport.cncf.entity.{EntityQuery, EntitySearchScope, EntityVisibilityScope}
 import org.goldenport.cncf.entity.runtime.EntityQueryFieldResolver
 import org.goldenport.cncf.context.SecurityContext
+import org.goldenport.cncf.security.AuthenticationProvider
 import org.goldenport.cncf.security.SecuritySubject
 import org.goldenport.cncf.unitofwork.ExecUowM
 import org.goldenport.protocol.operation.OperationResponse
@@ -54,11 +55,18 @@ abstract class TextusAdminParticipantFactoryBase extends TextusAdminComponent.Fa
     EntityServiceFactoryImpl()
 }
 
-final class TextusAdminPrimaryComponent extends TextusAdminComponent
+final class TextusAdminPrimaryComponent(
+  registrationauthentication: AuthenticationProvider
+) extends TextusAdminComponent {
+  override def authenticationProviders: Vector[AuthenticationProvider] =
+    Vector(registrationauthentication)
+}
 
 object TextusAdminPrimaryFactory extends TextusAdminParticipantFactoryBase with Component.PrimaryComponentFactory {
   override protected def create_Component(params: ComponentCreate): Component =
-    new TextusAdminPrimaryComponent()
+    new TextusAdminPrimaryComponent(
+      TextusAdminLauncherRegistrationAuthenticationProvider.fromConfiguration(params.subsystem.configuration)
+    )
 
   override protected def create_Core(
     params: ComponentCreate,
@@ -219,7 +227,7 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusAdminComponent.Su
 
     protected final def registration_principal: Consequence[String] = {
       val subject = SecuritySubject.current(using executionContext)
-      if (subject.isAuthenticated && executionContext.security.subjectKind != org.goldenport.cncf.context.SubjectKind.Anonymous)
+      if (subject.isAuthenticated && executionContext.security.hasCapability(TextusAdminLauncherRegistrationAuthenticationProvider.CAPABILITY))
         Consequence.success(executionContext.security.principal.id.value)
       else Consequence.securityAuthenticationRequired("Subsystem registration requires an authenticated launcher principal.")
     }

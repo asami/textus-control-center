@@ -67,7 +67,13 @@ The register Operation accepts a registration record with
   a structured state-conflict result.
 - The accepted registration does not assert runtime health.
 
-Only an authenticated launcher credential may call the register Operation.
+Only an authenticated launcher credential may call the register Operation. In
+Phase 1, Textus Admin's built-in machine provider accepts the server-side
+configuration key `textus-admin.registration.authentication.token` and assigns
+the configured `textus-admin.registration.authentication.principal-id` (default
+`textus-admin-launcher`). The provider grants only the
+`launcher_registration` capability; it does not grant human administration
+access.
 
 ## 5. Heartbeat Operation
 
@@ -135,6 +141,13 @@ returns a structured not-found result when absent.
 Human list/detail Operations require normal Textus Admin/CNCF administrative
 authorization. Machine mutation authorization must not grant browser list or
 detail access automatically.
+
+The machine token is server-side deployment configuration, not launcher
+configuration. Deployments must supply it through their secret/configuration
+mechanism and must not place its value in the CAR, registry record, logs, or
+Web UI. When the key is absent, the built-in provider authenticates no launcher
+requests; an enabled launcher continues its target server startup while its
+registration requests are rejected normally.
 
 ## 9. Projections
 

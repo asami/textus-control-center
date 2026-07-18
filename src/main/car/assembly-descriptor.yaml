@@ -1,0 +1,16 @@
+subsystem: textus-admin
+version: 0.1.0-SNAPSHOT
+components:
+  - name: textus-admin
+    version: 0.1.0-SNAPSHOT
+security:
+  authentication:
+    convention: enabled
+    fallback_privilege: disabled
+    providers:
+      - name: textus-admin-launcher-registration
+        component: textus-admin
+        kind: service
+        enabled: true
+        priority: 100
+        default: true

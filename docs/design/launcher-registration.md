@@ -93,12 +93,28 @@ invariants:
 derives its navigation URLs from this value using the CNCF canonical System
 Dashboard and System Admin paths.
 
+Textus Admin holds the matching machine credential separately from this
+launcher group. For Phase 1, deployment configuration supplies
+`textus-admin.registration.authentication.token` and, optionally,
+`textus-admin.registration.authentication.principal-id`. The value is an
+accepted-token secret and is never part of the CAR, launcher configuration,
+registry, logs, or UI. The default principal is `textus-admin-launcher`; a
+deployment can set a distinct principal ID when it provisions a distinct
+credential. An absent token disables the built-in machine authentication match.
+
 ## Authority and Security
 
 Registration mutation is machine-facing and uses a credential distinct from
 human browser administration. Textus Admin must authenticate the launcher
 before it accepts register, heartbeat, or deregister requests. Human list and
 detail access remains subject to the normal CNCF admin policy.
+
+The Phase 1 provider grants only `launcher_registration`; registration Actions
+require that capability in addition to an authenticated service subject. It
+does not grant the administrative capability used by browser and command
+inventory reads. Future IdP/user-account providers can be assembled beside it:
+an unmatched bearer token is passed through instead of being treated as a
+machine-token failure.
 
 Textus Admin binds an accepted instance to the authenticated machine principal
 that registered it. Later heartbeat and deregistration requests must present
