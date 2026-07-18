@@ -22,6 +22,7 @@ lazy val root = project
 
     libraryDependencies += "org.goldenport" %% "goldenport-cncf" % cncfVersion,
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.10" % Test,
+    libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.17.1" % Test,
 
     cozyGeneratorBackend := "cozy",
     cozyDelegateProjectDir := None,
