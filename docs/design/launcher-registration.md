@@ -3,28 +3,28 @@
 ## Purpose
 
 This design defines the boundary by which `textus-launcher` and
-`cncf-launcher` report a server invocation to Textus Admin during Phase 1.
+`cncf-launcher` report a server invocation to Textus Control Center during Phase 1.
 The boundary creates an inventory of launcher-started Subsystem instances. It
-does not make Textus Admin a process supervisor.
+does not make Textus Control Center a process supervisor.
 
 The normative request, status, and projection behavior is defined in
 `docs/spec/launcher-registration.md`.
 
 ## Responsibilities
 
-Textus Admin owns the durable registry read model and exposes it through
+Textus Control Center owns the durable registry read model and exposes it through
 Operations. It decides the derived display status from accepted launcher facts
 and server-observed receipt time.
 
 Each launcher owns one invocation's lifecycle facts. It creates the invocation
 identity, sends registration and heartbeat requests, and reports normal
 termination. The launcher retains ownership of the target process/JVM and
-continues server startup when Textus Admin is unavailable.
+continues server startup when Textus Control Center is unavailable.
 
 The managed Subsystem remains the authority for its own runtime health,
 metrics, Jobs, configuration, and detailed diagnostics. Phase 1 exposes links
 to its System Dashboard and System Admin pages rather than copying those read
-models into Textus Admin.
+models into Textus Control Center.
 
 ## Invocation Lifecycle
 
@@ -65,11 +65,11 @@ server-emulator invocations do not register as server instances.
 Both launchers expose one logical, opt-in configuration group:
 
 ```yaml
-textus-admin:
+textus-control-center:
   registration:
     enabled: false
     endpoint: https://admin.example.test/rest/...
-    token-env: TEXTUS_ADMIN_REGISTRATION_TOKEN
+    token-env: TEXTUS_CONTROL_CENTER_REGISTRATION_TOKEN
     timeout: 2s
     heartbeat-interval: 30s
     host-label: production-a
@@ -89,23 +89,23 @@ invariants:
 - `host-label` is an operator-supplied label; a launcher does not upload a full
   host environment, command line, or unrestricted system properties.
 
-`base-url` identifies the managed Subsystem, not Textus Admin. Textus Admin
+`base-url` identifies the managed Subsystem, not Textus Control Center. Textus Control Center
 derives its navigation URLs from this value using the CNCF canonical System
 Dashboard and System Admin paths.
 
-Textus Admin holds the matching machine credential separately from this
+Textus Control Center holds the matching machine credential separately from this
 launcher group. For Phase 1, deployment configuration supplies
-`textus-admin.registration.authentication.token` and, optionally,
-`textus-admin.registration.authentication.principal-id`. The value is an
+`textus-control-center.registration.authentication.token` and, optionally,
+`textus-control-center.registration.authentication.principal-id`. The value is an
 accepted-token secret and is never part of the CAR, launcher configuration,
-registry, logs, or UI. The default principal is `textus-admin-launcher`; a
+registry, logs, or UI. The default principal is `textus-control-center-launcher`; a
 deployment can set a distinct principal ID when it provisions a distinct
 credential. An absent token disables the built-in machine authentication match.
 
 ## Authority and Security
 
 Registration mutation is machine-facing and uses a credential distinct from
-human browser administration. Textus Admin must authenticate the launcher
+human browser administration. Textus Control Center must authenticate the launcher
 before it accepts register, heartbeat, or deregister requests. Human list and
 detail access remains subject to the normal CNCF admin policy.
 
@@ -122,16 +122,16 @@ the launcher service principal and is bypassed whenever a bearer credential is
 present. A production assembly replaces this local subject with its human IdP
 or user-account provider; the machine provider remains limited to registration.
 
-Textus Admin binds an accepted instance to the authenticated machine principal
+Textus Control Center binds an accepted instance to the authenticated machine principal
 that registered it. Later heartbeat and deregistration requests must present
 that same principal; they cannot use the registry to request lifecycle control
-or write credentials/diagnostic payloads. Textus Admin must not treat a
+or write credentials/diagnostic payloads. Textus Control Center must not treat a
 reported PID as an authority to signal a process.
 
 ## Persistence and Status
 
-Textus Admin persists the latest accepted launcher facts and the server's
-receipt time. `lastSeenAt` is based on the Textus Admin clock so display status
+Textus Control Center persists the latest accepted launcher facts and the server's
+receipt time. `lastSeenAt` is based on the Textus Control Center clock so display status
 does not rely on synchronized launcher clocks.
 
 For Phase 1, status is a derived inventory value:
@@ -147,7 +147,7 @@ components are healthy.
 
 ## Projection Boundary
 
-Register, heartbeat, deregister, list, and detail are Textus Admin Operations.
+Register, heartbeat, deregister, list, and detail are Textus Control Center Operations.
 Automatic REST and command use those Operations directly. The Web inventory is
 an Operation-backed projection and has no separate registry/persistence path.
 
@@ -169,4 +169,4 @@ The following are intentionally outside this design:
 - remote host agents and multi-host reachability management;
 - health/metrics/diagnostics aggregation;
 - alerts, auto-remediation, and retention policy beyond the Phase 1 registry;
-- leader election or high availability for Textus Admin.
+- leader election or high availability for Textus Control Center.

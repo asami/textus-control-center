@@ -1,22 +1,22 @@
 status = draft
 scope = internal development strategy
 
-# Textus Admin Development Strategy
+# Textus Control Center Development Strategy
 
 ## 1. Purpose
 
-Textus Admin provides an operational management subsystem for CNCF Subsystems
+Textus Control Center provides an operational management subsystem for CNCF Subsystems
 started through `textus-launcher` or `cncf-launcher`.
 
-The first responsibility is cross-instance discovery. Textus Admin does not
+The first responsibility is cross-instance discovery. Textus Control Center does not
 replace the System Admin pages already hosted by each Subsystem. It provides a
 management-plane index over those independently running Subsystems and links
 operators to the authoritative per-Subsystem administration surfaces.
 
 ## 2. Development Principles
 
-- Build `textus-admin` as a Cozy-generated CAR project.
-- Keep launcher process ownership in the launcher; Textus Admin must not infer
+- Build `textus-control-center` as a Cozy-generated CAR project.
+- Keep launcher process ownership in the launcher; Textus Control Center must not infer
   ownership from arbitrary operating-system processes.
 - Use one operation model and project it to command, REST, and Web UI.
 - Keep the Web UI operation-backed. It must not maintain a separate UI-only
@@ -29,16 +29,16 @@ operators to the authoritative per-Subsystem administration surfaces.
   - `textus <artifact> server`
   - `cncf server`
   - `cncf <target> server`
-- A Textus Admin outage must not prevent a managed Subsystem from starting or
+- A Textus Control Center outage must not prevent a managed Subsystem from starting or
   continuing to serve its own workload.
 - Registration, heartbeat, and deregistration failures must be observable but
   must not silently change the managed Subsystem lifecycle.
 
 ## 3. Responsibility Boundaries
 
-### 3.1 Textus Admin
+### 3.1 Textus Control Center
 
-Textus Admin owns:
+Textus Control Center owns:
 
 - the registered Subsystem instance read model;
 - registration, heartbeat, deregistration, and list Operations;
@@ -47,7 +47,7 @@ Textus Admin owns:
 - operator-facing links to each Subsystem's own System Dashboard and System
   Admin pages.
 
-Textus Admin does not own in Phase 1:
+Textus Control Center does not own in Phase 1:
 
 - starting, stopping, or restarting managed server processes;
 - arbitrary PID discovery or signal delivery;
@@ -57,7 +57,7 @@ Textus Admin does not own in Phase 1:
 ### 3.2 Textus Launcher
 
 `textus-launcher` remains the owner of a server invocation started with
-`textus <artifact> server`. When Textus Admin integration is enabled, it:
+`textus <artifact> server`. When Textus Control Center integration is enabled, it:
 
 - creates a stable instance identifier for the invocation;
 - reports registration metadata before or during server startup;
@@ -76,7 +76,7 @@ execution:
 
 The integration must not use deprecated `cncf dev server` state as its source
 of truth. Compatibility code may remain in the launcher, but it is outside the
-Textus Admin contract.
+Textus Control Center contract.
 
 ### 3.4 Managed Subsystem
 
@@ -89,7 +89,7 @@ Each managed Subsystem remains authoritative for its own:
 - application and system administration authorization.
 
 Phase 1 records launcher-reported facts and exposes navigation URLs. It does
-not copy these detailed runtime read models into Textus Admin.
+not copy these detailed runtime read models into Textus Control Center.
 
 ## 4. Registration Model
 
@@ -115,7 +115,7 @@ or unrestricted command lines. Process identifiers, when retained for local
 diagnostics, are system-admin-only metadata and are not process-control
 authority.
 
-Textus Admin derives an operator-facing status of `starting`, `running`,
+Textus Control Center derives an operator-facing status of `starting`, `running`,
 `stale`, or `stopped` from the recorded launcher state and heartbeat freshness.
 The exact timeout and transition rules must be fixed in a Phase 1
 design/specification before implementation.
@@ -125,7 +125,7 @@ design/specification before implementation.
 Launcher integration is opt-in and configured independently from ordinary
 CNCF runtime configuration. The effective configuration must identify:
 
-- the Textus Admin registration endpoint;
+- the Textus Control Center registration endpoint;
 - whether registration is enabled;
 - a bounded request timeout;
 - a credential reference or other admitted authentication mechanism;
@@ -183,37 +183,74 @@ Execution ledger:
 - `docs/phase/phase-1.md`
 - `docs/phase/phase-1-checklist.md`
 
-### Phase 2: Runtime Health and Observability Summary
+### Phase 2: Standalone Control Center Bootstrap
+
+Goal: make local CAR management practical by automatically registering canonical
+`cncf` and `textus` launcher invocations with one local Textus Control Center.
+
+Phase 2 keeps the Phase 1 registration protocol and instance model, but makes
+the standalone deployment profile a first-class operating mode. The profile
+has one local management installation and one local operator, while preserving
+the management scope, registration origin, instance, and lease concepts needed
+by a future distributed control plane.
+
+Scope:
+
+- a shared management-scope and registration-origin model that does not create
+  standalone-only instance types;
+- a standalone assembly with local durable state and an installation-scoped
+  operator subject;
+- local launcher discovery/configuration under the CNCF launcher home, with a
+  compatible Textus launcher resolver;
+- local registration-credential bootstrap and reference without storing a
+  secret in launcher configuration or projections;
+- automatic loopback base-URL derivation for canonical local server launches;
+- executable standalone scenarios covering startup, heartbeat, normal exit,
+  Control Center absence, and local Web/REST/command projections.
+
+Explicitly excluded:
+
+- remote-host discovery, host agents, or cross-host reachability;
+- external identity, tenant/organization administration, and operator
+  account lifecycle;
+- lifecycle control, detailed health/metrics aggregation, and remediation.
+
+Execution ledger:
+
+- `docs/phase/phase-2.md`
+- `docs/phase/phase-2-checklist.md`
+
+### Phase 3: Runtime Health and Observability Summary
 
 Goal: enrich registered instances with bounded health, version, component, and
 low-cardinality runtime metric summaries obtained from stable CNCF Operations.
 
-Phase 2 must use each Subsystem's authenticated Operation/REST boundary. It
+Phase 3 must use each Subsystem's authenticated Operation/REST boundary. It
 must not scrape HTML or treat a Web dashboard JSON implementation detail as the
 long-term management API.
 
-### Phase 3: Launcher Lifecycle Control
+### Phase 4: Launcher Lifecycle Control
 
 Goal: add authorized start, stop, and restart requests through an explicit
 launcher/supervisor control contract.
 
-Textus Admin must not signal arbitrary PIDs. Lifecycle control requires a
+Textus Control Center must not signal arbitrary PIDs. Lifecycle control requires a
 launcher-owned or host-agent-owned authority with request identity, audit,
 idempotency, timeout, and structured result semantics.
 
-### Phase 4: Multi-Host Operations and Audit
+### Phase 5: Multi-Host Operations and Audit
 
 Goal: operate registered Subsystems across hosts with explicit host identity,
 credential rotation, role policy, audit history, and connectivity status.
 
-### Phase 5: Operational Automation
+### Phase 6: Operational Automation
 
 Goal: add alerting, maintenance policy, rollout coordination, and bounded
 automatic remediation on top of the explicit lifecycle and audit contracts.
 
 ## 8. Cross-Repository Policy
 
-Textus Admin, `textus-launcher`, and `cncf-launcher` remain separate
+Textus Control Center, `textus-launcher`, and `cncf-launcher` remain separate
 repositories. Phase work must:
 
 - document the registration protocol independently of any one implementation;
@@ -227,8 +264,8 @@ repositories. Phase work must:
 
 Phase 1 is complete only when an operator can start representative Subsystems
 through each canonical launcher path and observe both instances from the same
-Textus Admin registry through command, REST, and Web UI, with stale and normal
+Textus Control Center registry through command, REST, and Web UI, with stale and normal
 termination behavior covered by executable specifications.
 
-Completion of Phase 1 does not imply that Textus Admin can control server
+Completion of Phase 1 does not imply that Textus Control Center can control server
 lifecycle or replace the managed Subsystem's own administration surfaces.

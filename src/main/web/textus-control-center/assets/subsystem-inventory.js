@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const endpoint = "/rest/v1/textus-admin/subsystem-inventory";
+  const endpoint = "/rest/v1/textus-control-center/subsystem-inventory";
   const elements = {
     refresh: document.getElementById("refresh"),
     search: document.getElementById("search"),

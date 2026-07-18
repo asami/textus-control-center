@@ -1,7 +1,7 @@
 /*
  * @version Jul. 18, 2026
  */
-package org.simplemodeling.textus.admin.impl
+package org.simplemodeling.textus.controlcenter.impl
 
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
@@ -12,17 +12,17 @@ import org.goldenport.cncf.context.{Capability, ExecutionContext, PrincipalId, S
 import org.goldenport.cncf.security.{AuthenticationProvider, AuthenticationRequest, AuthenticationResult}
 import org.goldenport.configuration.ResolvedConfiguration
 
-/** Authenticates the Phase 1 launcher machine credential configured on Textus Admin.
+/** Authenticates the Phase 1 launcher machine credential configured on Textus Control Center.
   *
   * This provider never grants human administration capabilities. An absent or
   * mismatched token is deliberately a non-match, so an assembly can later add
   * an independent human identity provider without this provider blocking it.
   */
-private[admin] final class TextusAdminLauncherRegistrationAuthenticationProvider(
+private[controlcenter] final class TextusControlCenterLauncherRegistrationAuthenticationProvider(
   acceptedtoken: Option[String],
   principalid: String
 ) extends AuthenticationProvider {
-  val name: String = TextusAdminLauncherRegistrationAuthenticationProvider.NAME
+  val name: String = TextusControlCenterLauncherRegistrationAuthenticationProvider.NAME
 
   def authenticate(
     request: AuthenticationRequest
@@ -35,7 +35,7 @@ private[admin] final class TextusAdminLauncherRegistrationAuthenticationProvider
             "authenticated" -> "true",
             "role" -> "launcher_registration"
           ),
-          capabilities = Set(Capability(TextusAdminLauncherRegistrationAuthenticationProvider.CAPABILITY)),
+          capabilities = Set(Capability(TextusControlCenterLauncherRegistrationAuthenticationProvider.CAPABILITY)),
           level = SecurityLevel("service"),
           subjectKind = SubjectKind.Service
         )))
@@ -53,17 +53,17 @@ private[admin] final class TextusAdminLauncherRegistrationAuthenticationProvider
     )
 }
 
-private[admin] object TextusAdminLauncherRegistrationAuthenticationProvider {
-  val NAME = "textus-admin-launcher-registration"
+private[controlcenter] object TextusControlCenterLauncherRegistrationAuthenticationProvider {
+  val NAME = "textus-control-center-launcher-registration"
   val CAPABILITY = "launcher_registration"
-  val TOKEN_KEY = "textus-admin.registration.authentication.token"
-  val PRINCIPAL_ID_KEY = "textus-admin.registration.authentication.principal-id"
-  val DEFAULT_PRINCIPAL_ID = "textus-admin-launcher"
+  val TOKEN_KEY = "textus-control-center.registration.authentication.token"
+  val PRINCIPAL_ID_KEY = "textus-control-center.registration.authentication.principal-id"
+  val DEFAULT_PRINCIPAL_ID = "textus-control-center-launcher"
 
   def fromConfiguration(
     configuration: ResolvedConfiguration
-  ): TextusAdminLauncherRegistrationAuthenticationProvider =
-    new TextusAdminLauncherRegistrationAuthenticationProvider(
+  ): TextusControlCenterLauncherRegistrationAuthenticationProvider =
+    new TextusControlCenterLauncherRegistrationAuthenticationProvider(
       ConfigurationAccess.getString(configuration, TOKEN_KEY).map(_.trim).filter(_.nonEmpty),
       ConfigurationAccess.getString(configuration, PRINCIPAL_ID_KEY).map(_.trim).filter(_.nonEmpty).getOrElse(DEFAULT_PRINCIPAL_ID)
     )

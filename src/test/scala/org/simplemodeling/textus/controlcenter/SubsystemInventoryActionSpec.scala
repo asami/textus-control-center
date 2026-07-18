@@ -1,7 +1,7 @@
 /*
- * @version Jul. 18, 2026
+ * @version Jul. 19, 2026
  */
-package org.simplemodeling.textus.admin
+package org.simplemodeling.textus.controlcenter
 
 import cats.~>
 import org.goldenport.Consequence
@@ -17,7 +17,7 @@ import org.goldenport.cncf.unitofwork.{CommitRecorder, UnitOfWork, UnitOfWorkInt
 import org.goldenport.protocol.{Property, Request}
 import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
-import org.simplemodeling.textus.admin.impl.TextusAdminLauncherRegistrationAuthenticationProvider
+import org.simplemodeling.textus.controlcenter.impl.TextusControlCenterLauncherRegistrationAuthenticationProvider
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -27,7 +27,7 @@ import java.time.Instant
 final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen with Matchers {
   "SubsystemInventory Actions" should {
     "persist launcher reports and return only safe administrative projections" in {
-      Given("an in-memory Textus Admin component with launcher and operator principals")
+      Given("an in-memory Textus Control Center component with launcher and operator principals")
       val fixture = _fixture()
       val component = _component()
       val launchercontext = fixture.launcherContextFor(SecurityContext.Privilege.Internal)
@@ -43,7 +43,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         .record
 
       Then("the launcher receives a safe projection without its principal")
-      registered.getString("instanceId") shouldBe Some("textusadminactionspec")
+      registered.getString("instanceId") shouldBe Some("textuscontrolcenteractionspec")
       registered.getString("status") shouldBe Some("starting")
       registered.getAny("registrationPrincipalId") shouldBe empty
 
@@ -67,11 +67,11 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       val loaded = _execute(
         component,
         operatorcontext,
-        Request.ofService("SubsystemInventory", "getSubsystem", properties = List(Property("instanceId", "textusadminactionspec", None)))
+        Request.ofService("SubsystemInventory", "getSubsystem", properties = List(Property("instanceId", "textuscontrolcenteractionspec", None)))
       ).toOption.getOrElse(fail("detail failed")).asInstanceOf[OperationResponse.RecordResponse].record
 
       Then("both administrative reads expose the same safe instance")
-      _records(listed).map(_.getString("instanceId")) shouldBe Vector(Some("textusadminactionspec"))
+      _records(listed).map(_.getString("instanceId")) shouldBe Vector(Some("textuscontrolcenteractionspec"))
       loaded.getString("instanceId") shouldBe registered.getString("instanceId")
       loaded.getAny("registrationPrincipalId") shouldBe empty
 
@@ -91,7 +91,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       val stopped = _execute(
         component,
         launchercontext,
-        Request.ofService("SubsystemInventory", "deregisterSubsystem", properties = List(Property("instanceId", "textusadminactionspec", None)))
+        Request.ofService("SubsystemInventory", "deregisterSubsystem", properties = List(Property("instanceId", "textuscontrolcenteractionspec", None)))
       ).toOption.getOrElse(fail("deregister failed")).asInstanceOf[OperationResponse.RecordResponse].record
 
       Then("the instance is retained as stopped")
@@ -100,7 +100,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
     }
 
     "reject administrative reads from a non-operator principal" in {
-      Given("a Textus Admin component and a launcher-level principal")
+      Given("a Textus Control Center component and a launcher-level principal")
       val fixture = _fixture()
       val component = _component()
       val launchercontext = fixture.launcherContextFor(SecurityContext.Privilege.User)
@@ -113,7 +113,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
     }
 
     "reject registration from an authenticated principal without launcher capability" in {
-      Given("a Textus Admin component and a human-level authenticated principal")
+      Given("a Textus Control Center component and a human-level authenticated principal")
       val fixture = _fixture()
       val component = _component()
       val context = fixture.contextFor(SecurityContext.Privilege.User)
@@ -153,7 +153,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
     )
     val base = ExecutionContext.create()
     val core = RuntimeContext.core(
-      name = "textus-admin-action-spec",
+      name = "textus-control-center-action-spec",
       parent = None,
       observabilityContext = base.observability,
       datastore = Some(DataStoreContext(datastorespace)),
@@ -187,7 +187,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         commitAction = unitofwork => { val _ = unitofwork.commit(); () },
         abortAction = unitofwork => { val _ = unitofwork.rollback(); () },
         disposeAction = _ => (),
-        token = "textus-admin-action-spec"
+        token = "textus-control-center-action-spec"
       )
       context
     }
@@ -196,7 +196,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
 
   private def _component(): Component = {
     val subsystem = Subsystem(
-      name = "textus-admin-action-spec",
+      name = "textus-control-center-action-spec",
       configuration = ResolvedConfiguration(Configuration.empty, ConfigurationTrace.empty)
     )
     val bundle = new impl.ComponentFactory().create(ComponentCreate(subsystem, ComponentOrigin.Main))
@@ -221,10 +221,10 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       operation,
       properties = List(
         Property("protocolVersion", 1, None),
-        Property("instanceId", "textusadminactionspec", None),
+        Property("instanceId", "textuscontrolcenteractionspec", None),
         Property("launcherKind", "textus", None),
-        Property("target", "textusadmin", None),
-        Property("subsystemName", "TextusAdmin", None),
+        Property("target", "textus-control-center", None),
+        Property("subsystemName", "TextusControlCenter", None),
         Property("subsystemVersion", "v010snapshot", None),
         Property("runtimeVersion", "v050", None),
         Property("baseUrl", "http://127.0.0.1:8080", None),
@@ -249,7 +249,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       build(privilege, Set.empty)
 
     def launcherContextFor(privilege: SecurityContext.Privilege): ExecutionContext =
-      build(privilege, Set(Capability(TextusAdminLauncherRegistrationAuthenticationProvider.CAPABILITY)))
+      build(privilege, Set(Capability(TextusControlCenterLauncherRegistrationAuthenticationProvider.CAPABILITY)))
 
     def operatorCapabilityContext: ExecutionContext =
       build(SecurityContext.Privilege.User, Set(Capability(SecurityContext.Privilege.Operator.name)))

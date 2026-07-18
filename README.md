@@ -1,14 +1,15 @@
-# Textus Admin
+# Textus Control Center
 
-Textus Admin is a Cozy-generated CAR that inventories Subsystem server
+Textus Control Center is a Cozy-generated CAR that inventories Subsystem server
 invocations started through the canonical Textus and CNCF launchers. Phase 1
 does not control processes; it records launcher registration, heartbeat, and
 normal termination facts and projects the same inventory through CNCF command,
 REST, and Web surfaces.
 
 Component:
-- artifact: `textus-admin`
-- package: `org.simplemodeling.textus.admin`
+- CAR artifact: `textus-control-center`
+- component: `textus-control-center`
+- package: `org.simplemodeling.textus.controlcenter`
 - version: `0.1.0-SNAPSHOT`
 
 Typical workflow:

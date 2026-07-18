@@ -1,7 +1,7 @@
 /*
  * @version Jul. 18, 2026
  */
-package org.simplemodeling.textus.admin.registry
+package org.simplemodeling.textus.controlcenter.registry
 
 import java.time.{Duration, Instant}
 

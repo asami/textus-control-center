@@ -1,6 +1,13 @@
 apps:
-  - name: textus-admin
-    path: /web/textus-admin
+  - name: textus-control-center
+    path: /web/textus-control-center
     kind: static-form
-    root: /web/textus-admin
-    route: /web/textus-admin
+    root: /web/textus-control-center
+    route: /web/{component}/textus-control-center
+
+routes:
+  - path: /web/textus-control-center
+    kind: alias
+    target:
+      component: TextusControlCenter
+      app: textus-control-center

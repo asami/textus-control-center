@@ -34,8 +34,8 @@ Acceptance evidence:
 
 Status: DONE
 
-- [x] Run `cozy init component` in the empty `textus-admin` repository using
-  derived Textus Admin names and `0.1.0-SNAPSHOT`.
+- [x] Run `cozy init component` in the empty `textus-control-center` repository using
+  derived Textus Control Center names and `0.1.0-SNAPSHOT`.
 - [x] Verify `project.yaml`, `build.sbt`, `project/plugins.sbt`, and the starter
   CML.
 - [x] Install `ai/directive` and root `AGENT.md`/`RULE.md` links when absent.
@@ -97,8 +97,8 @@ Status: DONE
 
 Current evidence:
 
-- `scripts/check-admin-read-flows.sh` verifies the generated Command selector,
-  operation tree, and automatic REST routes in `TextusAdmin.meta.openapi`.
+- `scripts/check-control-center-read-flows.sh` verifies the generated Command selector,
+  operation tree, and automatic REST routes in `TextusControlCenter.meta.openapi`.
 - The canonical command list selector executes with structured output; a
   deployed-CAR REST probe returns the same safe projection and preserves the
   normal structured authorization and invalid-request responses.
@@ -132,7 +132,7 @@ Acceptance evidence:
 
 Current evidence:
 
-- `src/main/web/textus-admin` provides the inventory table and detail dialog;
+- `src/main/web/textus-control-center` provides the inventory table and detail dialog;
   it calls only the automatic `list-subsystems` and `get-subsystem` Operation
   routes with same-origin administrator credentials.
 - `scripts/check-subsystem-inventory-web.sh` verifies the packaged-page
@@ -148,19 +148,19 @@ Current evidence:
 
 ## TA-06: Textus Launcher Integration
 
-Status: OPEN
+Status: DONE
 
-- [ ] Define opt-in Textus Admin endpoint, timeout, credential reference, host
+- [x] Define opt-in Textus Control Center endpoint, timeout, credential reference, host
   label, and external base URL configuration.
-- [ ] Generate one stable instance identifier per
+- [x] Generate one stable instance identifier per
   `textus <artifact> server` invocation.
-- [ ] Send versioned registration metadata without leaking credentials or full
+- [x] Send versioned registration metadata without leaking credentials or full
   environment/command-line data.
-- [ ] Send bounded heartbeats while the launcher invocation is alive.
-- [ ] Send normal termination/deregistration when the server invocation exits.
-- [ ] Treat registration, heartbeat, and deregistration failures as observable
+- [x] Send bounded heartbeats while the launcher invocation is alive.
+- [x] Send normal termination/deregistration when the server invocation exits.
+- [x] Treat registration, heartbeat, and deregistration failures as observable
   warnings that do not terminate the managed server.
-- [ ] Add executable specifications for success, timeout, authorization
+- [x] Add executable specifications for success, timeout, authorization
   failure, admin outage, retry bounds, and normal termination.
 
 Acceptance evidence:
@@ -168,25 +168,37 @@ Acceptance evidence:
 - A representative `textus <artifact> server` invocation appears in Textus
   Admin and transitions deterministically on normal exit or heartbeat expiry.
 
+Evidence:
+
+- `TextusLauncherSpec` covers opt-in lifecycle configuration, bounded requests,
+  rejected registration isolation, outage handling, query encoding, and normal
+  session close.
+- On Jul. 18, 2026, the current `textus-launcher` was run with
+  `textus-control-center:0.1.0-SNAPSHOT server`; Textus Control Center listed the `textus`
+  record as `running` and, after Ctrl-C, as `stopped`.
+- With the configured endpoint unavailable, the same canonical server command
+  reported bounded registration warnings while its System Dashboard responded
+  with HTTP 200 on port 19635.
+
 ## TA-07: CNCF Launcher Integration
 
 Status: DONE
 
-- [x] Define the same opt-in Textus Admin integration for canonical CNCF
+- [x] Define the same opt-in Textus Control Center integration for canonical CNCF
   launcher configuration.
 - [x] Integrate `cncf server` current-project execution.
 - [x] Integrate `cncf <target> server` target-first execution.
 - [x] Use the shared versioned protocol semantics without depending on
   deprecated `cncf dev server` state.
 - [x] Send bounded heartbeat and normal termination notifications.
-- [x] Preserve server startup when Textus Admin is unavailable or rejects the
+- [x] Preserve server startup when Textus Control Center is unavailable or rejects the
   registration.
 - [x] Add executable specifications equivalent to the Textus launcher coverage.
 
 Acceptance evidence:
 
 - Representative current-project and target-first server invocations appear
-  in Textus Admin through the canonical launcher path.
+  in Textus Control Center through the canonical launcher path.
 - Launcher help and documentation teach only the canonical integration path.
 
 Evidence:
@@ -199,21 +211,21 @@ Evidence:
 
 ## TA-08: Cross-Launcher Validation and Closure
 
-Status: OPEN
+Status: DONE
 
-- [ ] Start representative Subsystems through both canonical launchers against
-  one Textus Admin server.
-- [ ] Verify both instances through command, REST, and Web UI.
-- [ ] Verify stable ordering and consistent fields across all projections.
-- [ ] Verify normal termination and forced heartbeat-expiry behavior.
-- [ ] Verify Textus Admin outage does not prevent either managed server from
+- [x] Start representative Subsystems through both canonical launchers against
+  one Textus Control Center server.
+- [x] Verify both instances through command, REST, and Web UI.
+- [x] Verify stable ordering and consistent fields across all projections.
+- [x] Verify normal termination and forced heartbeat-expiry behavior.
+- [x] Verify Textus Control Center outage does not prevent either managed server from
   starting.
-- [ ] Run full relevant tests in `textus-admin`, `textus-launcher`, and
+- [x] Run full relevant tests in `textus-control-center`, `textus-launcher`, and
   `cncf-launcher`.
-- [ ] Run CNCF CAR lint for `textus-admin` and resolve actionable findings.
-- [ ] Run final review and resolve actionable naming, specification, security,
+- [x] Run CNCF CAR lint for `textus-control-center` and resolve actionable findings.
+- [x] Run final review and resolve actionable naming, specification, security,
   and protocol findings.
-- [ ] Update strategy/phase status and record every deferred item in a future
+- [x] Update strategy/phase status and record every deferred item in a future
   phase or dedicated deferred list.
 
 Acceptance evidence:
@@ -221,3 +233,20 @@ Acceptance evidence:
 - The required Phase 1 demonstration is repeatable from documented commands.
 - Every Phase 1 checklist item is checked or explicitly relocated before the
   Stage Status becomes DONE or CLOSED.
+
+Evidence:
+
+- On Jul. 18, 2026, one Textus Control Center server accepted simultaneous canonical
+  `textus <artifact> server` and `cncf <target> server` registrations. The REST
+  list returned consistent safe projections for both launcher kinds, and the
+  packaged Web inventory rendered both running rows, their target/runtime/base
+  URL/last-seen fields, and Dashboard/System Admin links.
+- After Ctrl-C, both current records transitioned to `stopped`; injected-clock
+  executable specifications and the pre-shutdown CNCF integration scenario
+  cover deterministic heartbeat expiry to `stale`.
+- `sbt --batch test` passed in all three repositories. `textus-control-center` also
+  passed `scripts/check-control-center-read-flows.sh`,
+  `scripts/check-subsystem-inventory-web.sh`, `sbt cozyBuildCAR`,
+  `sbt cozyPublishLocalCar`, and CNCF CAR lint. CAR-lint warnings are retained
+  as non-actionable external-publication/component-factory debt; there are no
+  lint failures.

@@ -1,7 +1,7 @@
 /*
  * @version Jul. 18, 2026
  */
-package org.simplemodeling.textus.admin.registry
+package org.simplemodeling.textus.controlcenter.registry
 
 import java.time.{Duration, Instant}
 
@@ -139,14 +139,14 @@ class SubsystemRegistrySpec extends AnyWordSpec with GivenWhenThen with Matchers
 
   private def _input(
     launcherState: String,
-    target: String = "textus-admin"
+    target: String = "textus-control-center"
   ): RegistrationInput =
     RegistrationInput(
       protocolVersion = SubsystemRegistry.protocolVersion,
       instanceId = "instance-1",
       launcherKind = "textus",
       target = target,
-      subsystemName = Some("Textus Admin"),
+      subsystemName = Some("Textus Control Center"),
       subsystemVersion = Some("0.1.0-SNAPSHOT"),
       runtimeVersion = Some("0.5.0"),
       baseUrl = "https://admin.example.test",
@@ -163,8 +163,8 @@ class SubsystemRegistrySpec extends AnyWordSpec with GivenWhenThen with Matchers
       protocolVersion = SubsystemRegistry.protocolVersion,
       instanceId = instanceId,
       launcherKind = "textus",
-      target = "textus-admin",
-      subsystemName = Some("Textus Admin"),
+      target = "textus-control-center",
+      subsystemName = Some("Textus Control Center"),
       subsystemVersion = Some("0.1.0-SNAPSHOT"),
       runtimeVersion = Some("0.5.0"),
       baseUrl = "https://admin.example.test",

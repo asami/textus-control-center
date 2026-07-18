@@ -1,7 +1,7 @@
 /*
  * @version Jul. 18, 2026
  */
-package org.simplemodeling.textus.admin.impl
+package org.simplemodeling.textus.controlcenter.impl
 
 import java.time.{Duration, Instant}
 
@@ -18,25 +18,25 @@ import org.goldenport.cncf.security.SecuritySubject
 import org.goldenport.cncf.unitofwork.ExecUowM
 import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
-import org.simplemodeling.textus.admin.TextusAdminComponent
-import org.simplemodeling.textus.admin.entity.{RegisteredSubsystem as RegisteredSubsystemEntity}
-import org.simplemodeling.textus.admin.entity.create.{RegisteredSubsystem as RegisteredSubsystemCreate}
-import org.simplemodeling.textus.admin.entity.create.RegisteredSubsystem.given
-import org.simplemodeling.textus.admin.entity.query.{RegisteredSubsystem as RegisteredSubsystemQuery}
-import org.simplemodeling.textus.admin.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
+import org.simplemodeling.textus.controlcenter.TextusControlCenterComponent
+import org.simplemodeling.textus.controlcenter.entity.{RegisteredSubsystem as RegisteredSubsystemEntity}
+import org.simplemodeling.textus.controlcenter.entity.create.{RegisteredSubsystem as RegisteredSubsystemCreate}
+import org.simplemodeling.textus.controlcenter.entity.create.RegisteredSubsystem.given
+import org.simplemodeling.textus.controlcenter.entity.query.{RegisteredSubsystem as RegisteredSubsystemQuery}
+import org.simplemodeling.textus.controlcenter.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
 
 final class ComponentFactory extends Component.BundleFactory {
   def primaryFactory: Component.PrimaryComponentFactory =
-    TextusAdminPrimaryFactory
+    TextusControlCenterPrimaryFactory
 
   override def componentletFactories: Vector[Component.ComponentletFactory] =
     Vector.empty
 }
 
-abstract class TextusAdminParticipantFactoryBase extends TextusAdminComponent.Factory {
+abstract class TextusControlCenterParticipantFactoryBase extends TextusControlCenterComponent.Factory {
   protected final val shared_services =
     Vector(
-      TextusAdminComponent.SubsystemInventoryService
+      TextusControlCenterComponent.SubsystemInventoryService
     )
 
   protected final def component_core(
@@ -45,38 +45,38 @@ abstract class TextusAdminParticipantFactoryBase extends TextusAdminComponent.Fa
   ): Component.Core =
     spec_create(name, componentid, shared_services)
 
-  override val SubsystemInventory: TextusAdminComponent.SubsystemInventoryServiceFactory =
+  override val SubsystemInventory: TextusControlCenterComponent.SubsystemInventoryServiceFactory =
     SubsystemInventoryServiceFactoryImpl()
-  override val aggregate: TextusAdminComponent.AggregateServiceFactory =
+  override val aggregate: TextusControlCenterComponent.AggregateServiceFactory =
     AggregateServiceFactoryImpl()
-  override val view: TextusAdminComponent.ViewServiceFactory =
+  override val view: TextusControlCenterComponent.ViewServiceFactory =
     ViewServiceFactoryImpl()
-  override val entity: TextusAdminComponent.EntityServiceFactory =
+  override val entity: TextusControlCenterComponent.EntityServiceFactory =
     EntityServiceFactoryImpl()
 }
 
-final class TextusAdminPrimaryComponent(
+final class TextusControlCenterPrimaryComponent(
   registrationauthentication: AuthenticationProvider
-) extends TextusAdminComponent {
+) extends TextusControlCenterComponent {
   override def authenticationProviders: Vector[AuthenticationProvider] =
     Vector(registrationauthentication)
 }
 
-object TextusAdminPrimaryFactory extends TextusAdminParticipantFactoryBase with Component.PrimaryComponentFactory {
+object TextusControlCenterPrimaryFactory extends TextusControlCenterParticipantFactoryBase with Component.PrimaryComponentFactory {
   override protected def create_Component(params: ComponentCreate): Component =
-    new TextusAdminPrimaryComponent(
-      TextusAdminLauncherRegistrationAuthenticationProvider.fromConfiguration(params.subsystem.configuration)
+    new TextusControlCenterPrimaryComponent(
+      TextusControlCenterLauncherRegistrationAuthenticationProvider.fromConfiguration(params.subsystem.configuration)
     )
 
   override protected def create_Core(
     params: ComponentCreate,
     comp: Component
   ): Component.Core =
-    component_core(TextusAdminComponent.name, TextusAdminComponent.componentId)
+    component_core(TextusControlCenterComponent.name, TextusControlCenterComponent.componentId)
 }
 
-final class SubsystemInventoryServiceFactoryImpl extends TextusAdminComponent.SubsystemInventoryServiceFactory {
-  import TextusAdminComponent.SubsystemInventoryService.*
+final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComponent.SubsystemInventoryServiceFactory {
+  import TextusControlCenterComponent.SubsystemInventoryService.*
 
   override def createRegisterSubsystemActionCall(
     core: ActionCall.Core,
@@ -227,7 +227,7 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusAdminComponent.Su
 
     protected final def registration_principal: Consequence[String] = {
       val subject = SecuritySubject.current(using executionContext)
-      if (subject.isAuthenticated && executionContext.security.hasCapability(TextusAdminLauncherRegistrationAuthenticationProvider.CAPABILITY))
+      if (subject.isAuthenticated && executionContext.security.hasCapability(TextusControlCenterLauncherRegistrationAuthenticationProvider.CAPABILITY))
         Consequence.success(executionContext.security.principal.id.value)
       else Consequence.securityAuthenticationRequired("Subsystem registration requires an authenticated launcher principal.")
     }
@@ -382,19 +382,19 @@ object SubsystemInventoryServiceFactoryImpl {
   def apply(): SubsystemInventoryServiceFactoryImpl = new SubsystemInventoryServiceFactoryImpl()
 }
 
-final class EntityServiceFactoryImpl extends TextusAdminComponent.EntityServiceFactory
+final class EntityServiceFactoryImpl extends TextusControlCenterComponent.EntityServiceFactory
 
 object EntityServiceFactoryImpl {
   def apply(): EntityServiceFactoryImpl = new EntityServiceFactoryImpl()
 }
 
-final class AggregateServiceFactoryImpl extends TextusAdminComponent.AggregateServiceFactory
+final class AggregateServiceFactoryImpl extends TextusControlCenterComponent.AggregateServiceFactory
 
 object AggregateServiceFactoryImpl {
   def apply(): AggregateServiceFactoryImpl = new AggregateServiceFactoryImpl()
 }
 
-final class ViewServiceFactoryImpl extends TextusAdminComponent.ViewServiceFactory
+final class ViewServiceFactoryImpl extends TextusControlCenterComponent.ViewServiceFactory
 
 object ViewServiceFactoryImpl {
   def apply(): ViewServiceFactoryImpl = new ViewServiceFactoryImpl()

@@ -1,13 +1,13 @@
 project:
-  name: "textus-admin"
-  title: "Textus Admin"
+  name: "textus-control-center"
+  title: "Textus Control Center"
   kind: car
   organization: "org.textus"
-  scalaPackage: "org.simplemodeling.textus.admin"
+  scalaPackage: "org.simplemodeling.textus.controlcenter"
   component:
-    name: "textus-admin"
-    className: "TextusAdmin"
-    displayName: "Textus Admin"
+    name: "textus-control-center"
+    className: "TextusControlCenter"
+    displayName: "Textus Control Center"
     version: "0.1.0-SNAPSHOT"
     config:
       textus.server.default-port: "18013"
@@ -37,10 +37,11 @@ packaging:
         excluded: []
         tested:
           - "0.5.0"
+          - "0.5.1-SNAPSHOT"
 
 warehouse:
   repository_artifacts:
     include:
       - car
     modules:
-      - "textus-admin"
+      - "textus-control-center"

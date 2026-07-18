@@ -6,16 +6,16 @@ server` behavior.
 
 | Operation | Command selector | Automatic REST path |
 |---|---|---|
-| Register | `textus-admin.subsystem-inventory.register-subsystem` | `GET /rest/v1/textus-admin/subsystem-inventory/register-subsystem` |
-| Heartbeat | `textus-admin.subsystem-inventory.heartbeat-subsystem` | `GET /rest/v1/textus-admin/subsystem-inventory/heartbeat-subsystem` |
-| Deregister | `textus-admin.subsystem-inventory.deregister-subsystem` | `GET /rest/v1/textus-admin/subsystem-inventory/deregister-subsystem` |
-| List | `textus-admin.subsystem-inventory.list-subsystems` | `GET /rest/v1/textus-admin/subsystem-inventory/list-subsystems` |
-| Detail | `textus-admin.subsystem-inventory.get-subsystem` | `GET /rest/v1/textus-admin/subsystem-inventory/get-subsystem` |
+| Register | `textus-control-center.subsystem-inventory.register-subsystem` | `GET /rest/v1/textus-control-center/subsystem-inventory/register-subsystem` |
+| Heartbeat | `textus-control-center.subsystem-inventory.heartbeat-subsystem` | `GET /rest/v1/textus-control-center/subsystem-inventory/heartbeat-subsystem` |
+| Deregister | `textus-control-center.subsystem-inventory.deregister-subsystem` | `GET /rest/v1/textus-control-center/subsystem-inventory/deregister-subsystem` |
+| List | `textus-control-center.subsystem-inventory.list-subsystems` | `GET /rest/v1/textus-control-center/subsystem-inventory/list-subsystems` |
+| Detail | `textus-control-center.subsystem-inventory.get-subsystem` | `GET /rest/v1/textus-control-center/subsystem-inventory/get-subsystem` |
 
 For example, an authenticated administrative command invocation is:
 
 ```sh
-cncf command textus-admin.subsystem-inventory.list-subsystems
+cncf command textus-control-center.subsystem-inventory.list-subsystems
 ```
 
 The corresponding REST request is:
@@ -23,7 +23,7 @@ The corresponding REST request is:
 ```sh
 curl --fail-with-body \\
   -H "Authorization: Bearer $TEXTUS_ADMIN_TOKEN" \\
-  'https://admin.example.test/rest/v1/textus-admin/subsystem-inventory/list-subsystems?text=sample&offset=0&limit=100'
+  'https://admin.example.test/rest/v1/textus-control-center/subsystem-inventory/list-subsystems?text=sample&offset=0&limit=100'
 ```
 
 Registration operations require an authenticated launcher principal. List and
@@ -32,6 +32,6 @@ unauthorized requests are returned as CNCF structured Conclusions; automatic
 REST maps them to the corresponding HTTP status. The projected response never
 contains `registrationPrincipalId`.
 
-`TextusAdmin.meta.openapi` is the machine-readable source of the automatic
-REST paths. `scripts/check-admin-read-flows.sh` verifies the generated
+`TextusControlCenter.meta.openapi` is the machine-readable source of the automatic
+REST paths. `scripts/check-control-center-read-flows.sh` verifies the generated
 selectors and OpenAPI routes.

@@ -1,5 +1,5 @@
 status = draft
-scope = launcher-to-textus-admin inventory protocol
+scope = launcher-to-textus-control-center inventory protocol
 
 # Launcher Registration Specification
 
@@ -18,7 +18,7 @@ the generated component and service identifiers.
 - **registration**: the first accepted report for an instance.
 - **heartbeat**: a later liveness report for an already registered instance.
 - **deregistration**: a normal terminal report from the owning launcher.
-- **receipt time**: the Textus Admin clock time at which a report is accepted.
+- **receipt time**: the Textus Control Center clock time at which a report is accepted.
 - **derived status**: the operator-facing state calculated from the persisted
   launcher state and receipt time.
 
@@ -39,9 +39,9 @@ Every accepted registration record contains the following logical fields.
 | `hostLabel` | yes | Operator-supplied safe host/environment label. |
 | `startedAt` | yes | Invocation start time reported by the launcher. |
 | `launcherState` | yes | `starting`, `running`, or `stopped`. |
-| `lastSeenAt` | generated | Receipt time assigned by Textus Admin; not supplied by the launcher. |
+| `lastSeenAt` | generated | Receipt time assigned by Textus Control Center; not supplied by the launcher. |
 
-Textus Admin also retains the authenticated `registrationPrincipalId` as
+Textus Control Center also retains the authenticated `registrationPrincipalId` as
 non-projected ownership metadata. It is assigned from the accepted machine
 credential and is not a launcher request field.
 
@@ -68,10 +68,10 @@ The register Operation accepts a registration record with
 - The accepted registration does not assert runtime health.
 
 Only an authenticated launcher credential may call the register Operation. In
-Phase 1, Textus Admin's built-in machine provider accepts the server-side
-configuration key `textus-admin.registration.authentication.token` and assigns
-the configured `textus-admin.registration.authentication.principal-id` (default
-`textus-admin-launcher`). The provider grants only the
+Phase 1, Textus Control Center's built-in machine provider accepts the server-side
+configuration key `textus-control-center.registration.authentication.token` and assigns
+the configured `textus-control-center.registration.authentication.principal-id` (default
+`textus-control-center-launcher`). The provider grants only the
 `launcher_registration` capability; it does not grant human administration
 access.
 
@@ -82,7 +82,7 @@ from the registration record. Its `launcherState` must be `running`.
 
 - The instance must already exist.
 - The immutable identity must match the registered record.
-- Textus Admin refreshes mutable metadata and assigns a new `lastSeenAt`.
+- Textus Control Center refreshes mutable metadata and assigns a new `lastSeenAt`.
 - A heartbeat for a missing instance fails with a structured not-found result;
   it does not create an instance implicitly.
 - A heartbeat after accepted deregistration is rejected with a structured
@@ -107,7 +107,7 @@ call the deregister Operation.
 
 ## 7. Derived Status
 
-Textus Admin calculates status using its own clock and the configured positive
+Textus Control Center calculates status using its own clock and the configured positive
 stale threshold `T`.
 
 | Persisted launcher state | Condition | Derived status |
@@ -117,7 +117,7 @@ stale threshold `T`.
 | `running` | `now - lastSeenAt < T` | `running` |
 | `starting` or `running` | `now - lastSeenAt >= T` | `stale` |
 
-`lastSeenAt` is assigned only by Textus Admin. A launcher-supplied clock cannot
+`lastSeenAt` is assigned only by Textus Control Center. A launcher-supplied clock cannot
 extend freshness. Derived status is recomputed at read time; a background job
 is not required for correctness.
 
@@ -138,7 +138,7 @@ The list must order results by descending `lastSeenAt`, then ascending
 `instanceId`, so ties are deterministic. Detail lookup uses `instanceId` and
 returns a structured not-found result when absent.
 
-Human list/detail Operations require normal Textus Admin/CNCF administrative
+Human list/detail Operations require normal Textus Control Center/CNCF administrative
 authorization. Machine mutation authorization must not grant browser list or
 detail access automatically.
 
@@ -172,7 +172,7 @@ When integration is enabled, a launcher attempts register before server
 invocation, heartbeat while the invocation is active, and deregister in its
 `finally` boundary.
 
-If endpoint resolution, authentication, transport, timeout, or Textus Admin
+If endpoint resolution, authentication, transport, timeout, or Textus Control Center
 Operation execution fails, the launcher:
 
 - emits a sanitized warning with no credential value;

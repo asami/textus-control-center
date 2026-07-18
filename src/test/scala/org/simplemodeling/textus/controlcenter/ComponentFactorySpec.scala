@@ -1,7 +1,7 @@
 /*
  * @version Jul. 18, 2026
  */
-package org.simplemodeling.textus.admin
+package org.simplemodeling.textus.controlcenter
 
 import org.goldenport.configuration.{Configuration, ConfigurationTrace, ConfigurationValue, ResolvedConfiguration}
 import org.goldenport.cncf.component.{Component, ComponentCreate, ComponentOrigin}
@@ -13,20 +13,20 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 class ComponentFactorySpec extends AnyWordSpec with GivenWhenThen with Matchers {
-  "Textus Admin component factory" should {
+  "Textus Control Center component factory" should {
     "expose the generated primary component factory" in {
-      Given("the Cozy-generated Textus Admin bundle factory")
+      Given("the Cozy-generated Textus Control Center bundle factory")
       val factory = new impl.ComponentFactory()
 
       When("the runtime asks for its primary factory")
       val primary = factory.primaryFactory
 
-      Then("the factory provides the Textus Admin primary component")
-      primary shouldBe impl.TextusAdminPrimaryFactory
+      Then("the factory provides the Textus Control Center primary component")
+      primary shouldBe impl.TextusControlCenterPrimaryFactory
     }
 
     "publish only the inventory service rather than generic Entity operations" in {
-      Given("a Textus Admin component assembled into a subsystem")
+      Given("a Textus Control Center component assembled into a subsystem")
       val component = _component()
 
       When("CNCF projects the component service boundary")
@@ -34,14 +34,14 @@ class ComponentFactorySpec extends AnyWordSpec with GivenWhenThen with Matchers 
 
       Then("only SubsystemInventory is published as a domain service")
       services.filterNot(name => Set("meta", "system").contains(name)) shouldBe
-        Vector(TextusAdminComponent.SubsystemInventoryService.name)
+        Vector(TextusControlCenterComponent.SubsystemInventoryService.name)
     }
 
     "authenticate a configured launcher token as a service without administration capability" in {
-      Given("a Textus Admin component with a server-side launcher credential")
+      Given("a Textus Control Center component with a server-side launcher credential")
       val configuration = Configuration(Map(
-        "textus-admin.registration.authentication.token" -> ConfigurationValue.StringValue("component-factory-test-token"),
-        "textus-admin.registration.authentication.principal-id" -> ConfigurationValue.StringValue("component-factory-launcher")
+        "textus-control-center.registration.authentication.token" -> ConfigurationValue.StringValue("component-factory-test-token"),
+        "textus-control-center.registration.authentication.principal-id" -> ConfigurationValue.StringValue("component-factory-launcher")
       ))
       val component = _component(configuration)
       val provider = component.authenticationProviders.head
@@ -63,13 +63,13 @@ class ComponentFactorySpec extends AnyWordSpec with GivenWhenThen with Matchers 
 
   private def _component(configuration: Configuration = Configuration.empty): Component = {
     val subsystem = Subsystem(
-      name = "textus-admin-component-factory-spec",
+      name = "textus-control-center-component-factory-spec",
       configuration = ResolvedConfiguration(configuration, ConfigurationTrace.empty)
     )
     val bundle = new impl.ComponentFactory().create(ComponentCreate(subsystem, ComponentOrigin.Main))
     subsystem.add(bundle)
-    subsystem.components.find(_.name == TextusAdminComponent.name).getOrElse(
-      fail("Textus Admin component is missing")
+    subsystem.components.find(_.name == TextusControlCenterComponent.name).getOrElse(
+      fail("Textus Control Center component is missing")
     )
   }
 }

@@ -1,14 +1,14 @@
 # COMPONENT
 
-## TextusAdmin
+## TextusControlCenter
 
 ### PACKAGE
 
-org.simplemodeling.textus.admin
+org.simplemodeling.textus.controlcenter
 
 ### DESCRIPTION
 
-Textus Admin CAR bundle root for the launcher-started Subsystem inventory.
+Textus Control Center CAR bundle root for the launcher-started Subsystem inventory.
 
 ### COMPONENTLET
 
@@ -20,7 +20,7 @@ Textus Admin CAR bundle root for the launcher-started Subsystem inventory.
 
 ## public-subsystem-inventory
 
-- component :: TextusAdmin
+- component :: TextusControlCenter
 - kind :: participant
 
 ### DESCRIPTION
@@ -31,7 +31,7 @@ Machine-facing Subsystem registration participant.
 
 ## subsystem-inventory-admin
 
-- component :: TextusAdmin
+- component :: TextusControlCenter
 - kind :: participant
 
 ### DESCRIPTION

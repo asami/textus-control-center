@@ -1,14 +1,14 @@
-subsystem: textus-admin
+subsystem: textus-control-center
 version: 0.1.0-SNAPSHOT
 components:
-  - name: textus-admin
+  - name: textus-control-center
     version: 0.1.0-SNAPSHOT
 security:
   authentication:
     convention: enabled
     fallback_privilege: disabled
     local_subject:
-      id: textus-admin-local-operator
+      id: textus-control-center-local-operator
       roles:
         - operator
       capabilities:
@@ -17,8 +17,8 @@ security:
       attributes:
         installation: standalone
     providers:
-      - name: textus-admin-launcher-registration
-        component: textus-admin
+      - name: textus-control-center-launcher-registration
+        component: textus-control-center
         kind: service
         enabled: true
         priority: 100

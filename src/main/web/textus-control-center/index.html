@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Subsystem inventory | Textus Control Center</title>
+    <link rel="stylesheet" href="/web/assets/bootstrap.min.css">
+    <link rel="stylesheet" href="/web/assets/textus-bootstrap-material.css">
+    <link rel="stylesheet" href="/web/assets/textus-material-icons.css">
+    <link rel="stylesheet" href="/web/textus-control-center/assets/subsystem-inventory.css">
+  </head>
+  <body class="control-center-app">
+    <a class="control-center-skip-link" href="#control-center-main">Skip to main content</a>
+    <header class="control-center-topbar navbar navbar-expand-lg bg-white border-bottom sticky-top">
+      <div class="container-fluid">
+        <a class="navbar-brand fw-semibold" href="/web/textus-control-center">Textus Control Center</a>
+        <span class="control-center-topbar-meta d-none d-md-inline">Subsystem operations</span>
+        <nav class="d-flex align-items-center gap-2 ms-auto" aria-label="Control Center links">
+          <a class="btn btn-sm btn-outline-secondary" href="/web/system/dashboard">System dashboard</a>
+          <a class="btn btn-sm btn-outline-secondary" href="/web/system/admin">System admin</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="container-fluid px-0 control-center-shell">
+      <div class="row g-0">
+        <nav class="col-12 d-lg-none bg-white border-bottom p-2" aria-label="Control Center mobile navigation">
+          <details class="control-center-mobile-menu">
+            <summary class="btn btn-sm btn-outline-secondary w-100 text-start">Menu</summary>
+            <div class="card shadow-sm mt-2">
+              <div class="card-body p-2">
+                <p class="control-center-nav-label">Control Center</p>
+                <div class="list-group list-group-flush">
+                  <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link is-active" href="/web/textus-control-center" aria-current="page"><span class="textus-material-icon" data-icon="api" aria-hidden="true"></span>Subsystem inventory</a>
+                </div>
+                <p class="control-center-nav-label mt-3">Runtime</p>
+                <div class="list-group list-group-flush">
+                  <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link" href="/web/system/dashboard"><span class="textus-material-icon" data-icon="timeline" aria-hidden="true"></span>System dashboard</a>
+                  <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link" href="/web/system/admin"><span class="textus-material-icon" data-icon="edit" aria-hidden="true"></span>System admin</a>
+                  <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link" href="/man/textus-control-center"><span class="textus-material-icon" data-icon="event" aria-hidden="true"></span>Manual</a>
+                </div>
+              </div>
+            </div>
+          </details>
+        </nav>
+
+        <aside class="d-none d-lg-block col-lg-2 bg-white border-end control-center-sidebar">
+          <nav class="p-3 overflow-auto control-center-sidebar-nav" aria-label="Control Center navigation">
+            <section>
+              <p class="control-center-nav-label">Control Center</p>
+              <div class="list-group list-group-flush">
+                <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link is-active" href="/web/textus-control-center" aria-current="page"><span class="textus-material-icon" data-icon="api" aria-hidden="true"></span>Subsystem inventory</a>
+              </div>
+            </section>
+            <section class="mt-4">
+              <p class="control-center-nav-label">Runtime</p>
+              <div class="list-group list-group-flush">
+                <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link" href="/web/system/dashboard"><span class="textus-material-icon" data-icon="timeline" aria-hidden="true"></span>System dashboard</a>
+                <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link" href="/web/system/admin"><span class="textus-material-icon" data-icon="edit" aria-hidden="true"></span>System admin</a>
+              </div>
+            </section>
+            <section class="mt-4">
+              <p class="control-center-nav-label">Resources</p>
+              <div class="list-group list-group-flush">
+                <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link" href="/man/textus-control-center"><span class="textus-material-icon" data-icon="event" aria-hidden="true"></span>Manual</a>
+              </div>
+            </section>
+          </nav>
+        </aside>
+
+        <main id="control-center-main" class="col-12 col-lg-10 control-center-main" aria-labelledby="page-title" tabindex="-1">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">Textus Control Center</p>
+          <h1 id="page-title">Subsystem inventory</h1>
+          <p class="lead">Launcher-started server instances visible to administrators.</p>
+        </div>
+        <button id="refresh" class="button" type="button"><span class="textus-material-icon" data-icon="refresh" aria-hidden="true"></span>Refresh</button>
+      </header>
+
+      <section class="toolbar" aria-label="Inventory filters">
+        <label for="search">Filter instances</label>
+        <input id="search" type="search" autocomplete="off" placeholder="Instance, launcher, target, or host">
+      </section>
+
+      <section id="loading" class="notice" role="status">Loading subsystem inventory…</section>
+      <section id="empty" class="notice" hidden>No launcher-started Subsystems are registered.</section>
+      <section id="error" class="notice error" role="alert" hidden></section>
+
+      <section id="inventory" class="table-responsive" aria-live="polite" hidden>
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Status</th>
+              <th scope="col">Instance</th>
+              <th scope="col">Launcher / target</th>
+              <th scope="col">Subsystem / runtime</th>
+              <th scope="col">Base URL</th>
+              <th scope="col">Last seen</th>
+              <th scope="col">Links</th>
+            </tr>
+          </thead>
+          <tbody id="instances"></tbody>
+        </table>
+      </section>
+        </main>
+      </div>
+    </div>
+
+    <dialog id="detail-dialog" aria-labelledby="detail-title">
+      <article>
+        <header class="dialog-header">
+          <h2 id="detail-title">Subsystem detail</h2>
+          <button id="close-detail" class="button secondary" type="button">Close</button>
+        </header>
+        <dl id="detail-fields"></dl>
+      </article>
+    </dialog>
+
+    <script src="/web/textus-control-center/assets/subsystem-inventory.js" defer></script>
+  </body>
+</html>
