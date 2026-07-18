@@ -26,17 +26,17 @@ Acceptance evidence:
 
 ## SC-02: Standalone Locator and Credential Bootstrap
 
-Status: OPEN
+Status: DONE
 
-- [ ] Define the machine-level Control Center locator under the CNCF launcher
+- [x] Define the machine-level Control Center locator under the CNCF launcher
   home and its configuration precedence.
-- [ ] Define the compatible Textus launcher resolution path for the same
+- [x] Define the compatible Textus launcher resolution path for the same
   logical locator.
-- [ ] Define local installation identity and machine credential bootstrap,
+- [x] Define local installation identity and machine credential bootstrap,
   rotation, and loss/recovery behavior.
-- [ ] Define credential references that keep token values out of tracked
+- [x] Define credential references that keep token values out of tracked
   launcher configuration.
-- [ ] Define explicit control-plane overrides for remote endpoints and external
+- [x] Define explicit control-plane overrides for remote endpoints and external
   identity.
 
 Acceptance evidence:
