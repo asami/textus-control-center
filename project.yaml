@@ -9,6 +9,17 @@ project:
     className: "TextusAdmin"
     displayName: "Textus Admin"
     version: "0.1.0-SNAPSHOT"
+    config:
+      textus.server.default-port: "18013"
+
+build:
+  scalaVersion: "3.3.8"
+  dependencies:
+    compile:
+      - "org.goldenport::goldenport-cncf:0.5.1-SNAPSHOT"
+    test:
+      - "org.scalatest::scalatest:3.2.19"
+      - "org.scalacheck::scalacheck:1.17.1"
 
 publication:
   source_manifest:
@@ -17,6 +28,9 @@ publication:
 packaging:
   kind: car
   car:
+    manifest_metadata:
+      boundedContext: "subsystem-operation"
+      domain: "system-administration"
     runtime:
       cncf:
         minimum: "0.5.0"

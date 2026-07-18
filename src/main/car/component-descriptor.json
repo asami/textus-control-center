@@ -1,5 +1,8 @@
 {
   "name": "textus-admin",
   "version": "0.1.0-SNAPSHOT",
-  "component": "textus-admin"
+  "component": "textus-admin",
+  "config": {
+    "textus.server.default-port": "18013"
+  }
 }
