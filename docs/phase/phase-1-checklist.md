@@ -85,15 +85,22 @@ Evidence:
 
 Status: OPEN
 
-- [ ] Expose list and detail through canonical CNCF command selectors.
-- [ ] Support canonical structured output suitable for scripts.
-- [ ] Expose register, heartbeat, deregister, list, and detail through automatic
+- [x] Expose list and detail through canonical CNCF command selectors.
+- [x] Support canonical structured output suitable for scripts.
+- [x] Expose register, heartbeat, deregister, list, and detail through automatic
   REST.
 - [ ] Verify REST status and structured `Conclusion` mapping for invalid,
   unauthorized, missing, and conflicting requests.
 - [ ] Verify command and REST return the same semantic read model.
-- [ ] Document command examples and REST routes generated from the accepted
+- [x] Document command examples and REST routes generated from the accepted
   component/service/operation names.
+
+Current evidence:
+
+- `scripts/check-admin-read-flows.sh` verifies the generated Command selector,
+  operation tree, and automatic REST routes in `TextusAdmin.meta.openapi`.
+- A local server probe verifies that anonymous REST list requests receive the
+  same administrative authorization conclusion as the Command path.
 
 Acceptance evidence:
 
