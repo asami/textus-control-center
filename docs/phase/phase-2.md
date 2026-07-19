@@ -2,14 +2,14 @@
 
 Stage Status:
 
-- Current status: IN PROGRESS
-- Current step: SC-05 - Integrate automatic local `textus` launcher registration.
+- Current status: COMPLETE
+- Current step: All Phase 2 standalone bootstrap acceptance criteria satisfied.
 - Owner: Textus Control Center Phase 2
 - Update rule: Update this block and `phase-2-checklist.md` whenever a stable
   checklist state changes. Close the phase only when every in-scope checklist
   item is complete or explicitly relocated.
 
-status = in-progress
+status = complete
 
 ## 1. Purpose
 
@@ -61,8 +61,8 @@ profile.
 - B (DONE): SC-02 - Define standalone locator and credential bootstrap.
 - C (DONE): SC-03 - Implement standalone Control Center assembly/state.
 - D (DONE): SC-04 - Integrate automatic local `cncf` launcher registration.
-- E (IN PROGRESS): SC-05 - Integrate automatic local `textus` launcher registration.
-- F (OPEN): SC-06 - Verify local inventory, failure isolation, and profile
+- E (DONE): SC-05 - Integrate automatic local `textus` launcher registration.
+- F (DONE): SC-06 - Verify local inventory, failure isolation, and profile
   separation end to end.
 
 ## 5. Development Items
@@ -74,9 +74,9 @@ profile.
 - [x] SC-03: Implement the standalone assembly and local durable state.
 - [x] SC-04: Enable automatic local registration for canonical `cncf` server
   launches.
-- [ ] SC-05: Enable automatic local registration for canonical `textus`
+- [x] SC-05: Enable automatic local registration for canonical `textus`
   server launches.
-- [ ] SC-06: Complete executable standalone acceptance scenarios and Phase 2
+- [x] SC-06: Complete executable standalone acceptance scenarios and Phase 2
   closure.
 
 Detailed task tracking and acceptance evidence are in

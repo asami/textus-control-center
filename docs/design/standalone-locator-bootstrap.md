@@ -69,12 +69,12 @@ not written by standalone bootstrap.
 
 ## Base URL Policy
 
-The launcher's explicit external base URL wins. For standalone registration
-without that override, the launcher derives `http://127.0.0.1:<effective-port>`
-from the same effective server configuration/port assignment supplied to CNCF
-runtime. The registration is delayed until this value is known; it must not
-guess a host address or publish a default port when runtime selected another
-instance port.
+The launcher's explicit external base URL wins. For standalone registration,
+an explicit `--textus.server.port` or `--cncf.server.port` supplies
+`http://127.0.0.1:<effective-port>`. Otherwise the launcher waits for the same
+effective server configuration/port assignment supplied to CNCF runtime. It
+must not guess a host address or publish a default port when runtime selected
+another instance port.
 
 ## Security Boundary
 

@@ -69,11 +69,12 @@ reference.
 
 ## 5. Base URL
 
-An explicit external `base-url` is preserved. Otherwise standalone registration
-uses `http://127.0.0.1:<effective-port>`, where the effective port is the same
-port assigned to the launched server by CNCF runtime. Registration must wait
-for that assignment. If no safe effective port is available, the launcher must
-skip registration and continue server startup.
+An explicit external `base-url` is preserved. Otherwise an explicit
+`--textus.server.port` or `--cncf.server.port` supplies the effective local
+port and standalone registration uses `http://127.0.0.1:<effective-port>`.
+Without that explicit port, registration waits for the same effective port
+assigned to the launched server by CNCF runtime. If no safe effective port is
+available, the launcher must skip registration and continue server startup.
 
 Control-plane mode must have an explicit external base URL or an independently
 documented external URL resolver; it must not inherit standalone loopback

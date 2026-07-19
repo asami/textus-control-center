@@ -86,16 +86,16 @@ Acceptance evidence:
 
 ## SC-05: Automatic Local Textus Launcher Registration
 
-Status: OPEN
+Status: DONE
 
-- [ ] Resolve the shared standalone locator for canonical
+- [x] Resolve the shared standalone locator for canonical
   `textus <artifact> server` execution.
-- [ ] Derive or preserve the local base URL using the same policy as CNCF
+- [x] Derive or preserve the local base URL using the same policy as CNCF
   launcher execution.
-- [ ] Register, heartbeat, and deregister through the shared protocol without
+- [x] Register, heartbeat, and deregister through the shared protocol without
   inline registration arguments.
-- [ ] Preserve startup when the local Control Center is unavailable.
-- [ ] Add executable specifications equivalent to the CNCF launcher coverage.
+- [x] Preserve startup when the local Control Center is unavailable.
+- [x] Add executable specifications equivalent to the CNCF launcher coverage.
 
 Acceptance evidence:
 
@@ -104,19 +104,19 @@ Acceptance evidence:
 
 ## SC-06: Standalone Acceptance and Profile Separation
 
-Status: OPEN
+Status: DONE
 
-- [ ] Start a standalone Textus Control Center and representative CARs through
+- [x] Start a standalone Textus Control Center and representative CARs through
   both launcher types using only the installed machine-level locator.
-- [ ] Verify the same records through command, REST, and Web UI.
-- [ ] Verify heartbeat freshness, normal termination, and unavailable-Control
+- [x] Verify the same records through command, REST, and Web UI.
+- [x] Verify heartbeat freshness, normal termination, and unavailable-Control
   Center startup isolation.
-- [ ] Verify that credentials and internal profile diagnostics are absent from
+- [x] Verify that credentials and internal profile diagnostics are absent from
   all projections.
-- [ ] Verify that a control-plane configuration override requires explicit
+- [x] Verify that a control-plane configuration override requires explicit
   endpoint and identity configuration rather than silently using standalone
   assumptions.
-- [ ] Run relevant tests in Textus Control Center, `textus-launcher`, and
+- [x] Run relevant tests in Textus Control Center, `textus-launcher`, and
   `cncf-launcher`, then complete final review and CAR lint.
 
 Acceptance evidence:
