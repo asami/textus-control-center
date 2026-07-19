@@ -47,16 +47,16 @@ Acceptance evidence:
 
 ## SC-03: Standalone Control Center Assembly and State
 
-Status: OPEN
+Status: DONE
 
-- [ ] Implement the standalone assembly/profile and local installation
+- [x] Implement the standalone assembly/profile and local installation
   operator subject.
-- [ ] Persist local installation/bootstrap state and registry data using the
+- [x] Persist local installation/bootstrap state and registry data using the
   supported standalone datastore policy.
-- [ ] Enforce that launcher registration is limited to the local standalone
+- [x] Enforce that launcher registration is limited to the local standalone
   credential/principal.
-- [ ] Preserve the existing command, REST, and Web Operation projections.
-- [ ] Add Given/When/Then executable specifications for bootstrap, restart,
+- [x] Preserve the existing command, REST, and Web Operation projections.
+- [x] Add Given/When/Then executable specifications for bootstrap, restart,
   credential mismatch, and safe projection behavior.
 
 Acceptance evidence:
@@ -66,17 +66,17 @@ Acceptance evidence:
 
 ## SC-04: Automatic Local CNCF Launcher Registration
 
-Status: OPEN
+Status: DONE
 
-- [ ] Resolve the standalone locator automatically for canonical `cncf server`
+- [x] Resolve the standalone locator automatically for canonical `cncf server`
   and `cncf <target> server` execution.
-- [ ] Derive a loopback base URL from the effective local server configuration
+- [x] Derive a loopback base URL from the effective local server configuration
   when no external URL override is present.
-- [ ] Register, heartbeat, and deregister through the shared protocol without
+- [x] Register, heartbeat, and deregister through the shared protocol without
   inline registration arguments.
-- [ ] Preserve startup when the locator, credential, or Control Center is
+- [x] Preserve startup when the locator, credential, or Control Center is
   unavailable.
-- [ ] Add executable specifications for configuration precedence, URL
+- [x] Add executable specifications for configuration precedence, URL
   derivation, lifecycle reports, and failure isolation.
 
 Acceptance evidence:

@@ -15,7 +15,21 @@ Component:
 Typical workflow:
 - `sbt cozyGenerate`
 - `sbt compile`
-- `sbt cozyBuildCAR`
+- `sbt cozyBuildCar`
+
+Standalone bootstrap creates a machine-local Control Center installation below
+`~/.cncf/textus-control-center` without placing its launcher credential in this
+repository or launcher configuration:
+
+```sh
+bash scripts/bootstrap-standalone.sh
+cncf --cncf-config ~/.cncf/textus-control-center/server-config.yaml \
+  /absolute/path/to/textus-control-center server
+```
+
+Use `--cncf-home <temporary-path>` when testing the bootstrap itself. Re-running
+the script preserves the installation identity; `--rotate` replaces only the
+local launcher credential. The script never prints that credential.
 
 The generated `SubsystemInventory` service owns these Phase 1 operations:
 

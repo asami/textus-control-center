@@ -3,7 +3,7 @@
 Stage Status:
 
 - Current status: IN PROGRESS
-- Current step: SC-03 - Implement standalone Control Center assembly and state.
+- Current step: SC-05 - Integrate automatic local `textus` launcher registration.
 - Owner: Textus Control Center Phase 2
 - Update rule: Update this block and `phase-2-checklist.md` whenever a stable
   checklist state changes. Close the phase only when every in-scope checklist
@@ -59,9 +59,9 @@ profile.
 
 - A (DONE): SC-01 - Freeze shared management model and profile boundaries.
 - B (DONE): SC-02 - Define standalone locator and credential bootstrap.
-- C (IN PROGRESS): SC-03 - Implement standalone Control Center assembly/state.
-- D (OPEN): SC-04 - Integrate automatic local `cncf` launcher registration.
-- E (OPEN): SC-05 - Integrate automatic local `textus` launcher registration.
+- C (DONE): SC-03 - Implement standalone Control Center assembly/state.
+- D (DONE): SC-04 - Integrate automatic local `cncf` launcher registration.
+- E (IN PROGRESS): SC-05 - Integrate automatic local `textus` launcher registration.
 - F (OPEN): SC-06 - Verify local inventory, failure isolation, and profile
   separation end to end.
 
@@ -71,8 +71,8 @@ profile.
   boundaries.
 - [x] SC-02: Define local locator, credential-reference, and configuration
   precedence contracts.
-- [ ] SC-03: Implement the standalone assembly and local durable state.
-- [ ] SC-04: Enable automatic local registration for canonical `cncf` server
+- [x] SC-03: Implement the standalone assembly and local durable state.
+- [x] SC-04: Enable automatic local registration for canonical `cncf` server
   launches.
 - [ ] SC-05: Enable automatic local registration for canonical `textus`
   server launches.

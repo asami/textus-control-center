@@ -35,7 +35,7 @@ configuration system.
 
 ## Bootstrap and Recovery
 
-The future standalone bootstrap command creates the directory with owner-only
+`scripts/bootstrap-standalone.sh` creates the directory with owner-only
 permissions, creates a stable installation identity and scope ID, creates a
 fresh launcher token, writes the locator atomically, and configures the local
 Control Center assembly to accept that token. Bootstrap never prints the token.
@@ -44,7 +44,9 @@ Rotation creates a new token and atomically updates both the local assembly
 credential and the credential file. Loss or permission failure disables
 automatic registration with a sanitized warning; it never blocks a CAR server
 from starting. Recovery is an explicit bootstrap/rotate operation, not a
-launcher attempt to recreate credentials.
+launcher attempt to recreate credentials. The script accepts `--cncf-home` so
+executable checks can use a target-owned directory instead of the user's real
+launcher home.
 
 ## Resolution Order
 

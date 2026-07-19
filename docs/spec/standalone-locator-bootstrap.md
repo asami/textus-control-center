@@ -40,7 +40,8 @@ warnings, logs, registry records, REST responses, or Web projections.
 
 ## 3. Bootstrap Lifecycle
 
-Bootstrap creates a stable `scopeId` and `installationId`, a fresh token file,
+`scripts/bootstrap-standalone.sh` creates a stable `scopeId` and
+`installationId`, a fresh token file,
 and a valid locator atomically. It configures the standalone Control Center to
 authenticate the corresponding launcher principal. Rotation replaces the token
 atomically and invalidates the previous token. Credential loss requires an
