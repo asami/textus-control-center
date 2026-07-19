@@ -47,7 +47,7 @@
   function render() {
     clearState();
     const query = elements.search.value.trim().toLowerCase();
-    const visible = records.filter((record) => [record.instanceId, record.launcherKind, record.target, record.hostLabel]
+    const visible = records.filter((record) => [record.instanceId, record.launcherKind, record.target, record.subsystemName, record.executionMode, record.hostLabel]
       .filter(Boolean).join(" ").toLowerCase().includes(query));
     elements.instances.replaceChildren();
     if (visible.length === 0) {
@@ -57,41 +57,74 @@
     }
     visible.forEach((record) => {
       const row = document.createElement("tr");
+      row.className = "inventory-row";
+      row.tabIndex = 0;
+      row.setAttribute("role", "button");
+      row.setAttribute("aria-label", `Show details for ${componentName(record)}`);
+      row.addEventListener("click", () => loadDetail(record.instanceId));
+      row.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          loadDetail(record.instanceId);
+        }
+      });
       const status = document.createElement("span");
       status.className = `status ${text(record.status).toLowerCase()}`;
       status.textContent = text(record.status);
       const statusCell = document.createElement("td");
       statusCell.append(status);
-      const instance = document.createElement("button");
-      instance.className = "button secondary";
-      instance.type = "button";
-      instance.textContent = text(record.instanceId);
-      instance.addEventListener("click", () => loadDetail(record.instanceId));
-      const instanceCell = document.createElement("td");
-      instanceCell.append(instance);
-      const launcherCell = document.createElement("td");
-      launcherCell.innerHTML = `${escapeHtml(text(record.launcherKind))}<br><span class="subtle">${escapeHtml(text(record.target))}</span>`;
       const subsystemCell = document.createElement("td");
-      subsystemCell.innerHTML = `${escapeHtml(text(record.subsystemName))}<br><span class="subtle">${escapeHtml(text(record.subsystemVersion))} / ${escapeHtml(text(record.runtimeVersion))}</span>`;
+      const component = document.createElement("strong");
+      component.textContent = componentName(record);
+      const version = document.createElement("div");
+      version.className = "subtle";
+      version.textContent = [record.subsystemVersion, record.runtimeVersion].filter(Boolean).join(" / ") || "—";
+      subsystemCell.append(component, version);
+      const executionCell = document.createElement("td");
+      const execution = document.createElement("span");
+      execution.className = `execution-mark ${executionClass(record.executionMode)}`;
+      execution.textContent = executionLabel(record.executionMode);
+      const launcher = document.createElement("div");
+      launcher.className = "subtle";
+      launcher.textContent = text(record.launcherKind);
+      executionCell.append(execution, launcher);
       const baseUrlCell = document.createElement("td");
       const baseUrl = link(text(record.baseUrl), record.baseUrl);
-      if (baseUrl) baseUrlCell.append(baseUrl); else baseUrlCell.textContent = "—";
+      if (baseUrl) {
+        baseUrl.addEventListener("click", (event) => event.stopPropagation());
+        baseUrlCell.append(baseUrl);
+      } else baseUrlCell.textContent = "—";
       const lastSeenCell = document.createElement("td");
       lastSeenCell.textContent = formatInstant(record.lastSeenAt);
       const linksCell = document.createElement("td");
       linksCell.className = "links";
-      [link("Dashboard", record.dashboardUrl), link("System Admin", record.systemAdminUrl)].filter(Boolean).forEach((item) => linksCell.append(item));
+      [link("Dashboard", record.dashboardUrl), link("System Admin", record.systemAdminUrl)].filter(Boolean).forEach((item) => {
+        item.addEventListener("click", (event) => event.stopPropagation());
+        linksCell.append(item);
+      });
       if (!linksCell.hasChildNodes()) linksCell.textContent = "—";
-      [statusCell, instanceCell, launcherCell, subsystemCell, baseUrlCell, lastSeenCell, linksCell].forEach((cell) => row.append(cell));
+      [statusCell, subsystemCell, executionCell, baseUrlCell, lastSeenCell, linksCell].forEach((cell) => row.append(cell));
       elements.instances.append(row);
     });
     elements.inventory.hidden = false;
   }
 
-  function escapeHtml(value) {
-    const node = document.createElement("span");
-    node.textContent = value;
-    return node.innerHTML;
+  function componentName(record) {
+    return text(record.subsystemName || record.target);
+  }
+
+  function executionLabel(mode) {
+    const labels = {
+      development: "DEV",
+      repository: "CAR",
+      artifact: "CAR",
+      "artifact-file": "FILE"
+    };
+    return labels[mode] || "—";
+  }
+
+  function executionClass(mode) {
+    return mode ? `execution-${String(mode).replace(/[^a-z0-9]+/gi, "-").toLowerCase()}` : "execution-unknown";
   }
 
   function formatInstant(value) {
@@ -109,6 +142,8 @@
       ...record,
       instanceId: record.instance_id,
       launcherKind: record.launcher_kind,
+      executionMode: record.execution_mode,
+      developmentDirectory: record.development_directory,
       subsystemName: record.subsystem_name,
       subsystemVersion: record.subsystem_version,
       runtimeVersion: record.runtime_version,
@@ -145,7 +180,7 @@
       const response = await request(`get-subsystem?instanceId=${encodeURIComponent(instanceId)}`);
       elements.detailFields.replaceChildren();
       const record = inventoryRecord(response);
-      ["instanceId", "status", "launcherKind", "target", "subsystemName", "subsystemVersion", "runtimeVersion", "baseUrl", "hostLabel", "startedAt", "lastSeenAt"].forEach((name) => {
+      ["instanceId", "status", "launcherKind", "executionMode", "target", "subsystemName", "subsystemVersion", "runtimeVersion", "developmentDirectory", "baseUrl", "hostLabel", "startedAt", "lastSeenAt"].forEach((name) => {
         const term = document.createElement("dt");
         term.textContent = name;
         const definition = document.createElement("dd");

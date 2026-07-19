@@ -171,6 +171,8 @@ GetSubsystemResult
 | protocolVersion         | int                     | 1            |                 |
 | launcherKind            | LauncherKind            | 1            |                 |
 | target                  | SubsystemTarget         | 1            |                 |
+| executionMode           | string                  | ?            |                 |
+| developmentDirectory    | string                  | ?            |                 |
 | subsystemName           | SubsystemName           | ?            |                 |
 | subsystemVersion        | SubsystemVersion        | ?            |                 |
 | runtimeVersion          | RuntimeVersion          | ?            |                 |
@@ -193,6 +195,8 @@ GetSubsystemResult
 | instanceId       | string  | 1            |
 | launcherKind     | string  | 1            |
 | target           | string  | 1            |
+| executionMode       | string  | ?            |
+| developmentDirectory | string | ?            |
 | subsystemName    | string  | ?            |
 | subsystemVersion | string  | ?            |
 | runtimeVersion   | string  | ?            |
@@ -211,6 +215,8 @@ GetSubsystemResult
 | instanceId       | string  | 1            |
 | launcherKind     | string  | 1            |
 | target           | string  | 1            |
+| executionMode       | string  | ?            |
+| developmentDirectory | string | ?            |
 | subsystemName    | string  | ?            |
 | subsystemVersion | string  | ?            |
 | runtimeVersion   | string  | ?            |

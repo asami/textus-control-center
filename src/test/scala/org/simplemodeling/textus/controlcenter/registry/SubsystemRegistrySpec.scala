@@ -1,5 +1,5 @@
 /*
- * @version Jul. 18, 2026
+ * @version Jul. 19, 2026
  */
 package org.simplemodeling.textus.controlcenter.registry
 
@@ -70,6 +70,18 @@ class SubsystemRegistrySpec extends AnyWordSpec with GivenWhenThen with Matchers
 
       Then("the registry returns a structured conflict")
       conflict.left.toOption shouldBe Some(RegistryError.Conflict("instance-1", "target differs"))
+    }
+
+    "expose execution mode and development directory in the administrative projection" in {
+      Given("a development-directory launched subsystem")
+      val instance = _registered(lastSeenAt = Instant.parse("2026-07-18T00:00:00Z"))
+
+      When("an operator reads its projection")
+      val projection = SubsystemRegistry.projection(instance, instance.lastSeenAt, Duration.ofSeconds(90))
+
+      Then("the component identity and local development location remain available")
+      projection.map(_.executionMode) shouldBe Right(Some("development"))
+      projection.map(_.developmentDirectory) shouldBe Right(Some("/work/textus-control-center"))
     }
 
     "reject a missing or stopped instance heartbeat" in {
@@ -146,6 +158,8 @@ class SubsystemRegistrySpec extends AnyWordSpec with GivenWhenThen with Matchers
       instanceId = "instance-1",
       launcherKind = "textus",
       target = target,
+      executionMode = Some("development"),
+      developmentDirectory = Some("/work/textus-control-center"),
       subsystemName = Some("Textus Control Center"),
       subsystemVersion = Some("0.1.0-SNAPSHOT"),
       runtimeVersion = Some("0.5.0"),
@@ -164,6 +178,8 @@ class SubsystemRegistrySpec extends AnyWordSpec with GivenWhenThen with Matchers
       instanceId = instanceId,
       launcherKind = "textus",
       target = "textus-control-center",
+      executionMode = Some("development"),
+      developmentDirectory = Some("/work/textus-control-center"),
       subsystemName = Some("Textus Control Center"),
       subsystemVersion = Some("0.1.0-SNAPSHOT"),
       runtimeVersion = Some("0.5.0"),

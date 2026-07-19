@@ -47,6 +47,8 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       Then("the launcher receives a safe projection without its principal")
       registered.getString("instanceId") shouldBe Some("textuscontrolcenteractionspec")
       registered.getString("status") shouldBe Some("starting")
+      registered.getString("executionMode") shouldBe Some("development")
+      registered.getString("developmentDirectory") shouldBe Some("/work/textus-control-center")
       registered.getAny("registrationPrincipalId") shouldBe empty
 
       When("the launcher repeats the same registration")
@@ -75,6 +77,8 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       Then("both administrative reads expose the same safe instance")
       _records(listed).map(_.getString("instanceId")) shouldBe Vector(Some("textuscontrolcenteractionspec"))
       loaded.getString("instanceId") shouldBe registered.getString("instanceId")
+      loaded.getString("executionMode") shouldBe Some("development")
+      loaded.getString("developmentDirectory") shouldBe Some("/work/textus-control-center")
       loaded.getAny("registrationPrincipalId") shouldBe empty
 
       When("an authenticated standalone operator capability reads the inventory")
@@ -264,6 +268,8 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         Property("instanceId", "textuscontrolcenteractionspec", None),
         Property("launcherKind", "textus", None),
         Property("target", "textus-control-center", None),
+        Property("executionMode", "development", None),
+        Property("developmentDirectory", "/work/textus-control-center", None),
         Property("subsystemName", "TextusControlCenter", None),
         Property("subsystemVersion", "v010snapshot", None),
         Property("runtimeVersion", "v050", None),

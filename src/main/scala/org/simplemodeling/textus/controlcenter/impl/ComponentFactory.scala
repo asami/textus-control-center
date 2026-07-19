@@ -1,5 +1,5 @@
 /*
- * @version Jul. 18, 2026
+ * @version Jul. 19, 2026
  */
 package org.simplemodeling.textus.controlcenter.impl
 
@@ -215,6 +215,8 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
         instanceid,
         launcherkind,
         target,
+        record.getString("executionMode").map(_.trim).filter(_.nonEmpty),
+        record.getString("developmentDirectory").map(_.trim).filter(_.nonEmpty),
         record.getString("subsystemName").map(_.trim).filter(_.nonEmpty),
         record.getString("subsystemVersion").map(_.trim).filter(_.nonEmpty),
         record.getString("runtimeVersion").map(_.trim).filter(_.nonEmpty),
@@ -293,6 +295,8 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
         source.instanceId,
         source.launcherKind,
         source.target,
+        source.executionMode,
+        source.developmentDirectory,
         source.subsystemName,
         source.subsystemVersion,
         source.runtimeVersion,
@@ -313,6 +317,8 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
         source.protocolVersion,
         source.launcherKind,
         source.target,
+        source.executionMode,
+        source.developmentDirectory,
         source.subsystemName,
         source.subsystemVersion,
         source.runtimeVersion,
@@ -331,6 +337,8 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
         source.protocolVersion,
         source.launcherKind,
         source.target,
+        source.executionMode,
+        source.developmentDirectory,
         source.subsystemName,
         source.subsystemVersion,
         source.runtimeVersion,
@@ -349,6 +357,8 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
           "instanceId" -> projection.instanceId,
           "launcherKind" -> projection.launcherKind,
           "target" -> projection.target,
+          "executionMode" -> projection.executionMode,
+          "developmentDirectory" -> projection.developmentDirectory,
           "subsystemName" -> projection.subsystemName,
           "subsystemVersion" -> projection.subsystemVersion,
           "runtimeVersion" -> projection.runtimeVersion,
@@ -366,6 +376,7 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
 
     protected final def matches_text(source: RegistrySubsystem, text: String): Boolean =
       Vector(source.instanceId, source.launcherKind, source.target, source.hostLabel)
+        .concat(source.executionMode.toVector)
         .concat(source.subsystemName.toVector)
         .exists(_.toLowerCase.contains(text))
 

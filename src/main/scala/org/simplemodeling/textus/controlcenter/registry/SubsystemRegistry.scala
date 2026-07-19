@@ -1,5 +1,5 @@
 /*
- * @version Jul. 18, 2026
+ * @version Jul. 19, 2026
  */
 package org.simplemodeling.textus.controlcenter.registry
 
@@ -10,6 +10,8 @@ final case class RegistrationInput(
   instanceId: String,
   launcherKind: String,
   target: String,
+  executionMode: Option[String],
+  developmentDirectory: Option[String],
   subsystemName: Option[String],
   subsystemVersion: Option[String],
   runtimeVersion: Option[String],
@@ -24,6 +26,8 @@ final case class RegisteredSubsystem(
   instanceId: String,
   launcherKind: String,
   target: String,
+  executionMode: Option[String],
+  developmentDirectory: Option[String],
   subsystemName: Option[String],
   subsystemVersion: Option[String],
   runtimeVersion: Option[String],
@@ -40,6 +44,8 @@ final case class SubsystemProjection(
   instanceId: String,
   launcherKind: String,
   target: String,
+  executionMode: Option[String],
+  developmentDirectory: Option[String],
   subsystemName: Option[String],
   subsystemVersion: Option[String],
   runtimeVersion: Option[String],
@@ -145,6 +151,8 @@ object SubsystemRegistry {
         source.instanceId,
         source.launcherKind,
         source.target,
+        source.executionMode,
+        source.developmentDirectory,
         source.subsystemName,
         source.subsystemVersion,
         source.runtimeVersion,
@@ -175,6 +183,8 @@ object SubsystemRegistry {
       input.instanceId,
       input.launcherKind,
       input.target,
+      input.executionMode,
+      input.developmentDirectory,
       input.subsystemName,
       input.subsystemVersion,
       input.runtimeVersion,
@@ -219,6 +229,10 @@ object SubsystemRegistry {
       Left(RegistryError.Conflict(input.instanceId, "launcher kind differs"))
     } else if (existing.target != input.target) {
       Left(RegistryError.Conflict(input.instanceId, "target differs"))
+    } else if (_different_known_value(existing.executionMode, input.executionMode)) {
+      Left(RegistryError.Conflict(input.instanceId, "execution mode differs"))
+    } else if (_different_known_value(existing.developmentDirectory, input.developmentDirectory)) {
+      Left(RegistryError.Conflict(input.instanceId, "development directory differs"))
     } else {
       Right(())
     }
@@ -246,6 +260,9 @@ object SubsystemRegistry {
   }
 
   private def _is_nonempty(value: String): Boolean = value.trim.nonEmpty
+
+  private def _different_known_value(existing: Option[String], incoming: Option[String]): Boolean =
+    existing.exists(value => incoming.exists(_ != value))
 
   private def _is_http_url(value: String): Boolean = {
     val uri = scala.util.Try(java.net.URI.create(value)).toOption
