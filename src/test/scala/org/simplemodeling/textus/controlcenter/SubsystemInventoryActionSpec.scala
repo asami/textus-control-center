@@ -5,11 +5,12 @@ package org.simplemodeling.textus.controlcenter
 
 import cats.~>
 import org.goldenport.Consequence
-import org.goldenport.configuration.{Configuration, ConfigurationTrace, ResolvedConfiguration}
+import org.goldenport.configuration.{Configuration, ConfigurationTrace, ConfigurationValue, ResolvedConfiguration}
+import org.goldenport.cncf.config.ResolvedParameters
 import org.goldenport.cncf.action.Action
 import org.goldenport.cncf.component.{Component, ComponentCreate, ComponentOrigin}
 import org.goldenport.cncf.context.{Capability, DataStoreContext, EntityStoreContext, ExecutionContext, Principal, PrincipalId, RuntimeContext, SecurityContext}
-import org.goldenport.cncf.datastore.{DataStore, DataStoreSpace}
+import org.goldenport.cncf.datastore.{ComponentDataStore, DataStore, DataStoreSpace}
 import org.goldenport.cncf.entity.EntityStoreSpace
 import org.goldenport.cncf.event.EventEngine
 import org.goldenport.cncf.subsystem.Subsystem
@@ -23,6 +24,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.time.Instant
+import java.nio.file.{Files, Path, Paths}
 
 final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen with Matchers {
   "SubsystemInventory Actions" should {
@@ -143,11 +145,49 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       result.toOption shouldBe empty
       result.toString should include ("not authorized")
     }
+
+    "retain a standalone registry across a local datastore restart" in {
+      Given("a standalone Control Center application datastore")
+      val datastorepath = _local_datastore_path("control-center-standalone-restart")
+      val configuration = _standalone_configuration(datastorepath)
+      val firstfixture = _fixture(Some(datastorepath))
+      val firstcomponent = _component(configuration)
+      val startedat = Instant.parse("2026-07-19T00:00:00Z")
+
+      When("a launcher registers an instance before the standalone runtime stops")
+      _execute(
+        firstcomponent,
+        firstfixture.launcherContextFor(SecurityContext.Privilege.Internal),
+        _registration_request("registerSubsystem", startedat)
+      ).toOption should not be empty
+
+      And("a newly constructed runtime opens the same local datastore")
+      val secondfixture = _fixture(Some(datastorepath))
+      val secondcomponent = _component(configuration)
+      val result = _execute(
+        secondcomponent,
+        secondfixture.contextFor(SecurityContext.Privilege.ApplicationContentManager),
+        Request.ofService("SubsystemInventory", "listSubsystems")
+      ).toOption.getOrElse(fail("standalone registry was not available after restart"))
+        .asInstanceOf[OperationResponse.RecordResponse]
+        .record
+
+      Then("the safe inventory projection retains the accepted instance")
+      _records(result).map(_.getString("instanceId")) shouldBe Vector(Some("textuscontrolcenteractionspec"))
+      _records(result).flatMap(_.getAny("registrationPrincipalId")) shouldBe empty
+    }
   }
 
-  private def _fixture(): _Fixture = {
-    val datastore = DataStore.inMemorySearchable()
-    val datastorespace = new DataStoreSpace().addDataStore(datastore)
+  private def _fixture(datastorepath: Option[Path] = None): _Fixture = {
+    val datastorespace = datastorepath match {
+      case Some(path) =>
+        DataStoreSpace.default().useApplicationDataStore(
+          ComponentDataStore.Environment(_resolved_parameters(path), Some(_standalone_configuration(path))),
+          "TextusControlCenter",
+          "application"
+        )
+      case None => new DataStoreSpace().addDataStore(DataStore.inMemorySearchable())
+    }
     val entitystorespace = EntityStoreSpace.create(
       ResolvedConfiguration(Configuration.empty, ConfigurationTrace.empty)
     )
@@ -194,10 +234,10 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
     _Fixture(build)
   }
 
-  private def _component(): Component = {
+  private def _component(configuration: ResolvedConfiguration = ResolvedConfiguration(Configuration.empty, ConfigurationTrace.empty)): Component = {
     val subsystem = Subsystem(
       name = "textus-control-center-action-spec",
-      configuration = ResolvedConfiguration(Configuration.empty, ConfigurationTrace.empty)
+      configuration = configuration
     )
     val bundle = new impl.ComponentFactory().create(ComponentCreate(subsystem, ComponentOrigin.Main))
     val component = new org.goldenport.cncf.component.ComponentFactory().bootstrap(bundle.participants.head)
@@ -241,6 +281,31 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       case Some(value: Record) => Vector(value)
       case _ => Vector.empty
     }
+
+  private def _local_datastore_path(prefix: String): Path = {
+    val directory = Paths.get("target", "test-tmp", "textus-control-center")
+    Files.createDirectories(directory)
+    Files.createTempFile(directory, prefix, ".db")
+  }
+
+  private def _standalone_configuration(path: Path): ResolvedConfiguration =
+    ResolvedConfiguration(
+      Configuration(Map(
+        "textus.component.textus-control-center.datastores.application.policy" -> ConfigurationValue.StringValue("local-default"),
+        "textus.local-data.textus-control-center.application.path" -> ConfigurationValue.StringValue(path.toString)
+      )),
+      ConfigurationTrace.empty
+    )
+
+  private def _resolved_parameters(path: Path): ResolvedParameters =
+    ResolvedParameters.fromResolvedConfiguration(
+      ResolvedConfiguration(
+        Configuration(Map(
+          "textus.local-data.textus-control-center.application.path" -> ConfigurationValue.StringValue(path.toString)
+        )),
+        ConfigurationTrace.empty
+      )
+    )
 
   private final case class _Fixture(
     build: (SecurityContext.Privilege, Set[Capability]) => ExecutionContext
