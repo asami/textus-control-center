@@ -100,7 +100,7 @@ Acceptance evidence:
 
 ## MC-06: Standalone Seed and End-to-End Validation
 
-Status: IN PROGRESS
+Status: DONE
 
 - [x] Seed the configured first-level `textus-*` CAR projects under the local
   development root.
@@ -114,9 +114,9 @@ Status: IN PROGRESS
 - [x] Run an isolated standalone Control Center with the installed
   `~/.cncf` configuration, perform a protected live refresh, and confirm the
   seeded catalog is projected through its running static Web application.
-- [ ] Restart the existing local Control Center installation to activate the
+- [x] Restart the existing local Control Center installation to activate the
   verified configuration for its operator-facing port.
-- [ ] Close the phase after the live standalone refresh acceptance evidence is
+- [x] Close the phase after the live standalone refresh acceptance evidence is
   complete.
 
 Acceptance evidence:
@@ -146,3 +146,9 @@ Verified 2026-07-21:
   CARs. The static Web list rendered all source marks; the
   `textus-user-notification` detail rendered `DEV`, `LOCAL`, and `PUBLIC`
   facts with versions `0.1.0` and `0.1.1`.
+- The existing operator-facing server on port `18013` was restarted from
+  `/Users/asami/src/dev2026/textus-control-center` with the installed
+  `~/.cncf` server configuration. Its live Refresh returned
+  `adapter_state: configured` with 25 source snapshots and 16 logical CARs;
+  its static Web rendered the catalog, source marks, a linked running
+  `textus-art-scene` instance, and retained stale instance facts separately.

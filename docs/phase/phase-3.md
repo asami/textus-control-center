@@ -2,15 +2,14 @@
 
 Stage Status:
 
-- Current status: IN PROGRESS
-- Current step: Apply the verified standalone catalog configuration by
-  restarting the existing local Control Center installation.
+- Current status: DONE
+- Current step: Phase closed; Phase 4 is the documented successor.
 - Owner: Textus Control Center Phase 3
 - Update rule: Update this block and `phase-3-checklist.md` whenever a stable
   checklist state changes. Close the phase only when every in-scope checklist
   item is complete or explicitly relocated.
 
-status = in-progress
+status = done
 
 ## 1. Purpose
 
@@ -109,10 +108,9 @@ same logical-CAR and source contracts.
 - D (DONE): MC-04 - Add optional launcher artifact identity and executable
   cross-launcher linkage scenarios.
 - E (DONE): MC-05 - Add command, REST, and static Web CAR catalog views.
-- F (IN PROGRESS): MC-06 - Seed representative development/local/public CARs and
-  complete standalone acceptance coverage. The configuration, executable
-  evidence, and isolated live refresh are complete; the existing installation
-  still needs its operator-approved restart to activate the result.
+- F (DONE): MC-06 - Seed representative development/local/public CARs and
+  complete standalone acceptance coverage, including activation of the
+  existing local installation.
 
 ## 7. Development Items
 
@@ -121,7 +119,7 @@ same logical-CAR and source contracts.
 - [x] MC-03: Implement persistent catalog records and Operations.
 - [x] MC-04: Add launcher artifact identity and runtime linking.
 - [x] MC-05: Implement static Web CAR catalog projections.
-- [ ] MC-06: Validate development, local, public, failure, and legacy-instance
+- [x] MC-06: Validate development, local, public, failure, and legacy-instance
   scenarios and close the phase.
 
 Detailed task tracking and acceptance evidence are in
