@@ -171,8 +171,8 @@ GetSubsystemResult
 | protocolVersion         | int                     | 1            |                 |
 | launcherKind            | LauncherKind            | 1            |                 |
 | target                  | SubsystemTarget         | 1            |                 |
-| executionMode           | string                  | ?            |                 |
-| developmentDirectory    | string                  | ?            |                 |
+| executionMode           | ExecutionMode           | ?            |                 |
+| developmentDirectory    | DevelopmentDirectory    | ?            |                 |
 | subsystemName           | SubsystemName           | ?            |                 |
 | subsystemVersion        | SubsystemVersion        | ?            |                 |
 | runtimeVersion          | RuntimeVersion          | ?            |                 |
@@ -272,6 +272,22 @@ GetSubsystemResult
 | value | string | 1            |
 
 ## SubsystemTarget
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## ExecutionMode
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## DevelopmentDirectory
 
 ### ATTRIBUTE
 

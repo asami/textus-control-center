@@ -23,6 +23,8 @@ operators to the authoritative per-Subsystem administration surfaces.
   registry or mutate runtime state directly.
 - Treat launcher registration facts, observed runtime state, and requested
   lifecycle state as different records.
+- Treat a logical CAR, its development/local/public sources, and its runtime
+  instances as separate records. A CAR that is not running is not stale.
 - Do not depend on deprecated `cncf dev server` behavior or
   `target/cncf.d/dev-server.json`.
 - Support the canonical launcher forms:
@@ -41,6 +43,8 @@ operators to the authoritative per-Subsystem administration surfaces.
 Textus Control Center owns:
 
 - the registered Subsystem instance read model;
+- the managed CAR catalog and its development, local-repository, and
+  public-repository source snapshots;
 - registration, heartbeat, deregistration, and list Operations;
 - command, automatic REST, and Web projections of the same Operations;
 - stale/unreachable derivation from registration and observation facts;
@@ -53,6 +57,10 @@ Textus Control Center does not own in Phase 1:
 - arbitrary PID discovery or signal delivery;
 - aggregation of detailed metrics, Jobs, CallTrees, or diagnostics;
 - remote-host agents, scheduling, alerting, or automatic remediation.
+
+Textus Control Center also does not treat catalog membership as process
+authority. A catalog entry can identify a CAR and its preferred source, but it
+does not start, stop, or inspect an arbitrary operating-system process.
 
 ### 3.2 Textus Launcher
 
@@ -99,6 +107,9 @@ launcher-started Subsystem instance:
 - `instanceId`: unique identifier generated once per launcher invocation;
 - `launcherKind`: `textus` or `cncf`;
 - `target`: artifact, project, or canonical launcher target label;
+- `artifactId`: optional stable CAR artifact identity when resolved by the
+  launcher; it links a runtime instance to a managed CAR without exposing a
+  command line or repository credential;
 - `subsystemName`: resolved or configured Subsystem name when known;
 - `subsystemVersion`: resolved artifact/SAR version when known;
 - `runtimeVersion`: resolved CNCF runtime version when known;
@@ -220,16 +231,51 @@ Execution ledger:
 - `docs/phase/phase-2.md`
 - `docs/phase/phase-2-checklist.md`
 
-### Phase 3: Runtime Health and Observability Summary
+### Phase 3: Managed CAR Catalog and Source Management
+
+Goal: create a local-first managed CAR catalog that joins a logical CAR with
+its development directory, local repository availability, SimpleModeling.org
+publication availability, and launcher-managed runtime instances.
+
+Scope:
+
+- a persistent logical-CAR and CAR-source model separate from
+  `RegisteredSubsystem` instances;
+- development-directory discovery from explicitly configured standalone roots;
+- local repository catalog discovery from the configured CNCF local repository;
+- per-artifact publication metadata refresh from the configured
+  SimpleModeling.org CAR repository;
+- explicit subscriptions for public-only CARs, because the public repository
+  currently exposes artifact catalogs rather than a global enumeration index;
+- optional `artifactId` launcher registration metadata and runtime-to-catalog
+  linking;
+- command, REST, and static Web catalog list/detail/refresh projections;
+- standalone-only source configuration under the Control Center home, with a
+  future provider boundary for multi-user/control-plane deployments.
+
+Explicitly excluded:
+
+- starting, stopping, or restarting a CAR;
+- treating an unstarted CAR as stale or unhealthy;
+- arbitrary process discovery;
+- unauthenticated repository mutation or publication;
+- remote-repository crawling or guessed artifact names.
+
+Execution ledger:
+
+- `docs/phase/phase-3.md`
+- `docs/phase/phase-3-checklist.md`
+
+### Phase 4: Runtime Health and Observability Summary
 
 Goal: enrich registered instances with bounded health, version, component, and
 low-cardinality runtime metric summaries obtained from stable CNCF Operations.
 
-Phase 3 must use each Subsystem's authenticated Operation/REST boundary. It
+Phase 4 must use each Subsystem's authenticated Operation/REST boundary. It
 must not scrape HTML or treat a Web dashboard JSON implementation detail as the
 long-term management API.
 
-### Phase 4: Launcher Lifecycle Control
+### Phase 5: Launcher Lifecycle Control
 
 Goal: add authorized start, stop, and restart requests through an explicit
 launcher/supervisor control contract.
@@ -238,12 +284,12 @@ Textus Control Center must not signal arbitrary PIDs. Lifecycle control requires
 launcher-owned or host-agent-owned authority with request identity, audit,
 idempotency, timeout, and structured result semantics.
 
-### Phase 5: Multi-Host Operations and Audit
+### Phase 6: Multi-Host Operations and Audit
 
 Goal: operate registered Subsystems across hosts with explicit host identity,
 credential rotation, role policy, audit history, and connectivity status.
 
-### Phase 6: Operational Automation
+### Phase 7: Operational Automation
 
 Goal: add alerting, maintenance policy, rollout coordination, and bounded
 automatic remediation on top of the explicit lifecycle and audit contracts.
