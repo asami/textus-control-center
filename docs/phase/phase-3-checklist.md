@@ -82,15 +82,15 @@ Acceptance evidence:
 
 ## MC-05: Command, REST, and Static Web Catalog Projections
 
-Status: PLANNED
+Status: DONE
 
-- [ ] Add CAR catalog list/detail projections and protected REST routes.
-- [ ] Add top navigation and side-menu navigation to the static CAR Catalog
+- [x] Add CAR catalog list/detail projections and protected REST routes.
+- [x] Add top navigation and side-menu navigation to the static CAR Catalog
   view.
-- [ ] Show source marks (`DEV`, `LOCAL`, `PUBLIC`) and selected version facts.
-- [ ] Keep development directory and local paths in protected detail only.
-- [ ] Show linked runtime instances separately from source availability.
-- [ ] Add static Web executable coverage without external CDN dependencies.
+- [x] Show source marks (`DEV`, `LOCAL`, `PUBLIC`) and selected version facts.
+- [x] Keep development directory and local paths in protected detail only.
+- [x] Show linked runtime instances separately from source availability.
+- [x] Add static Web executable coverage without external CDN dependencies.
 
 Acceptance evidence:
 

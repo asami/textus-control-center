@@ -11,6 +11,43 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class StandaloneCatalogConfigurationSpec extends AnyWordSpec with GivenWhenThen with Matchers {
   "Standalone catalog configuration" should {
+    "parse the standalone catalog YAML without enabling unbounded discovery" in {
+      Given("a catalog YAML with one explicit development root and public subscription")
+      val text =
+        """schema: textus-control-center.catalog.v1
+          |development:
+          |  roots:
+          |    - id: dev2026
+          |      path: /work/src/dev2026
+          |      include-prefix: textus-
+          |public-repositories:
+          |  - id: simplemodeling
+          |    catalog-base-url: https://www.simplemodeling.org/repository/catalog/car
+          |    subscriptions: [textus-user-account]
+          |""".stripMargin
+
+      When("the standalone configuration parses the document")
+      val result = StandaloneCatalogConfiguration.parseYaml(text)
+
+      Then("only the declared sources and subscription are admitted")
+      result.map(_.developmentRoots.map(_.path)) shouldBe Right(Vector("/work/src/dev2026"))
+      result.map(_.isSubscribed("textus-user-account")) shouldBe Right(true)
+    }
+
+    "prefer an explicit catalog file over the Control Center home default" in {
+      Given("an explicit catalog file and a standalone Control Center home")
+      val explicit = "/tmp/explicit-catalog.yaml"
+      val home = "/tmp/textus-control-center"
+
+      When("the runtime resolves the catalog location")
+      val selected = StandaloneCatalogConfiguration.configuredFile(Some(explicit), Some(home))
+      val defaulted = StandaloneCatalogConfiguration.configuredFile(None, Some(home))
+
+      Then("the explicit file wins and the default is limited to catalog.yaml under the home")
+      selected.map(_.toString) shouldBe Some(explicit)
+      defaulted.map(_.toString) shouldBe Some(s"$home/catalog.yaml")
+    }
+
     "prefer an explicitly selected standalone configuration over the default location" in {
       Given("a default empty installation configuration and an explicit source configuration")
       val default = StandaloneCatalogConfiguration(Vector.empty, None, Vector.empty, Duration.ofSeconds(5))

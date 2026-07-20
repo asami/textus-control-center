@@ -1,3 +1,6 @@
 expose:
   textus-control-center.subsystem-inventory.list-subsystems: protected
   textus-control-center.subsystem-inventory.get-subsystem: protected
+  textus-control-center.car-catalog.refresh-car-catalog: protected
+  textus-control-center.car-catalog.list-managed-cars: protected
+  textus-control-center.car-catalog.get-managed-car: protected

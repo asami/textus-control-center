@@ -3,8 +3,8 @@
 Stage Status:
 
 - Current status: IN PROGRESS
-- Current step: Build the static Web CAR Catalog navigation, list, and
-  protected detail surface from the persisted catalog Operations.
+- Current step: Seed the standalone catalog and complete the end-to-end
+  acceptance evidence for development, local, public, and runtime sources.
 - Owner: Textus Control Center Phase 3
 - Update rule: Update this block and `phase-3-checklist.md` whenever a stable
   checklist state changes. Close the phase only when every in-scope checklist
@@ -65,6 +65,9 @@ only a launcher instance can become `stale`.
   or guess remote artifact names.
 - Phase 3 does not add lifecycle control, arbitrary process discovery, remote
   host agents, health aggregation, or repository publication authority.
+- Phase 3 does not add a generic CNCF/Cozy CAR-list API.  The future
+  multi-user source-snapshot journal contract is recorded in Cozy's
+  `managed-car-catalog-model-and-packaging-handoff-2026-07-21.md` journal.
 
 ## 4. Target Model
 
@@ -105,8 +108,8 @@ same logical-CAR and source contracts.
 - C (DONE): MC-03 - Generate and implement catalog records and Operations.
 - D (DONE): MC-04 - Add optional launcher artifact identity and executable
   cross-launcher linkage scenarios.
-- E (IN PROGRESS): MC-05 - Add command, REST, and static Web CAR catalog views.
-- F (PLANNED): MC-06 - Seed representative development/local/public CARs and
+- E (DONE): MC-05 - Add command, REST, and static Web CAR catalog views.
+- F (IN PROGRESS): MC-06 - Seed representative development/local/public CARs and
   complete standalone acceptance coverage.
 
 ## 7. Development Items
@@ -115,7 +118,7 @@ same logical-CAR and source contracts.
 - [x] MC-02: Define standalone source configuration and refresh behavior.
 - [x] MC-03: Implement persistent catalog records and Operations.
 - [x] MC-04: Add launcher artifact identity and runtime linking.
-- [ ] MC-05: Implement static Web CAR catalog projections.
+- [x] MC-05: Implement static Web CAR catalog projections.
 - [ ] MC-06: Validate development, local, public, failure, and legacy-instance
   scenarios and close the phase.
 

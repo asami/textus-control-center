@@ -253,6 +253,11 @@ Scope:
 - standalone-only source configuration under the Control Center home, with a
   future provider boundary for multi-user/control-plane deployments.
 
+The generic CNCF/Cozy work needed for a later multi-user catalog is recorded
+as a source-snapshot journal contract, not implemented as a generic CAR-list
+service in this phase.  See
+`/Users/asami/src/dev2025/cozy/docs/journal/2026/07/managed-car-catalog-model-and-packaging-handoff-2026-07-21.md`.
+
 Explicitly excluded:
 
 - starting, stopping, or restarting a CAR;

@@ -28,7 +28,7 @@ import org.simplemodeling.textus.controlcenter.entity.query.{ManagedCar as Manag
 import org.simplemodeling.textus.controlcenter.entity.create.{ManagedCar as ManagedCarCreate, ManagedCarSource as ManagedCarSourceCreate}
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCar.given
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCarSource.given
-import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCar as CatalogManagedCar, ManagedCarCatalog, ManagedCarSource as CatalogManagedCarSource, PublicRepositoryCatalog, RuntimeInstance, RuntimeInstanceStatus, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
+import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCar as CatalogManagedCar, ManagedCarCatalog, ManagedCarSource as CatalogManagedCarSource, PublicRepositoryCatalog, RuntimeInstance, RuntimeInstanceStatus, StandaloneCatalogConfiguration, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
 import org.simplemodeling.textus.controlcenter.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
 
 final class ComponentFactory extends Component.BundleFactory {
@@ -419,11 +419,15 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
       for {
         _ <- exec_from(administrative_principal)
         now = core.executionContext.clock.instant()
-        root = config_string("textus-control-center.catalog.development.root").map(_.trim).filter(_.nonEmpty)
-        localcatalog = config_string("textus-control-center.catalog.local-repository.catalog-root").map(_.trim).filter(_.nonEmpty)
-        publicbase = config_string("textus-control-center.catalog.public.base-url").map(_.trim).filter(_.nonEmpty)
-        publicsubscriptions = config_string("textus-control-center.catalog.public.artifact-ids").toVector.flatMap(_.split(',').toVector.map(_.trim).filter(_.nonEmpty)).distinct
-        publicrepository = publicbase.filter(_ => publicsubscriptions.nonEmpty).map(base => PublicRepositoryCatalog("simplemodeling-public", base, publicsubscriptions))
+        catalogfile = StandaloneCatalogConfiguration.configuredFile(config_string("textus-control-center.catalog.file"), config_string("textus-control-center.home"))
+        catalogconfiguration = catalogfile.flatMap(path => StandaloneCatalogConfiguration.load(path).toOption)
+        root = catalogconfiguration.flatMap(_.developmentRoots.headOption.map(_.path)).orElse(config_string("textus-control-center.catalog.development.root").map(_.trim).filter(_.nonEmpty))
+        localcatalog = catalogconfiguration.flatMap(_.localRepositoryCatalog.map(_.catalogRoot)).orElse(config_string("textus-control-center.catalog.local-repository.catalog-root").map(_.trim).filter(_.nonEmpty))
+        publicrepository = catalogconfiguration.flatMap(_.publicRepositoryCatalogs.headOption).orElse {
+          val publicbase = config_string("textus-control-center.catalog.public.base-url").map(_.trim).filter(_.nonEmpty)
+          val publicsubscriptions = config_string("textus-control-center.catalog.public.artifact-ids").toVector.flatMap(_.split(',').toVector.map(_.trim).filter(_.nonEmpty)).distinct
+          publicbase.filter(_ => publicsubscriptions.nonEmpty).map(base => PublicRepositoryCatalog("simplemodeling-public", base, publicsubscriptions))
+        }
         existingcars <- find_managed_cars_all
         existingsources <- find_managed_sources_all
         local = root.toVector.flatMap(path => StandaloneDevelopmentCatalogProvider.discover(DevelopmentRoot("standalone-development", path), now)) ++ localcatalog.toVector.flatMap(path => StandaloneLocalRepositoryCatalogProvider.discover(LocalRepositoryCatalog("standalone-local-repository", path), now))
@@ -434,7 +438,7 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
         "artifactId" -> action.record.getString("artifactId").map(_.trim).filter(_.nonEmpty),
         "refreshedAt" -> now,
         "refreshedSourceCount" -> stored.size,
-        "adapterState" -> (if (root.isDefined || localcatalog.isDefined || publicrepository.isDefined) "configured" else "not-configured")
+        "adapterState" -> (if (catalogfile.isDefined && catalogconfiguration.isEmpty) "invalid" else if (root.isDefined || localcatalog.isDefined || publicrepository.isDefined) "configured" else "not-configured")
       ))
   }
 
