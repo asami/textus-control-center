@@ -3,8 +3,8 @@
 Stage Status:
 
 - Current status: IN PROGRESS
-- Current step: Implement executable catalog-contract specifications before
-  generating the CML catalog model or changing launcher protocol fields.
+- Current step: Define standalone source configuration and refresh behavior
+  before generating the CML catalog model.
 - Owner: Textus Control Center Phase 3
 - Update rule: Update this block and `phase-3-checklist.md` whenever a stable
   checklist state changes. Close the phase only when every in-scope checklist
@@ -98,9 +98,9 @@ same logical-CAR and source contracts.
 
 ## 6. Active Work Stack
 
-- A (IN PROGRESS): MC-01 - Freeze catalog identity, source, privacy, and
-  runtime link contracts.
-- B (PLANNED): MC-02 - Define standalone source configuration and safe
+- A (DONE): MC-01 - Freeze catalog identity, source, privacy, and runtime link
+  contracts.
+- B (IN PROGRESS): MC-02 - Define standalone source configuration and safe
   discovery/refresh behavior.
 - C (PLANNED): MC-03 - Generate and implement catalog records and Operations.
 - D (PLANNED): MC-04 - Add optional launcher artifact identity and executable
@@ -111,7 +111,7 @@ same logical-CAR and source contracts.
 
 ## 7. Development Items
 
-- [ ] MC-01: Freeze catalog and source contracts.
+- [x] MC-01: Freeze catalog and source contracts.
 - [ ] MC-02: Define standalone source configuration and refresh behavior.
 - [ ] MC-03: Implement persistent catalog records and Operations.
 - [ ] MC-04: Add launcher artifact identity and runtime linking.

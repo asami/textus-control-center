@@ -5,7 +5,7 @@ dashboard is `phase-3.md`.
 
 ## MC-01: Catalog, Source, and Runtime-Link Contract
 
-Status: IN PROGRESS
+Status: DONE
 
 - [x] Define `ManagedCar` stable identity as `artifactId`.
 - [x] Define `ManagedCarSource` identity, source kinds, safe projected fields,
@@ -15,7 +15,7 @@ Status: IN PROGRESS
 - [x] Define optional `artifactId` registration compatibility for Textus and
   CNCF launcher reports.
 - [x] Define legacy runtime-link fallback and its ambiguity behavior.
-- [ ] Record the stable design and executable specification before CML changes.
+- [x] Record the stable design and executable specification before CML changes.
 
 Acceptance evidence:
 
