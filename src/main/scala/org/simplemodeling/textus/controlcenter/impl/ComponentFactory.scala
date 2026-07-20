@@ -28,7 +28,7 @@ import org.simplemodeling.textus.controlcenter.entity.query.{ManagedCar as Manag
 import org.simplemodeling.textus.controlcenter.entity.create.{ManagedCar as ManagedCarCreate, ManagedCarSource as ManagedCarSourceCreate}
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCar.given
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCarSource.given
-import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCarSource as CatalogManagedCarSource, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider}
+import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCarSource as CatalogManagedCarSource, PublicRepositoryCatalog, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
 import org.simplemodeling.textus.controlcenter.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
 
 final class ComponentFactory extends Component.BundleFactory {
@@ -416,13 +416,20 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
         now = core.executionContext.clock.instant()
         root = config_string("textus-control-center.catalog.development.root").map(_.trim).filter(_.nonEmpty)
         localcatalog = config_string("textus-control-center.catalog.local-repository.catalog-root").map(_.trim).filter(_.nonEmpty)
-        discovered = root.toVector.flatMap(path => StandaloneDevelopmentCatalogProvider.discover(DevelopmentRoot("standalone-development", path), now)) ++ localcatalog.toVector.flatMap(path => StandaloneLocalRepositoryCatalogProvider.discover(LocalRepositoryCatalog("standalone-local-repository", path), now))
-        stored <- discovered.traverse(persist_discovered_source(_, now))
+        publicbase = config_string("textus-control-center.catalog.public.base-url").map(_.trim).filter(_.nonEmpty)
+        publicsubscriptions = config_string("textus-control-center.catalog.public.artifact-ids").toVector.flatMap(_.split(',').toVector.map(_.trim).filter(_.nonEmpty)).distinct
+        publicrepository = publicbase.filter(_ => publicsubscriptions.nonEmpty).map(base => PublicRepositoryCatalog("simplemodeling-public", base, publicsubscriptions))
+        existingcars <- find_managed_cars_all
+        existingsources <- find_managed_sources_all
+        local = root.toVector.flatMap(path => StandaloneDevelopmentCatalogProvider.discover(DevelopmentRoot("standalone-development", path), now)) ++ localcatalog.toVector.flatMap(path => StandaloneLocalRepositoryCatalogProvider.discover(LocalRepositoryCatalog("standalone-local-repository", path), now))
+        public <- publicrepository.toVector.traverse(fetch_public_sources(_, now)).map(_.flatten)
+        discovered = local ++ public
+        stored <- discovered.traverse(persist_discovered_source(_, now, existingcars, existingsources))
       } yield OperationResponse(Record.dataAuto(
         "artifactId" -> action.record.getString("artifactId").map(_.trim).filter(_.nonEmpty),
         "refreshedAt" -> now,
         "refreshedSourceCount" -> stored.size,
-        "adapterState" -> (if (root.isDefined || localcatalog.isDefined) "configured" else "not-configured")
+        "adapterState" -> (if (root.isDefined || localcatalog.isDefined || publicrepository.isDefined) "configured" else "not-configured")
       ))
   }
 
@@ -475,11 +482,43 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "ManagedCar")); query = EntityQuery[ManagedCarEntity](ManagedCarQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[ManagedCarEntity](query) } yield result.data
     protected final def find_managed_sources_all: ExecUowM[Vector[ManagedCarSourceEntity]] =
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "ManagedCarSource")); query = EntityQuery[ManagedCarSourceEntity](ManagedCarSourceQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[ManagedCarSourceEntity](query) } yield result.data
-    protected final def persist_discovered_source(source: CatalogManagedCarSource, now: Instant): ExecUowM[ManagedCarSourceEntity] =
+    protected final def fetch_public_sources(repository: PublicRepositoryCatalog, now: Instant): ExecUowM[Vector[CatalogManagedCarSource]] =
+      repository.subscriptions.traverse { artifactid =>
+        http_get(StandalonePublicRepositoryCatalogProvider.catalog_url(repository, artifactid), Map("Accept" -> "application/yaml, text/yaml"))
+          .map { response =>
+            if (response.status.code / 100 == 2)
+              StandalonePublicRepositoryCatalogProvider.available(repository, artifactid, response.getString.getOrElse(""), now)
+            else
+              StandalonePublicRepositoryCatalogProvider.unavailable(repository, artifactid, now)
+          }
+      }
+    protected final def persist_discovered_source(
+      source: CatalogManagedCarSource,
+      now: Instant,
+      existingcars: Vector[ManagedCarEntity],
+      existingsources: Vector[ManagedCarSourceEntity]
+    ): ExecUowM[ManagedCarSourceEntity] =
       for {
-        _ <- entity_create(ManagedCarCreate(None, source.artifactId, source.componentName, Some(now), Some(now)))
-        stored <- entity_create(ManagedCarSourceCreate(None, source.artifactId, source.sourceId, source.sourceKind.mark, source.refreshState.toString.toLowerCase, source.componentName, None, None, source.snapshotAt, source.diagnostic, source.privateLocator))
-      } yield ManagedCarSourceEntity(stored.id, source.artifactId, source.sourceId, source.sourceKind.mark, source.refreshState.toString.toLowerCase, source.componentName, None, None, source.snapshotAt, source.diagnostic, source.privateLocator)
+        _ <- ensure_managed_car(source, existingcars, now)
+        retained = retain_source_facts(source, existingsources)
+        recommended = retained.availableVersions.headOption
+        latest = retained.availableVersions.lastOption
+        stored <- entity_create(ManagedCarSourceCreate(None, retained.artifactId, retained.sourceId, retained.sourceKind.mark, retained.refreshState.toString.toLowerCase, retained.componentName, recommended, latest, retained.snapshotAt, retained.diagnostic, retained.privateLocator))
+      } yield ManagedCarSourceEntity(stored.id, retained.artifactId, retained.sourceId, retained.sourceKind.mark, retained.refreshState.toString.toLowerCase, retained.componentName, recommended, latest, retained.snapshotAt, retained.diagnostic, retained.privateLocator)
+    protected final def ensure_managed_car(source: CatalogManagedCarSource, existing: Vector[ManagedCarEntity], now: Instant): ExecUowM[Unit] =
+      existing.find(_.artifactId == source.artifactId) match {
+        case Some(car) => entity_update(car.copy(componentName = source.componentName.orElse(car.componentName), updatedAt = now)).map(_ => ())
+        case None => entity_create(ManagedCarCreate(None, source.artifactId, source.componentName, Some(now), Some(now))).map(_ => ())
+      }
+    protected final def retain_source_facts(source: CatalogManagedCarSource, existing: Vector[ManagedCarSourceEntity]): CatalogManagedCarSource =
+      if (source.refreshState == org.simplemodeling.textus.controlcenter.catalog.ManagedCarRefreshState.Available) source
+      else latest_sources(existing).find(current => current.artifactId == source.artifactId && current.sourceId == source.sourceId) match {
+        case Some(current) => source.copy(
+          componentName = source.componentName.orElse(current.componentName),
+          availableVersions = if (source.availableVersions.nonEmpty) source.availableVersions else Vector(current.recommendedVersion, current.latestVersion).flatten.distinct
+        )
+        case None => source
+      }
     protected final def latest_cars(sources: Vector[ManagedCarEntity]): Vector[ManagedCarEntity] =
       sources.groupBy(_.artifactId).valuesIterator.flatMap(_.sortBy(source => (source.updatedAt, source.id.print)).lastOption).toVector.sortBy(_.artifactId)
     protected final def latest_sources(sources: Vector[ManagedCarSourceEntity]): Vector[ManagedCarSourceEntity] =
