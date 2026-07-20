@@ -25,6 +25,10 @@ import org.simplemodeling.textus.controlcenter.entity.create.{RegisteredSubsyste
 import org.simplemodeling.textus.controlcenter.entity.create.RegisteredSubsystem.given
 import org.simplemodeling.textus.controlcenter.entity.query.{RegisteredSubsystem as RegisteredSubsystemQuery}
 import org.simplemodeling.textus.controlcenter.entity.query.{ManagedCar as ManagedCarQuery, ManagedCarSource as ManagedCarSourceQuery}
+import org.simplemodeling.textus.controlcenter.entity.create.{ManagedCar as ManagedCarCreate, ManagedCarSource as ManagedCarSourceCreate}
+import org.simplemodeling.textus.controlcenter.entity.create.ManagedCar.given
+import org.simplemodeling.textus.controlcenter.entity.create.ManagedCarSource.given
+import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, ManagedCarSource as CatalogManagedCarSource, StandaloneDevelopmentCatalogProvider}
 import org.simplemodeling.textus.controlcenter.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
 
 final class ComponentFactory extends Component.BundleFactory {
@@ -409,13 +413,15 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
     protected def build_Program: ExecUowM[OperationResponse] =
       for {
         _ <- exec_from(administrative_principal)
-        sources <- find_managed_sources_all
         now = core.executionContext.clock.instant()
+        root = config_string("textus-control-center.catalog.development.root").map(_.trim).filter(_.nonEmpty)
+        discovered = root.toVector.flatMap(path => StandaloneDevelopmentCatalogProvider.discover(DevelopmentRoot("standalone-development", path), now))
+        stored <- discovered.traverse(persist_discovered_source(_, now))
       } yield OperationResponse(Record.dataAuto(
         "artifactId" -> action.record.getString("artifactId").map(_.trim).filter(_.nonEmpty),
         "refreshedAt" -> now,
-        "retainedSourceCount" -> latest_sources(sources).size,
-        "adapterState" -> "not-configured"
+        "refreshedSourceCount" -> stored.size,
+        "adapterState" -> (if (root.isDefined) "development" else "not-configured")
       ))
   }
 
@@ -468,6 +474,11 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "ManagedCar")); query = EntityQuery[ManagedCarEntity](ManagedCarQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[ManagedCarEntity](query) } yield result.data
     protected final def find_managed_sources_all: ExecUowM[Vector[ManagedCarSourceEntity]] =
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "ManagedCarSource")); query = EntityQuery[ManagedCarSourceEntity](ManagedCarSourceQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[ManagedCarSourceEntity](query) } yield result.data
+    protected final def persist_discovered_source(source: CatalogManagedCarSource, now: Instant): ExecUowM[ManagedCarSourceEntity] =
+      for {
+        _ <- entity_create(ManagedCarCreate(None, source.artifactId, source.componentName, Some(now), Some(now)))
+        stored <- entity_create(ManagedCarSourceCreate(None, source.artifactId, source.sourceId, source.sourceKind.mark, source.refreshState.toString.toLowerCase, source.componentName, None, None, source.snapshotAt, source.diagnostic, source.privateLocator))
+      } yield ManagedCarSourceEntity(stored.id, source.artifactId, source.sourceId, source.sourceKind.mark, source.refreshState.toString.toLowerCase, source.componentName, None, None, source.snapshotAt, source.diagnostic, source.privateLocator)
     protected final def latest_cars(sources: Vector[ManagedCarEntity]): Vector[ManagedCarEntity] =
       sources.groupBy(_.artifactId).valuesIterator.flatMap(_.sortBy(source => (source.updatedAt, source.id.print)).lastOption).toVector.sortBy(_.artifactId)
     protected final def latest_sources(sources: Vector[ManagedCarSourceEntity]): Vector[ManagedCarSourceEntity] =
