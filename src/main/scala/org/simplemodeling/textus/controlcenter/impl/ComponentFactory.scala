@@ -28,7 +28,7 @@ import org.simplemodeling.textus.controlcenter.entity.query.{ManagedCar as Manag
 import org.simplemodeling.textus.controlcenter.entity.create.{ManagedCar as ManagedCarCreate, ManagedCarSource as ManagedCarSourceCreate}
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCar.given
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCarSource.given
-import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, ManagedCarSource as CatalogManagedCarSource, StandaloneDevelopmentCatalogProvider}
+import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCarSource as CatalogManagedCarSource, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider}
 import org.simplemodeling.textus.controlcenter.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
 
 final class ComponentFactory extends Component.BundleFactory {
@@ -415,13 +415,14 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
         _ <- exec_from(administrative_principal)
         now = core.executionContext.clock.instant()
         root = config_string("textus-control-center.catalog.development.root").map(_.trim).filter(_.nonEmpty)
-        discovered = root.toVector.flatMap(path => StandaloneDevelopmentCatalogProvider.discover(DevelopmentRoot("standalone-development", path), now))
+        localcatalog = config_string("textus-control-center.catalog.local-repository.catalog-root").map(_.trim).filter(_.nonEmpty)
+        discovered = root.toVector.flatMap(path => StandaloneDevelopmentCatalogProvider.discover(DevelopmentRoot("standalone-development", path), now)) ++ localcatalog.toVector.flatMap(path => StandaloneLocalRepositoryCatalogProvider.discover(LocalRepositoryCatalog("standalone-local-repository", path), now))
         stored <- discovered.traverse(persist_discovered_source(_, now))
       } yield OperationResponse(Record.dataAuto(
         "artifactId" -> action.record.getString("artifactId").map(_.trim).filter(_.nonEmpty),
         "refreshedAt" -> now,
         "refreshedSourceCount" -> stored.size,
-        "adapterState" -> (if (root.isDefined) "development" else "not-configured")
+        "adapterState" -> (if (root.isDefined || localcatalog.isDefined) "configured" else "not-configured")
       ))
   }
 
