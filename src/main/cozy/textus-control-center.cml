@@ -158,6 +158,82 @@ GetSubsystem
 
 GetSubsystemResult
 
+# SERVICE
+
+## CarCatalog
+
+### DESCRIPTION
+
+Administrative managed-CAR catalog operations backed by persisted source snapshots.
+
+### OPERATION
+
+#### refreshCarCatalog
+
+##### DESCRIPTION
+
+Refreshes explicitly configured CAR sources without changing CAR lifecycle state.
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+RefreshCarCatalog
+
+##### OUTPUT
+
+###### TYPE
+
+RefreshCarCatalogResult
+
+#### listManagedCars
+
+##### DESCRIPTION
+
+Lists persisted managed CAR identities and safe source availability summaries.
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ListManagedCars
+
+##### OUTPUT
+
+###### TYPE
+
+ListManagedCarsResult
+
+#### getManagedCar
+
+##### DESCRIPTION
+
+Loads one managed CAR and its protected source snapshot detail.
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetManagedCar
+
+##### OUTPUT
+
+###### TYPE
+
+GetManagedCarResult
+
 # ENTITY
 
 ## RegisteredSubsystem
@@ -182,6 +258,36 @@ GetSubsystemResult
 | lastSeenAt              | instant                 | 1            |                 |
 | launcherState           | LauncherState           | 1            |                 |
 | registrationPrincipalId | RegistrationPrincipalId | 1            | internal        |
+
+## ManagedCar
+
+### ATTRIBUTE
+
+| name          | type                    | multiplicity | confidentiality |
+|---------------|-------------------------|--------------|-----------------|
+| id            | entityid                | 1            |                 |
+| artifactId    | ManagedCarArtifactId    | 1            |                 |
+| componentName | ManagedCarComponentName | ?            |                 |
+| createdAt     | instant                 | 1            |                 |
+| updatedAt     | instant                 | 1            |                 |
+
+## ManagedCarSource
+
+### ATTRIBUTE
+
+| name               | type                     | multiplicity | confidentiality |
+|--------------------|--------------------------|--------------|-----------------|
+| id                 | entityid                 | 1            |                 |
+| artifactId         | ManagedCarArtifactId     | 1            |                 |
+| sourceId           | ManagedCarSourceId       | 1            |                 |
+| sourceKind         | ManagedCarSourceKind     | 1            |                 |
+| refreshState       | ManagedCarRefreshState   | 1            |                 |
+| componentName      | ManagedCarComponentName  | ?            |                 |
+| recommendedVersion | ManagedCarVersion        | ?            |                 |
+| latestVersion      | ManagedCarVersion        | ?            |                 |
+| snapshotAt         | instant                  | 1            |                 |
+| diagnostic         | ManagedCarDiagnostic     | ?            |                 |
+| privateLocator     | ManagedCarPrivateLocator | ?            | internal        |
 
 # COMMAND
 
@@ -233,6 +339,14 @@ GetSubsystemResult
 |------------|--------|--------------|
 | instanceId | string | 1            |
 
+## RefreshCarCatalog
+
+### ATTRIBUTE
+
+| name       | type   | multiplicity |
+|------------|--------|--------------|
+| artifactId | string | ?            |
+
 # QUERY
 
 ## ListSubsystems
@@ -252,6 +366,24 @@ GetSubsystemResult
 | name       | type   | multiplicity |
 |------------|--------|--------------|
 | instanceId | string | 1            |
+
+## ListManagedCars
+
+### ATTRIBUTE
+
+| name   | type   | multiplicity |
+|--------|--------|--------------|
+| text   | string | ?            |
+| offset | int    | ?            |
+| limit  | int    | ?            |
+
+## GetManagedCar
+
+### ATTRIBUTE
+
+| name       | type   | multiplicity |
+|------------|--------|--------------|
+| artifactId | string | 1            |
 
 # DATATYPE
 
@@ -351,6 +483,70 @@ GetSubsystemResult
 |-------|--------|--------------|
 | value | string | 1            |
 
+## ManagedCarArtifactId
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## ManagedCarComponentName
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## ManagedCarSourceId
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## ManagedCarSourceKind
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## ManagedCarRefreshState
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## ManagedCarVersion
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## ManagedCarDiagnostic
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## ManagedCarPrivateLocator
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
 # VALUE
 
 ## RegisterSubsystemResult
@@ -378,6 +574,24 @@ OperationResult
 OperationResult
 
 ## GetSubsystemResult
+
+### EXTENDS
+
+OperationResult
+
+## RefreshCarCatalogResult
+
+### EXTENDS
+
+OperationResult
+
+## ListManagedCarsResult
+
+### EXTENDS
+
+OperationResult
+
+## GetManagedCarResult
 
 ### EXTENDS
 

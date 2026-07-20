@@ -20,9 +20,11 @@ import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
 import org.simplemodeling.textus.controlcenter.TextusControlCenterComponent
 import org.simplemodeling.textus.controlcenter.entity.{RegisteredSubsystem as RegisteredSubsystemEntity}
+import org.simplemodeling.textus.controlcenter.entity.{ManagedCar as ManagedCarEntity, ManagedCarSource as ManagedCarSourceEntity}
 import org.simplemodeling.textus.controlcenter.entity.create.{RegisteredSubsystem as RegisteredSubsystemCreate}
 import org.simplemodeling.textus.controlcenter.entity.create.RegisteredSubsystem.given
 import org.simplemodeling.textus.controlcenter.entity.query.{RegisteredSubsystem as RegisteredSubsystemQuery}
+import org.simplemodeling.textus.controlcenter.entity.query.{ManagedCar as ManagedCarQuery, ManagedCarSource as ManagedCarSourceQuery}
 import org.simplemodeling.textus.controlcenter.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
 
 final class ComponentFactory extends Component.BundleFactory {
@@ -37,6 +39,7 @@ abstract class TextusControlCenterParticipantFactoryBase extends TextusControlCe
   protected final val shared_services =
     Vector(
       TextusControlCenterComponent.SubsystemInventoryService
+      , TextusControlCenterComponent.CarCatalogService
     )
 
   protected final def component_core(
@@ -47,6 +50,8 @@ abstract class TextusControlCenterParticipantFactoryBase extends TextusControlCe
 
   override val SubsystemInventory: TextusControlCenterComponent.SubsystemInventoryServiceFactory =
     SubsystemInventoryServiceFactoryImpl()
+  override val CarCatalog: TextusControlCenterComponent.CarCatalogServiceFactory =
+    CarCatalogServiceFactoryImpl()
   override val aggregate: TextusControlCenterComponent.AggregateServiceFactory =
     AggregateServiceFactoryImpl()
   override val view: TextusControlCenterComponent.ViewServiceFactory =
@@ -386,6 +391,90 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
       case RegistryError.Conflict(_, _) => Consequence.stateConflict(error.message)
       case RegistryError.Unauthorized(_) => Consequence.securityPermissionDenied(error.message)
     }
+  }
+}
+
+final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.CarCatalogServiceFactory {
+  import TextusControlCenterComponent.CarCatalogService.*
+
+  override def createRefreshCarCatalogActionCall(core: ActionCall.Core, action: RefreshCarCatalog): RefreshCarCatalogActionCall =
+    RefreshCarCatalogActionCallImpl(core, action)
+  override def createListManagedCarsActionCall(core: ActionCall.Core, action: ListManagedCars): ListManagedCarsActionCall =
+    ListManagedCarsActionCallImpl(core, action)
+  override def createGetManagedCarActionCall(core: ActionCall.Core, action: GetManagedCar): GetManagedCarActionCall =
+    GetManagedCarActionCallImpl(core, action)
+
+  private final case class RefreshCarCatalogActionCallImpl(core: ActionCall.Core, override val action: RefreshCarCatalog)
+      extends RefreshCarCatalogActionCall with CatalogActionSupport {
+    protected def build_Program: ExecUowM[OperationResponse] =
+      for {
+        _ <- exec_from(administrative_principal)
+        sources <- find_managed_sources_all
+        now = core.executionContext.clock.instant()
+      } yield OperationResponse(Record.dataAuto(
+        "artifactId" -> action.record.getString("artifactId").map(_.trim).filter(_.nonEmpty),
+        "refreshedAt" -> now,
+        "retainedSourceCount" -> latest_sources(sources).size,
+        "adapterState" -> "not-configured"
+      ))
+  }
+
+  private final case class ListManagedCarsActionCallImpl(core: ActionCall.Core, override val action: ListManagedCars)
+      extends ListManagedCarsActionCall with CatalogActionSupport {
+    protected def build_Program: ExecUowM[OperationResponse] =
+      for {
+        _ <- exec_from(administrative_principal)
+        cars <- find_managed_cars_all
+        sources <- find_managed_sources_all
+        text = action.record.getString("text").map(_.trim.toLowerCase).filter(_.nonEmpty)
+        offset = action.record.getInt("offset").getOrElse(0).max(0)
+        limit = action.record.getInt("limit").getOrElse(100).max(0)
+        filtered = latest_cars(cars).filter(car => text.forall(value => matches_text(car, value)))
+        page = filtered.drop(offset).take(limit)
+      } yield OperationResponse(Record.dataAuto(
+        "data" -> page.map(car => safe_car_projection(car, latest_sources(sources).filter(_.artifactId == car.artifactId), false)),
+        "totalCount" -> filtered.size,
+        "offset" -> offset,
+        "limit" -> limit
+      ))
+  }
+
+  private final case class GetManagedCarActionCallImpl(core: ActionCall.Core, override val action: GetManagedCar)
+      extends GetManagedCarActionCall with CatalogActionSupport {
+    protected def build_Program: ExecUowM[OperationResponse] =
+      for {
+        _ <- exec_from(administrative_principal)
+        artifactid <- exec_from(required_string(action.record, "artifactId"))
+        cars <- find_managed_cars_all
+        car <- exec_from(latest_cars(cars).find(_.artifactId == artifactid).toRight(RegistryError.Missing(artifactid)).fold(registry_error, Consequence.success))
+        sources <- find_managed_sources_all
+      } yield OperationResponse(safe_car_projection(car, latest_sources(sources).filter(_.artifactId == artifactid), true))
+  }
+
+  private trait CatalogActionSupport { self: ActionCall =>
+    protected final def administrative_principal: Consequence[Unit] = {
+      val subject = SecuritySubject.current(using executionContext)
+      val privileges = Vector(SecurityContext.Privilege.ApplicationContentManager, SecurityContext.Privilege.Operator, SecurityContext.Privilege.System, SecurityContext.Privilege.Internal)
+      if (subject.isAuthenticated && privileges.exists(privilege => subject.hasPrivilege(privilege.name) || subject.hasCapability(privilege.name) || subject.hasRole(privilege.name))) Consequence.unit
+      else Consequence.securityPermissionDenied("CAR catalog requires administrative authorization.")
+    }
+    protected final def required_string(record: Record, name: String): Consequence[String] =
+      record.getString(name).map(_.trim).filter(_.nonEmpty).toRight(s"$name is required").fold(Consequence.operationInvalid, Consequence.success)
+    protected final def registry_error(error: RegistryError): Consequence[Nothing] = error match {
+      case RegistryError.Missing(_) => Consequence.resourceNotFound(error.message)
+      case _ => Consequence.operationInvalid(error.message)
+    }
+    protected final def find_managed_cars_all: ExecUowM[Vector[ManagedCarEntity]] =
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "ManagedCar")); query = EntityQuery[ManagedCarEntity](ManagedCarQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[ManagedCarEntity](query) } yield result.data
+    protected final def find_managed_sources_all: ExecUowM[Vector[ManagedCarSourceEntity]] =
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "ManagedCarSource")); query = EntityQuery[ManagedCarSourceEntity](ManagedCarSourceQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[ManagedCarSourceEntity](query) } yield result.data
+    protected final def latest_cars(sources: Vector[ManagedCarEntity]): Vector[ManagedCarEntity] =
+      sources.groupBy(_.artifactId).valuesIterator.flatMap(_.sortBy(source => (source.updatedAt, source.id.print)).lastOption).toVector.sortBy(_.artifactId)
+    protected final def latest_sources(sources: Vector[ManagedCarSourceEntity]): Vector[ManagedCarSourceEntity] =
+      sources.groupBy(source => (source.artifactId, source.sourceId)).valuesIterator.flatMap(_.sortBy(source => (source.snapshotAt, source.id.print)).lastOption).toVector.sortBy(source => (source.artifactId, source.sourceKind, source.sourceId))
+    protected final def safe_car_projection(car: ManagedCarEntity, sources: Vector[ManagedCarSourceEntity], detail: Boolean): Record =
+      Record.dataAuto("artifactId" -> car.artifactId, "componentName" -> car.componentName, "createdAt" -> car.createdAt, "updatedAt" -> car.updatedAt, "sources" -> sources.map(source => Record.dataAuto("sourceId" -> source.sourceId, "sourceKind" -> source.sourceKind, "refreshState" -> source.refreshState, "componentName" -> source.componentName, "recommendedVersion" -> source.recommendedVersion, "latestVersion" -> source.latestVersion, "snapshotAt" -> source.snapshotAt, "diagnostic" -> source.diagnostic, "privateLocator" -> (if (detail) source.privateLocator else None))))
+    protected final def matches_text(car: ManagedCarEntity, text: String): Boolean = Vector(car.artifactId).concat(car.componentName.toVector).exists(_.toLowerCase.contains(text))
   }
 }
 
