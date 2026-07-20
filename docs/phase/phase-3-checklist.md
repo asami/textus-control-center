@@ -26,18 +26,18 @@ Acceptance evidence:
 
 ## MC-02: Standalone Source Configuration and Refresh Boundary
 
-Status: PLANNED
+Status: DONE
 
-- [ ] Define the standalone configuration schema and precedence for development
+- [x] Define the standalone configuration schema and precedence for development
   roots, local catalog root, public repository, and subscriptions.
-- [ ] Define first-level `textus-*` seed discovery and fixture/example
+- [x] Define first-level `textus-*` seed discovery and fixture/example
   exclusion rules.
-- [ ] Define project descriptor validation and duplicate artifact conflict
+- [x] Define project descriptor validation and duplicate artifact conflict
   behavior.
-- [ ] Define local repository catalog parsing and archive-presence semantics.
-- [ ] Define artifact-specific SimpleModeling.org public catalog retrieval,
+- [x] Define local repository catalog parsing and archive-presence semantics.
+- [x] Define artifact-specific SimpleModeling.org public catalog retrieval,
   timeout, checksum/runtime metadata, and unavailable-source behavior.
-- [ ] Define refresh idempotency and retention of the last successful snapshot.
+- [x] Define refresh idempotency and retention of the last successful snapshot.
 
 Acceptance evidence:
 

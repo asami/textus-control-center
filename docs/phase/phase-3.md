@@ -3,8 +3,8 @@
 Stage Status:
 
 - Current status: IN PROGRESS
-- Current step: Define standalone source configuration and refresh behavior
-  before generating the CML catalog model.
+- Current step: Generate the persistent catalog model and its operation surface
+  from the frozen catalog and standalone configuration contracts.
 - Owner: Textus Control Center Phase 3
 - Update rule: Update this block and `phase-3-checklist.md` whenever a stable
   checklist state changes. Close the phase only when every in-scope checklist
@@ -100,9 +100,10 @@ same logical-CAR and source contracts.
 
 - A (DONE): MC-01 - Freeze catalog identity, source, privacy, and runtime link
   contracts.
-- B (IN PROGRESS): MC-02 - Define standalone source configuration and safe
+- B (DONE): MC-02 - Define standalone source configuration and safe
   discovery/refresh behavior.
-- C (PLANNED): MC-03 - Generate and implement catalog records and Operations.
+- C (IN PROGRESS): MC-03 - Generate and implement catalog records and
+  Operations.
 - D (PLANNED): MC-04 - Add optional launcher artifact identity and executable
   cross-launcher linkage scenarios.
 - E (PLANNED): MC-05 - Add command, REST, and static Web CAR catalog views.
@@ -112,7 +113,7 @@ same logical-CAR and source contracts.
 ## 7. Development Items
 
 - [x] MC-01: Freeze catalog and source contracts.
-- [ ] MC-02: Define standalone source configuration and refresh behavior.
+- [x] MC-02: Define standalone source configuration and refresh behavior.
 - [ ] MC-03: Implement persistent catalog records and Operations.
 - [ ] MC-04: Add launcher artifact identity and runtime linking.
 - [ ] MC-05: Implement static Web CAR catalog projections.
