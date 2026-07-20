@@ -180,6 +180,56 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       _records(result).map(_.getString("instanceId")) shouldBe Vector(Some("textuscontrolcenteractionspec"))
       _records(result).flatMap(_.getAny("registrationPrincipalId")) shouldBe empty
     }
+
+    "refresh, list, and load managed CAR snapshots through the protected operation surface" in {
+      Given("a configured standalone development root with one CAR descriptor")
+      val root = Files.createTempDirectory("control-center-catalog")
+      val car = Files.createDirectory(root.resolve("textus-catalog-spec"))
+      Files.writeString(
+        car.resolve("project.yaml"),
+        "project:\n  name: textus-catalog-spec\n  kind: car\n  component:\n    name: catalog-spec-component\n"
+      )
+      val fixture = _fixture()
+      val component = _component(_catalog_configuration(root))
+      val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
+
+      When("an operator refreshes the configured catalog and reads its list and detail")
+      val refresh = _execute(component, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog"))
+        .toOption.getOrElse(fail("catalog refresh failed"))
+        .asInstanceOf[OperationResponse.RecordResponse].record
+      val listresult = _execute(component, operatorcontext, Request.ofService("CarCatalog", "listManagedCars"))
+      val listed = listresult
+        .toOption.getOrElse(fail(s"catalog list failed: $listresult"))
+        .asInstanceOf[OperationResponse.RecordResponse].record
+      val detail = _execute(
+        component,
+        operatorcontext,
+        Request.ofService("CarCatalog", "getManagedCar", properties = List(Property("artifactId", "textus-catalog-spec", None)))
+      ).toOption.getOrElse(fail("catalog detail failed")).asInstanceOf[OperationResponse.RecordResponse].record
+
+      Then("the shared operations persist a deterministic catalog while redacting locators from the list")
+      refresh.getInt("refreshedSourceCount") shouldBe Some(1)
+      _records(listed).map(_.getString("artifactId")) shouldBe Vector(Some("textus-catalog-spec"))
+      val listsource = _records(listed).head.getAny("sources") match {
+        case Some(values: Vector[?]) => values.collectFirst { case value: Record => value }.getOrElse(fail("list source missing"))
+        case Some(values: Seq[?]) => values.collectFirst { case value: Record => value }.getOrElse(fail("list source missing"))
+        case _ => fail("list source missing")
+      }
+      listsource.getString("sourceKind") shouldBe Some("DEV")
+      listsource.getAny("privateLocator") shouldBe empty
+      val detailsource = detail.getAny("sources") match {
+        case Some(values: Vector[?]) => values.collectFirst { case value: Record => value }.getOrElse(fail("detail source missing"))
+        case Some(values: Seq[?]) => values.collectFirst { case value: Record => value }.getOrElse(fail("detail source missing"))
+        case _ => fail("detail source missing")
+      }
+      detailsource.getString("privateLocator") shouldBe Some(car.toString)
+
+      When("a launcher-level principal attempts a catalog read")
+      val unauthorized = _execute(component, fixture.launcherContextFor(SecurityContext.Privilege.User), Request.ofService("CarCatalog", "listManagedCars"))
+
+      Then("the catalog boundary rejects non-administrative authority")
+      unauthorized.toOption shouldBe empty
+    }
   }
 
   private def _fixture(datastorepath: Option[Path] = None): _Fixture = {
@@ -299,6 +349,14 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       Configuration(Map(
         "textus.component.textus-control-center.datastores.application.policy" -> ConfigurationValue.StringValue("local-default"),
         "textus.local-data.textus-control-center.application.path" -> ConfigurationValue.StringValue(path.toString)
+      )),
+      ConfigurationTrace.empty
+    )
+
+  private def _catalog_configuration(root: Path): ResolvedConfiguration =
+    ResolvedConfiguration(
+      Configuration(Map(
+        "textus-control-center.catalog.development.root" -> ConfigurationValue.StringValue(root.toString)
       )),
       ConfigurationTrace.empty
     )

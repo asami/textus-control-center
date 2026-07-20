@@ -268,8 +268,8 @@ GetManagedCarResult
 | id            | entityid                | 1            |                 |
 | artifactId    | ManagedCarArtifactId    | 1            |                 |
 | componentName | ManagedCarComponentName | ?            |                 |
-| createdAt     | instant                 | 1            |                 |
-| updatedAt     | instant                 | 1            |                 |
+| firstObservedAt | instant               | 1            |                 |
+| lastObservedAt  | instant               | 1            |                 |
 
 ## ManagedCarSource
 

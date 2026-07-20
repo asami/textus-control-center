@@ -507,8 +507,8 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
       } yield ManagedCarSourceEntity(stored.id, retained.artifactId, retained.sourceId, retained.sourceKind.mark, retained.refreshState.toString.toLowerCase, retained.componentName, recommended, latest, retained.snapshotAt, retained.diagnostic, retained.privateLocator)
     protected final def ensure_managed_car(source: CatalogManagedCarSource, existing: Vector[ManagedCarEntity], now: Instant): ExecUowM[Unit] =
       existing.find(_.artifactId == source.artifactId) match {
-        case Some(car) => entity_update(car.copy(componentName = source.componentName.orElse(car.componentName), updatedAt = now)).map(_ => ())
-        case None => entity_create(ManagedCarCreate(None, source.artifactId, source.componentName, Some(now), Some(now))).map(_ => ())
+        case Some(car) => entity_update(car.copy(componentName = source.componentName.orElse(car.componentName), lastObservedAt = now)).map(_ => ())
+        case None => entity_create(ManagedCarCreate(None, source.artifactId, source.componentName, now, now)).map(_ => ())
       }
     protected final def retain_source_facts(source: CatalogManagedCarSource, existing: Vector[ManagedCarSourceEntity]): CatalogManagedCarSource =
       if (source.refreshState == org.simplemodeling.textus.controlcenter.catalog.ManagedCarRefreshState.Available) source
@@ -520,11 +520,11 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
         case None => source
       }
     protected final def latest_cars(sources: Vector[ManagedCarEntity]): Vector[ManagedCarEntity] =
-      sources.groupBy(_.artifactId).valuesIterator.flatMap(_.sortBy(source => (source.updatedAt, source.id.print)).lastOption).toVector.sortBy(_.artifactId)
+      sources.groupBy(_.artifactId).valuesIterator.flatMap(_.sortBy(source => (source.lastObservedAt, source.id.print)).lastOption).toVector.sortBy(_.artifactId)
     protected final def latest_sources(sources: Vector[ManagedCarSourceEntity]): Vector[ManagedCarSourceEntity] =
       sources.groupBy(source => (source.artifactId, source.sourceId)).valuesIterator.flatMap(_.sortBy(source => (source.snapshotAt, source.id.print)).lastOption).toVector.sortBy(source => (source.artifactId, source.sourceKind, source.sourceId))
     protected final def safe_car_projection(car: ManagedCarEntity, sources: Vector[ManagedCarSourceEntity], detail: Boolean): Record =
-      Record.dataAuto("artifactId" -> car.artifactId, "componentName" -> car.componentName, "createdAt" -> car.createdAt, "updatedAt" -> car.updatedAt, "sources" -> sources.map(source => Record.dataAuto("sourceId" -> source.sourceId, "sourceKind" -> source.sourceKind, "refreshState" -> source.refreshState, "componentName" -> source.componentName, "recommendedVersion" -> source.recommendedVersion, "latestVersion" -> source.latestVersion, "snapshotAt" -> source.snapshotAt, "diagnostic" -> source.diagnostic, "privateLocator" -> (if (detail) source.privateLocator else None))))
+      Record.dataAuto("artifactId" -> car.artifactId, "componentName" -> car.componentName, "createdAt" -> car.firstObservedAt, "updatedAt" -> car.lastObservedAt, "sources" -> sources.map(source => Record.dataAuto("sourceId" -> source.sourceId, "sourceKind" -> source.sourceKind, "refreshState" -> source.refreshState, "componentName" -> source.componentName, "recommendedVersion" -> source.recommendedVersion, "latestVersion" -> source.latestVersion, "snapshotAt" -> source.snapshotAt, "diagnostic" -> source.diagnostic, "privateLocator" -> (if (detail) source.privateLocator else None))))
     protected final def matches_text(car: ManagedCarEntity, text: String): Boolean = Vector(car.artifactId).concat(car.componentName.toVector).exists(_.toLowerCase.contains(text))
   }
 }

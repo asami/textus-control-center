@@ -3,8 +3,8 @@
 Stage Status:
 
 - Current status: IN PROGRESS
-- Current step: Generate the persistent catalog model and its operation surface
-  from the frozen catalog and standalone configuration contracts.
+- Current step: Extend launcher registrations with artifact identity and link
+  runtime instances to the persisted managed-CAR catalog.
 - Owner: Textus Control Center Phase 3
 - Update rule: Update this block and `phase-3-checklist.md` whenever a stable
   checklist state changes. Close the phase only when every in-scope checklist
@@ -102,9 +102,8 @@ same logical-CAR and source contracts.
   contracts.
 - B (DONE): MC-02 - Define standalone source configuration and safe
   discovery/refresh behavior.
-- C (IN PROGRESS): MC-03 - Generate and implement catalog records and
-  Operations.
-- D (PLANNED): MC-04 - Add optional launcher artifact identity and executable
+- C (DONE): MC-03 - Generate and implement catalog records and Operations.
+- D (IN PROGRESS): MC-04 - Add optional launcher artifact identity and executable
   cross-launcher linkage scenarios.
 - E (PLANNED): MC-05 - Add command, REST, and static Web CAR catalog views.
 - F (PLANNED): MC-06 - Seed representative development/local/public CARs and
@@ -114,7 +113,7 @@ same logical-CAR and source contracts.
 
 - [x] MC-01: Freeze catalog and source contracts.
 - [x] MC-02: Define standalone source configuration and refresh behavior.
-- [ ] MC-03: Implement persistent catalog records and Operations.
+- [x] MC-03: Implement persistent catalog records and Operations.
 - [ ] MC-04: Add launcher artifact identity and runtime linking.
 - [ ] MC-05: Implement static Web CAR catalog projections.
 - [ ] MC-06: Validate development, local, public, failure, and legacy-instance

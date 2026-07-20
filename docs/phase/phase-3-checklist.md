@@ -48,13 +48,13 @@ Acceptance evidence:
 
 ## MC-03: Cozy Catalog Model and Operations
 
-Status: PLANNED
+Status: DONE
 
-- [ ] Add generated CML model for logical CARs and source snapshots.
-- [ ] Implement administrator-authorized refresh, list, and detail Operations.
-- [ ] Preserve Phase 1/2 registration authorization boundaries.
-- [ ] Implement deterministic ordering and structured source diagnostics.
-- [ ] Add Given/When/Then and property-based specifications for duplicate,
+- [x] Add generated CML model for logical CARs and source snapshots.
+- [x] Implement administrator-authorized refresh, list, and detail Operations.
+- [x] Preserve Phase 1/2 registration authorization boundaries.
+- [x] Implement deterministic ordering and structured source diagnostics.
+- [x] Add Given/When/Then and property-based specifications for duplicate,
   missing, stale-snapshot, and unavailable-source behavior.
 
 Acceptance evidence:
