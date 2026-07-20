@@ -72,6 +72,21 @@ class SubsystemRegistrySpec extends AnyWordSpec with GivenWhenThen with Matchers
       conflict.left.toOption shouldBe Some(RegistryError.Conflict("instance-1", "target differs"))
     }
 
+    "accept optional artifact identity without breaking legacy reports" in {
+      Given("one legacy registration and one registration that names its CAR artifact")
+      val time = Instant.parse("2026-07-18T00:00:00Z")
+      val legacy = SubsystemRegistry.register(None, _input(SubsystemRegistry.starting), "launcher-a", time)
+      val identified = SubsystemRegistry.register(None, _input(SubsystemRegistry.starting).copy(artifactId = Some("textus-control-center")), "launcher-b", time)
+
+      When("the registry accepts both protocol-version-one reports")
+      val legacyartifact = legacy.toOption.flatMap(_.artifactId)
+      val identifiedartifact = identified.toOption.flatMap(_.artifactId)
+
+      Then("the new optional field is retained without requiring launcher upgrades")
+      legacyartifact shouldBe None
+      identifiedartifact shouldBe Some("textus-control-center")
+    }
+
     "expose execution mode and development directory in the administrative projection" in {
       Given("a development-directory launched subsystem")
       val instance = _registered(lastSeenAt = Instant.parse("2026-07-18T00:00:00Z"))
@@ -158,6 +173,7 @@ class SubsystemRegistrySpec extends AnyWordSpec with GivenWhenThen with Matchers
       instanceId = "instance-1",
       launcherKind = "textus",
       target = target,
+      artifactId = None,
       executionMode = Some("development"),
       developmentDirectory = Some("/work/textus-control-center"),
       subsystemName = Some("Textus Control Center"),
@@ -178,6 +194,7 @@ class SubsystemRegistrySpec extends AnyWordSpec with GivenWhenThen with Matchers
       instanceId = instanceId,
       launcherKind = "textus",
       target = "textus-control-center",
+      artifactId = None,
       executionMode = Some("development"),
       developmentDirectory = Some("/work/textus-control-center"),
       subsystemName = Some("Textus Control Center"),

@@ -10,6 +10,7 @@ final case class RegistrationInput(
   instanceId: String,
   launcherKind: String,
   target: String,
+  artifactId: Option[String],
   executionMode: Option[String],
   developmentDirectory: Option[String],
   subsystemName: Option[String],
@@ -26,6 +27,7 @@ final case class RegisteredSubsystem(
   instanceId: String,
   launcherKind: String,
   target: String,
+  artifactId: Option[String],
   executionMode: Option[String],
   developmentDirectory: Option[String],
   subsystemName: Option[String],
@@ -44,6 +46,7 @@ final case class SubsystemProjection(
   instanceId: String,
   launcherKind: String,
   target: String,
+  artifactId: Option[String],
   executionMode: Option[String],
   developmentDirectory: Option[String],
   subsystemName: Option[String],
@@ -151,6 +154,7 @@ object SubsystemRegistry {
         source.instanceId,
         source.launcherKind,
         source.target,
+        source.artifactId,
         source.executionMode,
         source.developmentDirectory,
         source.subsystemName,
@@ -183,6 +187,7 @@ object SubsystemRegistry {
       input.instanceId,
       input.launcherKind,
       input.target,
+      input.artifactId,
       input.executionMode,
       input.developmentDirectory,
       input.subsystemName,
@@ -229,6 +234,8 @@ object SubsystemRegistry {
       Left(RegistryError.Conflict(input.instanceId, "launcher kind differs"))
     } else if (existing.target != input.target) {
       Left(RegistryError.Conflict(input.instanceId, "target differs"))
+    } else if (_different_known_value(existing.artifactId, input.artifactId)) {
+      Left(RegistryError.Conflict(input.instanceId, "artifact identity differs"))
     } else if (_different_known_value(existing.executionMode, input.executionMode)) {
       Left(RegistryError.Conflict(input.instanceId, "execution mode differs"))
     } else if (_different_known_value(existing.developmentDirectory, input.developmentDirectory)) {

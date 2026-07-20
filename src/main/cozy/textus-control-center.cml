@@ -247,6 +247,7 @@ GetManagedCarResult
 | protocolVersion         | int                     | 1            |                 |
 | launcherKind            | LauncherKind            | 1            |                 |
 | target                  | SubsystemTarget         | 1            |                 |
+| artifactId              | ManagedCarArtifactId    | ?            |                 |
 | executionMode           | ExecutionMode           | ?            |                 |
 | developmentDirectory    | DevelopmentDirectory    | ?            |                 |
 | subsystemName           | SubsystemName           | ?            |                 |
@@ -301,6 +302,7 @@ GetManagedCarResult
 | instanceId       | string  | 1            |
 | launcherKind     | string  | 1            |
 | target           | string  | 1            |
+| artifactId       | string  | ?            |
 | executionMode       | string  | ?            |
 | developmentDirectory | string | ?            |
 | subsystemName    | string  | ?            |
@@ -321,6 +323,7 @@ GetManagedCarResult
 | instanceId       | string  | 1            |
 | launcherKind     | string  | 1            |
 | target           | string  | 1            |
+| artifactId       | string  | ?            |
 | executionMode       | string  | ?            |
 | developmentDirectory | string | ?            |
 | subsystemName    | string  | ?            |
