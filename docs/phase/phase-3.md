@@ -3,8 +3,8 @@
 Stage Status:
 
 - Current status: IN PROGRESS
-- Current step: Seed the standalone catalog and complete the end-to-end
-  acceptance evidence for development, local, public, and runtime sources.
+- Current step: Restart the existing standalone Control Center and perform the
+  protected live refresh against the seeded local configuration.
 - Owner: Textus Control Center Phase 3
 - Update rule: Update this block and `phase-3-checklist.md` whenever a stable
   checklist state changes. Close the phase only when every in-scope checklist
@@ -110,7 +110,8 @@ same logical-CAR and source contracts.
   cross-launcher linkage scenarios.
 - E (DONE): MC-05 - Add command, REST, and static Web CAR catalog views.
 - F (IN PROGRESS): MC-06 - Seed representative development/local/public CARs and
-  complete standalone acceptance coverage.
+  complete standalone acceptance coverage. The configuration and executable
+  evidence are complete; live refresh awaits a restart of the existing server.
 
 ## 7. Development Items
 

@@ -26,6 +26,7 @@ rg -F -- 'endpoint: http://127.0.0.1:18777/rest/v1/textus-control-center/subsyst
 rg -F -- 'credentialRef: credentials/launcher-registration.token' "$locator" >/dev/null
 rg -F -- 'hostLabel: bootstrap-check' "$locator" >/dev/null
 rg -F -- 'textus.local-data.textus-control-center.application.path' "$server_config" >/dev/null
+rg -F -- "textus-control-center.home\": \"$root\"" "$server_config" >/dev/null
 
 first_token="$(<"$credential")"
 [[ -n "$first_token" ]]

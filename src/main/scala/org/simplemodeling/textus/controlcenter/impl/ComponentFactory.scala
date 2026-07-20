@@ -16,6 +16,7 @@ import org.goldenport.cncf.context.SecurityContext
 import org.goldenport.cncf.security.AuthenticationProvider
 import org.goldenport.cncf.security.SecuritySubject
 import org.goldenport.cncf.unitofwork.ExecUowM
+import org.goldenport.protocol.Property
 import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
 import org.simplemodeling.textus.controlcenter.TextusControlCenterComponent
@@ -421,24 +422,28 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
         now = core.executionContext.clock.instant()
         catalogfile = StandaloneCatalogConfiguration.configuredFile(config_string("textus-control-center.catalog.file"), config_string("textus-control-center.home"))
         catalogconfiguration = catalogfile.flatMap(path => StandaloneCatalogConfiguration.load(path).toOption)
-        root = catalogconfiguration.flatMap(_.developmentRoots.headOption.map(_.path)).orElse(config_string("textus-control-center.catalog.development.root").map(_.trim).filter(_.nonEmpty))
-        localcatalog = catalogconfiguration.flatMap(_.localRepositoryCatalog.map(_.catalogRoot)).orElse(config_string("textus-control-center.catalog.local-repository.catalog-root").map(_.trim).filter(_.nonEmpty))
-        publicrepository = catalogconfiguration.flatMap(_.publicRepositoryCatalogs.headOption).orElse {
+        developmentroots = catalogconfiguration.map(_.developmentRoots).getOrElse(
+          config_string("textus-control-center.catalog.development.root").map(_.trim).filter(_.nonEmpty).map(path => DevelopmentRoot("standalone-development", path)).toVector
+        )
+        localcatalogs = catalogconfiguration.flatMap(_.localRepositoryCatalog).toVector ++
+          (if (catalogconfiguration.isDefined) Vector.empty else config_string("textus-control-center.catalog.local-repository.catalog-root").map(_.trim).filter(_.nonEmpty).map(path => LocalRepositoryCatalog("standalone-local-repository", path)).toVector)
+        publicrepositories = catalogconfiguration.map(_.publicRepositoryCatalogs).getOrElse {
           val publicbase = config_string("textus-control-center.catalog.public.base-url").map(_.trim).filter(_.nonEmpty)
           val publicsubscriptions = config_string("textus-control-center.catalog.public.artifact-ids").toVector.flatMap(_.split(',').toVector.map(_.trim).filter(_.nonEmpty)).distinct
-          publicbase.filter(_ => publicsubscriptions.nonEmpty).map(base => PublicRepositoryCatalog("simplemodeling-public", base, publicsubscriptions))
+          publicbase.filter(_ => publicsubscriptions.nonEmpty).map(base => PublicRepositoryCatalog("simplemodeling-public", base, publicsubscriptions)).toVector
         }
+        refreshtimeout = catalogconfiguration.map(_.refreshTimeout).getOrElse(StandaloneCatalogConfiguration.DEFAULT_REFRESH_TIMEOUT)
         existingcars <- find_managed_cars_all
         existingsources <- find_managed_sources_all
-        local = root.toVector.flatMap(path => StandaloneDevelopmentCatalogProvider.discover(DevelopmentRoot("standalone-development", path), now)) ++ localcatalog.toVector.flatMap(path => StandaloneLocalRepositoryCatalogProvider.discover(LocalRepositoryCatalog("standalone-local-repository", path), now))
-        public <- publicrepository.toVector.traverse(fetch_public_sources(_, now)).map(_.flatten)
+        local = developmentroots.flatMap(StandaloneDevelopmentCatalogProvider.discover(_, now)) ++ localcatalogs.flatMap(StandaloneLocalRepositoryCatalogProvider.discover(_, now))
+        public <- publicrepositories.traverse(fetch_public_sources(_, now, refreshtimeout)).map(_.flatten)
         discovered = local ++ public
         stored <- discovered.traverse(persist_discovered_source(_, now, existingcars, existingsources))
       } yield OperationResponse(Record.dataAuto(
         "artifactId" -> action.record.getString("artifactId").map(_.trim).filter(_.nonEmpty),
         "refreshedAt" -> now,
         "refreshedSourceCount" -> stored.size,
-        "adapterState" -> (if (catalogfile.isDefined && catalogconfiguration.isEmpty) "invalid" else if (root.isDefined || localcatalog.isDefined || publicrepository.isDefined) "configured" else "not-configured")
+        "adapterState" -> (if (catalogfile.isDefined && catalogconfiguration.isEmpty) "invalid" else if (developmentroots.nonEmpty || localcatalogs.nonEmpty || publicrepositories.nonEmpty) "configured" else "not-configured")
       ))
   }
 
@@ -497,9 +502,13 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "ManagedCarSource")); query = EntityQuery[ManagedCarSourceEntity](ManagedCarSourceQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[ManagedCarSourceEntity](query) } yield result.data
     protected final def find_registered_subsystems_all: ExecUowM[Vector[RegisteredSubsystemEntity]] =
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "RegisteredSubsystem")); query = EntityQuery[RegisteredSubsystemEntity](RegisteredSubsystemQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[RegisteredSubsystemEntity](query) } yield result.data
-    protected final def fetch_public_sources(repository: PublicRepositoryCatalog, now: Instant): ExecUowM[Vector[CatalogManagedCarSource]] =
+    protected final def fetch_public_sources(repository: PublicRepositoryCatalog, now: Instant, timeout: Duration): ExecUowM[Vector[CatalogManagedCarSource]] =
       repository.subscriptions.traverse { artifactid =>
-        http_get(StandalonePublicRepositoryCatalogProvider.catalog_url(repository, artifactid), Map("Accept" -> "application/yaml, text/yaml"))
+        http_get(
+          StandalonePublicRepositoryCatalogProvider.catalog_url(repository, artifactid),
+          Map("Accept" -> "application/yaml, text/yaml"),
+          Vector(Property("http.timeout-seconds", timeout.toSeconds.toString, None))
+        )
           .map { response =>
             if (response.status.code / 100 == 2)
               StandalonePublicRepositoryCatalogProvider.available(repository, artifactid, response.getString.getOrElse(""), now)

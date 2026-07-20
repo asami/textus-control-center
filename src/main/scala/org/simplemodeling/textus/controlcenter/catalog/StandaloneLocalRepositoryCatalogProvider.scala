@@ -22,14 +22,39 @@ object StandaloneLocalRepositoryCatalogProvider {
   private def _catalog_source(sourceid: String, path: Path, observedat: Instant): Option[ManagedCarSource] = {
     val document = Files.readString(path, StandardCharsets.UTF_8)
     val artifactid = _value(document, "artifactId")
-    if (_value(document, "kind").contains("car") && artifactid.exists(_is_artifact_id))
-      Some(ManagedCarSource(artifactid.get, ManagedCarSourceKind.LocalRepository, sourceid, None, Vector.empty, ManagedCarRefreshState.Available, observedat, None, Some(path.toString)))
-        .map(_.copy(availableVersions = Vector(_value(document, "recommended"), _value(document, "latestStable")).flatten.distinct))
-    else None
+    artifactid.filter(_ => _value(document, "kind").contains("car")).filter(_is_artifact_id).map { id =>
+      val archives = _version_files(document).flatMap { case (version, locator) =>
+        _archive_path(path, locator).filter(Files.isRegularFile(_)).map(_ => version)
+      }.distinct
+      if (archives.nonEmpty)
+        ManagedCarSource(id, ManagedCarSourceKind.LocalRepository, sourceid, None, archives, ManagedCarRefreshState.Available, observedat, None, Some(path.toString))
+      else
+        ManagedCarSource(id, ManagedCarSourceKind.LocalRepository, sourceid, None, Vector.empty, ManagedCarRefreshState.Unavailable, observedat, Some("local-car-archive-unavailable"), Some(path.toString))
+    }
   }
 
   private def _value(document: String, key: String): Option[String] =
     document.linesIterator.collectFirst { case line if line.trim.startsWith(s"$key:") => line.trim.stripPrefix(s"$key:").trim.stripPrefix("\"").stripSuffix("\"") }.filter(_.nonEmpty)
+
+  private def _version_files(document: String): Vector[(String, String)] = {
+    var currentversion: Option[String] = None
+    document.linesIterator.foldLeft(Vector.empty[(String, String)]) { (z, line) =>
+      val trimmed = line.trim
+      if (trimmed.startsWith("- version:")) {
+        currentversion = _value(trimmed, "- version")
+        z
+      } else if (trimmed.startsWith("file:")) {
+        val next = currentversion.flatMap(version => _value(trimmed, "file").map(locator => version -> locator)).toVector
+        currentversion = None
+        z ++ next
+      } else {
+        z
+      }
+    }
+  }
+
+  private def _archive_path(catalog: Path, locator: String): Option[Path] =
+    Option(catalog.getParent).flatMap(parent => Option(parent.getParent)).flatMap(parent => Option(parent.getParent)).flatMap(parent => Option(parent.getParent)).map(_.resolve(locator))
 
   private def _is_artifact_id(value: String): Boolean = value.matches("[A-Za-z0-9][A-Za-z0-9._-]*")
 }

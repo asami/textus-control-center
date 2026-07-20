@@ -235,6 +235,46 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       Then("the catalog boundary rejects non-administrative authority")
       unauthorized.toOption shouldBe empty
     }
+
+    "refresh every configured standalone development root" in {
+      Given("a standalone catalog file with two explicitly declared development roots")
+      val firstroot = Files.createTempDirectory("control-center-catalog-first")
+      val secondroot = Files.createTempDirectory("control-center-catalog-second")
+      _write_car_descriptor(firstroot, "textus-catalog-first", "catalog-first-component")
+      _write_car_descriptor(secondroot, "textus-catalog-second", "catalog-second-component")
+      val catalogfile = Files.createTempFile("control-center-catalog", ".yaml")
+      Files.writeString(
+        catalogfile,
+        s"""schema: textus-control-center.catalog.v1
+           |development:
+           |  roots:
+           |    - id: first
+           |      path: ${firstroot.toString}
+           |      include-prefix: textus-
+           |    - id: second
+           |      path: ${secondroot.toString}
+           |      include-prefix: textus-
+           |""".stripMargin
+      )
+      val fixture = _fixture()
+      val component = _component(_catalog_file_configuration(catalogfile))
+
+      When("an operator refreshes the configured catalog")
+      val refreshed = _execute(
+        component,
+        fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager),
+        Request.ofService("CarCatalog", "refreshCarCatalog")
+      ).toOption.getOrElse(fail("catalog refresh failed")).asInstanceOf[OperationResponse.RecordResponse].record
+      val listed = _execute(
+        component,
+        fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager),
+        Request.ofService("CarCatalog", "listManagedCars")
+      ).toOption.getOrElse(fail("catalog list failed")).asInstanceOf[OperationResponse.RecordResponse].record
+
+      Then("both declared roots contribute their direct CAR projects")
+      refreshed.getInt("refreshedSourceCount") shouldBe Some(2)
+      _records(listed).map(_.getString("artifactId")) shouldBe Vector(Some("textus-catalog-first"), Some("textus-catalog-second"))
+    }
   }
 
   private def _fixture(datastorepath: Option[Path] = None): _Fixture = {
@@ -365,6 +405,22 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       )),
       ConfigurationTrace.empty
     )
+
+  private def _catalog_file_configuration(path: Path): ResolvedConfiguration =
+    ResolvedConfiguration(
+      Configuration(Map(
+        "textus-control-center.catalog.file" -> ConfigurationValue.StringValue(path.toString)
+      )),
+      ConfigurationTrace.empty
+    )
+
+  private def _write_car_descriptor(root: Path, artifactid: String, componentname: String): Unit = {
+    val project = Files.createDirectory(root.resolve(artifactid))
+    Files.writeString(
+      project.resolve("project.yaml"),
+      s"project:\n  name: $artifactid\n  kind: car\n  component:\n    name: $componentname\n"
+    )
+  }
 
   private def _resolved_parameters(path: Path): ResolvedParameters =
     ResolvedParameters.fromResolvedConfiguration(

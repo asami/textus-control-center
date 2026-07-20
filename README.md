@@ -31,6 +31,20 @@ Use `--cncf-home <temporary-path>` when testing the bootstrap itself. Re-running
 the script preserves the installation identity; `--rotate` replaces only the
 local launcher credential. The script never prints that credential.
 
+Configure the local CAR catalog separately. It records explicit development
+roots, the CNCF local CAR catalog, and only the public artifacts that the
+operator subscribes to; it never scans a public directory listing:
+
+```sh
+bash scripts/configure-standalone-catalog.sh \
+  --development-root /absolute/path/to/src/dev2026 \
+  --public-subscription textus-user-notification
+```
+
+This writes `~/.cncf/textus-control-center/catalog.yaml`. Restart Control
+Center after changing it. Add `--public-subscription` once per additional
+SimpleModeling.org CAR to manage.
+
 The generated `SubsystemInventory` service owns these Phase 1 operations:
 
 - `registerSubsystem`

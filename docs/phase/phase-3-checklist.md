@@ -100,21 +100,41 @@ Acceptance evidence:
 
 ## MC-06: Standalone Seed and End-to-End Validation
 
-Status: PLANNED
+Status: IN PROGRESS
 
-- [ ] Seed the configured first-level `textus-*` CAR projects under the local
+- [x] Seed the configured first-level `textus-*` CAR projects under the local
   development root.
-- [ ] Verify representative development-only, local-only, public-only, and
+- [x] Verify representative development-only, local-only, public-only, and
   three-source CARs.
-- [ ] Verify SimpleModeling.org catalog unavailability, malformed catalog, and
+- [x] Verify SimpleModeling.org catalog unavailability, malformed catalog, and
   retention of the last successful snapshot.
-- [ ] Verify legacy Phase 1/2 registrations and launcher outage isolation.
-- [ ] Run Control Center, CNCF launcher, and Textus launcher executable suites.
+- [x] Verify legacy Phase 1/2 registrations and launcher outage isolation.
+- [x] Run Control Center, CNCF launcher, and Textus launcher executable suites.
 - [x] Run CAR packaging/static Web checks.
-- [ ] Close the phase after the remaining standalone refresh and launcher
-  acceptance evidence is complete.
+- [ ] Restart the existing standalone Control Center, perform an authenticated
+  live refresh, and confirm the seeded catalog is projected through its running
+  static Web application.
+- [ ] Close the phase after the live standalone refresh acceptance evidence is
+  complete.
 
 Acceptance evidence:
 
 - A local operator can distinguish development, local package, public release,
   and running-instance facts without reading launcher logs.
+
+Verified 2026-07-21:
+
+- `~/.cncf/textus-control-center/catalog.yaml` now declares
+  `/Users/asami/src/dev2026`, the local CNCF CAR catalog, and the explicit
+  `textus-user-notification` SimpleModeling.org subscription. Its Control
+  Center server configuration declares the matching standalone home.
+- The development provider found 14 first-level `textus-*` project descriptors;
+  the local repository contains 9 non-metadata CAR catalog records.
+- The public artifact catalog request returned the expected `kind: car`,
+  artifact identity, component, recommended/latest version, runtime, and
+  checksum facts without downloading an archive.
+- `sbt test` passed 37 Control Center specifications; standalone bootstrap and
+  catalog configuration checks passed; `sbt cozyBuildCar` and the static Web
+  packaging check passed. Textus launcher suite passed; CNCF launcher suite
+  passed in the prior launcher compatibility verification and was re-exercised
+  against its isolated temporary runtime environment.

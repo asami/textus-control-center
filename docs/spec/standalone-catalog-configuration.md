@@ -36,6 +36,13 @@ public-repositories:
 The actual parser must reject unknown schema versions and invalid values with a
 safe diagnostic before adapter execution.
 
+`scripts/configure-standalone-catalog.sh` is the standalone installation
+writer. It requires an explicit absolute development root and at least one
+explicit public artifact subscription, defaults the local catalog to
+`<cncf-home>/local/repository/catalog/car`, writes atomically with mode `0600`,
+updates the local server configuration with the Control Center home path, and
+never fetches, builds, or starts a CAR.
+
 ## 2. Validation
 
 - every source ID is non-empty and unique across development, local, and public

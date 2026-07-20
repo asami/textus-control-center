@@ -112,6 +112,7 @@ EOF
 cat > "$server_config_tmp" <<EOF
 "textus-control-center.registration.authentication.token": "$token"
 "textus-control-center.registration.authentication.principal-id": "textus-control-center-launcher"
+"textus-control-center.home": "$root"
 "textus.component.textus-control-center.datastores.application.policy": "local-default"
 "textus.local-data.textus-control-center.application.path": "$state_dir/registry.sqlite"
 EOF
