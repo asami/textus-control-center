@@ -28,7 +28,7 @@ import org.simplemodeling.textus.controlcenter.entity.query.{ManagedCar as Manag
 import org.simplemodeling.textus.controlcenter.entity.create.{ManagedCar as ManagedCarCreate, ManagedCarSource as ManagedCarSourceCreate}
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCar.given
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCarSource.given
-import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCarSource as CatalogManagedCarSource, PublicRepositoryCatalog, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
+import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCar as CatalogManagedCar, ManagedCarCatalog, ManagedCarSource as CatalogManagedCarSource, PublicRepositoryCatalog, RuntimeInstance, RuntimeInstanceStatus, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
 import org.simplemodeling.textus.controlcenter.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
 
 final class ComponentFactory extends Component.BundleFactory {
@@ -445,13 +445,15 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
         _ <- exec_from(administrative_principal)
         cars <- find_managed_cars_all
         sources <- find_managed_sources_all
+        registered <- find_registered_subsystems_all
+        now = core.executionContext.clock.instant()
         text = action.record.getString("text").map(_.trim.toLowerCase).filter(_.nonEmpty)
         offset = action.record.getInt("offset").getOrElse(0).max(0)
         limit = action.record.getInt("limit").getOrElse(100).max(0)
         filtered = latest_cars(cars).filter(car => text.forall(value => matches_text(car, value)))
         page = filtered.drop(offset).take(limit)
       } yield OperationResponse(Record.dataAuto(
-        "data" -> page.map(car => safe_car_projection(car, latest_sources(sources).filter(_.artifactId == car.artifactId), false)),
+        "data" -> page.map(car => safe_car_projection(car, latest_sources(sources).filter(_.artifactId == car.artifactId), false, runtime_summary(car, latest_cars(cars), registered, now))),
         "totalCount" -> filtered.size,
         "offset" -> offset,
         "limit" -> limit
@@ -467,7 +469,9 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
         cars <- find_managed_cars_all
         car <- exec_from(latest_cars(cars).find(_.artifactId == artifactid).toRight(RegistryError.Missing(artifactid)).fold(registry_error, Consequence.success))
         sources <- find_managed_sources_all
-      } yield OperationResponse(safe_car_projection(car, latest_sources(sources).filter(_.artifactId == artifactid), true))
+        registered <- find_registered_subsystems_all
+        now = core.executionContext.clock.instant()
+      } yield OperationResponse(safe_car_projection(car, latest_sources(sources).filter(_.artifactId == artifactid), true, runtime_summary(car, latest_cars(cars), registered, now)))
   }
 
   private trait CatalogActionSupport { self: ActionCall =>
@@ -487,6 +491,8 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "ManagedCar")); query = EntityQuery[ManagedCarEntity](ManagedCarQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[ManagedCarEntity](query) } yield result.data
     protected final def find_managed_sources_all: ExecUowM[Vector[ManagedCarSourceEntity]] =
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "ManagedCarSource")); query = EntityQuery[ManagedCarSourceEntity](ManagedCarSourceQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[ManagedCarSourceEntity](query) } yield result.data
+    protected final def find_registered_subsystems_all: ExecUowM[Vector[RegisteredSubsystemEntity]] =
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "RegisteredSubsystem")); query = EntityQuery[RegisteredSubsystemEntity](RegisteredSubsystemQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[RegisteredSubsystemEntity](query) } yield result.data
     protected final def fetch_public_sources(repository: PublicRepositoryCatalog, now: Instant): ExecUowM[Vector[CatalogManagedCarSource]] =
       repository.subscriptions.traverse { artifactid =>
         http_get(StandalonePublicRepositoryCatalogProvider.catalog_url(repository, artifactid), Map("Accept" -> "application/yaml, text/yaml"))
@@ -528,8 +534,24 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
       sources.groupBy(_.artifactId).valuesIterator.flatMap(_.sortBy(source => (source.lastObservedAt, source.id.print)).lastOption).toVector.sortBy(_.artifactId)
     protected final def latest_sources(sources: Vector[ManagedCarSourceEntity]): Vector[ManagedCarSourceEntity] =
       sources.groupBy(source => (source.artifactId, source.sourceId)).valuesIterator.flatMap(_.sortBy(source => (source.snapshotAt, source.id.print)).lastOption).toVector.sortBy(source => (source.artifactId, source.sourceKind, source.sourceId))
-    protected final def safe_car_projection(car: ManagedCarEntity, sources: Vector[ManagedCarSourceEntity], detail: Boolean): Record =
-      Record.dataAuto("artifactId" -> car.artifactId, "componentName" -> car.componentName, "createdAt" -> car.firstObservedAt, "updatedAt" -> car.lastObservedAt, "sources" -> sources.map(source => Record.dataAuto("sourceId" -> source.sourceId, "sourceKind" -> source.sourceKind, "refreshState" -> source.refreshState, "componentName" -> source.componentName, "recommendedVersion" -> source.recommendedVersion, "latestVersion" -> source.latestVersion, "snapshotAt" -> source.snapshotAt, "diagnostic" -> source.diagnostic, "privateLocator" -> (if (detail) source.privateLocator else None))))
+    protected final def latest_registered_subsystems(sources: Vector[RegisteredSubsystemEntity]): Vector[RegisteredSubsystemEntity] =
+      sources.groupBy(_.instanceId).valuesIterator.flatMap(_.sortBy(source => (source.lastSeenAt, source.id.print)).lastOption).toVector.sortBy(_.instanceId)
+    protected final def runtime_summary(car: ManagedCarEntity, cars: Vector[ManagedCarEntity], registered: Vector[RegisteredSubsystemEntity], now: Instant) = {
+      val catalogcars = cars.map(source => CatalogManagedCar(source.artifactId, source.componentName, source.componentName.toSet, Vector.empty, Vector.empty))
+      val instances = latest_registered_subsystems(registered).map { source =>
+        val registry = RegistrySubsystem(source.protocolVersion, source.instanceId, source.launcherKind, source.target, source.artifactId, source.executionMode, source.developmentDirectory, source.subsystemName, source.subsystemVersion, source.runtimeVersion, source.baseUrl, source.hostLabel, source.startedAt, source.lastSeenAt, source.launcherState, source.registrationPrincipalId)
+        val status = SubsystemRegistry.projection(registry, now, Duration.ofSeconds(90)).toOption.map(_.status) match {
+          case Some(SubsystemRegistry.running) => RuntimeInstanceStatus.Running
+          case Some(SubsystemRegistry.starting) => RuntimeInstanceStatus.Starting
+          case Some(SubsystemRegistry.stale) => RuntimeInstanceStatus.Stale
+          case _ => RuntimeInstanceStatus.Stopped
+        }
+        RuntimeInstance(source.instanceId, source.artifactId, source.target, source.subsystemName, status)
+      }
+      ManagedCarCatalog.runtimeSummary(car.artifactId, instances, ManagedCarCatalog.linkRuntimeInstances(catalogcars, instances))
+    }
+    protected final def safe_car_projection(car: ManagedCarEntity, sources: Vector[ManagedCarSourceEntity], detail: Boolean, runtime: org.simplemodeling.textus.controlcenter.catalog.ManagedCarRuntimeSummary): Record =
+      Record.dataAuto("artifactId" -> car.artifactId, "componentName" -> car.componentName, "createdAt" -> car.firstObservedAt, "updatedAt" -> car.lastObservedAt, "runtimeState" -> (runtime.state match { case org.simplemodeling.textus.controlcenter.catalog.ManagedCarRuntimeState.NotRunning => "not-running"; case state => state.toString.toLowerCase }), "activeInstanceIds" -> runtime.activeInstanceIds, "staleInstanceIds" -> runtime.staleInstanceIds, "sources" -> sources.map(source => Record.dataAuto("sourceId" -> source.sourceId, "sourceKind" -> source.sourceKind, "refreshState" -> source.refreshState, "componentName" -> source.componentName, "recommendedVersion" -> source.recommendedVersion, "latestVersion" -> source.latestVersion, "snapshotAt" -> source.snapshotAt, "diagnostic" -> source.diagnostic, "privateLocator" -> (if (detail) source.privateLocator else None))))
     protected final def matches_text(car: ManagedCarEntity, text: String): Boolean = Vector(car.artifactId).concat(car.componentName.toVector).exists(_.toLowerCase.contains(text))
   }
 }

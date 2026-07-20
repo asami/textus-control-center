@@ -64,14 +64,14 @@ Acceptance evidence:
 
 ## MC-04: Launcher Artifact Identity and Runtime Linking
 
-Status: PLANNED
+Status: DONE
 
-- [ ] Extend `cncf-launcher` development-directory reports with `project.name`
+- [x] Extend `cncf-launcher` development-directory reports with `project.name`
   as artifact identity and `project.component.name` as component identity.
-- [ ] Extend `textus-launcher` artifact reports with selector artifact identity.
-- [ ] Add protocol compatibility and failure-isolation specifications.
-- [ ] Link current runtime instances to logical CARs by artifact identity.
-- [ ] Preserve a documented legacy fallback for pre-Phase-3 registrations.
+- [x] Extend `textus-launcher` artifact reports with selector artifact identity.
+- [x] Add protocol compatibility and failure-isolation specifications.
+- [x] Link current runtime instances to logical CARs by artifact identity.
+- [x] Preserve a documented legacy fallback for pre-Phase-3 registrations.
 
 Acceptance evidence:
 

@@ -192,8 +192,11 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       val fixture = _fixture()
       val component = _component(_catalog_configuration(root))
       val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
+      val launchercontext = fixture.launcherContextFor(SecurityContext.Privilege.Internal)
 
-      When("an operator refreshes the configured catalog and reads its list and detail")
+      When("a launcher reports an artifact-identified running instance and an operator reads the catalog")
+      _execute(component, launchercontext, _registration_request("registerSubsystem", Instant.parse("2026-07-21T00:00:00Z"), Some("textus-catalog-spec"))).toOption should not be empty
+      _execute(component, launchercontext, _registration_request("heartbeatSubsystem", Instant.parse("2026-07-21T00:00:00Z"), Some("textus-catalog-spec"))).toOption should not be empty
       val refresh = _execute(component, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog"))
         .toOption.getOrElse(fail("catalog refresh failed"))
         .asInstanceOf[OperationResponse.RecordResponse].record
@@ -210,6 +213,8 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       Then("the shared operations persist a deterministic catalog while redacting locators from the list")
       refresh.getInt("refreshedSourceCount") shouldBe Some(1)
       _records(listed).map(_.getString("artifactId")) shouldBe Vector(Some("textus-catalog-spec"))
+      _records(listed).head.getString("runtimeState") shouldBe Some("running")
+      _records(listed).head.getAny("activeInstanceIds") should not be empty
       val listsource = _records(listed).head.getAny("sources") match {
         case Some(values: Vector[?]) => values.collectFirst { case value: Record => value }.getOrElse(fail("list source missing"))
         case Some(values: Seq[?]) => values.collectFirst { case value: Record => value }.getOrElse(fail("list source missing"))
@@ -309,7 +314,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       case other => Consequence.operationInvalid("request", s"request did not resolve to action: $other")
     }
 
-  private def _registration_request(operation: String, startedat: Instant): Request =
+  private def _registration_request(operation: String, startedat: Instant, artifactid: Option[String] = None): Request =
     Request.ofService(
       "SubsystemInventory",
       operation,
@@ -327,7 +332,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         Property("hostLabel", "actionspec", None),
         Property("startedAt", startedat, None),
         Property("launcherState", if (operation == "registerSubsystem") "starting" else "running", None)
-      )
+      ) ++ artifactid.map(value => Property("artifactId", value, None)).toList
     )
 
   private def _records(record: Record): Vector[Record] =
