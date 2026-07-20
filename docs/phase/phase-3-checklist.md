@@ -110,7 +110,9 @@ Status: PLANNED
   retention of the last successful snapshot.
 - [ ] Verify legacy Phase 1/2 registrations and launcher outage isolation.
 - [ ] Run Control Center, CNCF launcher, and Textus launcher executable suites.
-- [ ] Run CAR packaging/static Web checks and close the phase.
+- [x] Run CAR packaging/static Web checks.
+- [ ] Close the phase after the remaining standalone refresh and launcher
+  acceptance evidence is complete.
 
 Acceptance evidence:
 
