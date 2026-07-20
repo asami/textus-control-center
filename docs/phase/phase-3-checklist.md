@@ -111,9 +111,11 @@ Status: IN PROGRESS
 - [x] Verify legacy Phase 1/2 registrations and launcher outage isolation.
 - [x] Run Control Center, CNCF launcher, and Textus launcher executable suites.
 - [x] Run CAR packaging/static Web checks.
-- [ ] Restart the existing standalone Control Center, perform an authenticated
-  live refresh, and confirm the seeded catalog is projected through its running
-  static Web application.
+- [x] Run an isolated standalone Control Center with the installed
+  `~/.cncf` configuration, perform a protected live refresh, and confirm the
+  seeded catalog is projected through its running static Web application.
+- [ ] Restart the existing local Control Center installation to activate the
+  verified configuration for its operator-facing port.
 - [ ] Close the phase after the live standalone refresh acceptance evidence is
   complete.
 
@@ -138,3 +140,9 @@ Verified 2026-07-21:
   packaging check passed. Textus launcher suite passed; CNCF launcher suite
   passed in the prior launcher compatibility verification and was re-exercised
   against its isolated temporary runtime environment.
+- An isolated development-directory server on port `18014`, using the installed
+  `~/.cncf/textus-control-center/server-config.yaml` and catalog file, returned
+  `adapter_state: configured` with 25 refreshed source snapshots and 16 logical
+  CARs. The static Web list rendered all source marks; the
+  `textus-user-notification` detail rendered `DEV`, `LOCAL`, and `PUBLIC`
+  facts with versions `0.1.0` and `0.1.1`.
