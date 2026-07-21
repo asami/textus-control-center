@@ -34,7 +34,7 @@ records are retained for audit and may be restored explicitly.
 1. A successful development-source refresh creates or restores an
    `auto-managed` record unless an `excluded` record exists for the artifact.
 2. An accepted launcher registration with an `artifactId` adopts that artifact
-   when it has a usable repository source and is not excluded.
+   when no development source currently manages it and it is not excluded.
 3. An explicit Remove from management request sets `excluded`; it never stops
    an instance or deletes catalog, invocation, or audit facts.
 4. Restore to management removes the exclusion. If a development source is

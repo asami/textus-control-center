@@ -3,7 +3,10 @@
 Stage Status:
 
 - Current status: IN_PROGRESS
-- Current step: Implement Control Center operating-target records and projections (OC-04); the management-state decision model is covered by an executable specification.
+- Current step: Complete Control Center lifecycle-request Operations and their
+  administrative audit projections (OC-04). Operating-target records and
+  protected list/detail/remove/restore Operations are generated and covered by
+  executable specifications.
 - Owner: Textus Control Center Phase 4
 - Update rule: Update this block and `phase-4-checklist.md` whenever a stable
   checklist state changes. Do not begin implementation before the lifecycle

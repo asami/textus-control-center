@@ -1,5 +1,5 @@
 /*
- * @version Jul. 19, 2026
+ * @version Jul. 22, 2026
  */
 package org.simplemodeling.textus.controlcenter.impl
 
@@ -22,14 +22,19 @@ import org.goldenport.record.Record
 import org.simplemodeling.textus.controlcenter.TextusControlCenterComponent
 import org.simplemodeling.textus.controlcenter.entity.{RegisteredSubsystem as RegisteredSubsystemEntity}
 import org.simplemodeling.textus.controlcenter.entity.{ManagedCar as ManagedCarEntity, ManagedCarSource as ManagedCarSourceEntity}
+import org.simplemodeling.textus.controlcenter.entity.{OperationalComponent as OperationalComponentEntity}
 import org.simplemodeling.textus.controlcenter.entity.create.{RegisteredSubsystem as RegisteredSubsystemCreate}
 import org.simplemodeling.textus.controlcenter.entity.create.RegisteredSubsystem.given
 import org.simplemodeling.textus.controlcenter.entity.query.{RegisteredSubsystem as RegisteredSubsystemQuery}
 import org.simplemodeling.textus.controlcenter.entity.query.{ManagedCar as ManagedCarQuery, ManagedCarSource as ManagedCarSourceQuery}
+import org.simplemodeling.textus.controlcenter.entity.query.{OperationalComponent as OperationalComponentQuery}
 import org.simplemodeling.textus.controlcenter.entity.create.{ManagedCar as ManagedCarCreate, ManagedCarSource as ManagedCarSourceCreate}
+import org.simplemodeling.textus.controlcenter.entity.create.{OperationalComponent as OperationalComponentCreate}
+import org.simplemodeling.textus.controlcenter.entity.update.{ManagedCar as ManagedCarUpdate, OperationalComponent as OperationalComponentUpdate}
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCar.given
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCarSource.given
-import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCar as CatalogManagedCar, ManagedCarCatalog, ManagedCarSource as CatalogManagedCarSource, PublicRepositoryCatalog, RuntimeInstance, RuntimeInstanceStatus, StandaloneCatalogConfiguration, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
+import org.simplemodeling.textus.controlcenter.entity.create.OperationalComponent.given
+import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCar as CatalogManagedCar, ManagedCarCatalog, ManagedCarSource as CatalogManagedCarSource, OperationalComponentManagement, OperationalManagementState, PublicRepositoryCatalog, RuntimeInstance, RuntimeInstanceStatus, StandaloneCatalogConfiguration, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
 import org.simplemodeling.textus.controlcenter.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
 
 final class ComponentFactory extends Component.BundleFactory {
@@ -45,6 +50,7 @@ abstract class TextusControlCenterParticipantFactoryBase extends TextusControlCe
     Vector(
       TextusControlCenterComponent.SubsystemInventoryService
       , TextusControlCenterComponent.CarCatalogService
+      , TextusControlCenterComponent.OperationalManagementService
     )
 
   protected final def component_core(
@@ -57,6 +63,8 @@ abstract class TextusControlCenterParticipantFactoryBase extends TextusControlCe
     SubsystemInventoryServiceFactoryImpl()
   override val CarCatalog: TextusControlCenterComponent.CarCatalogServiceFactory =
     CarCatalogServiceFactoryImpl()
+  override val OperationalManagement: TextusControlCenterComponent.OperationalManagementServiceFactory =
+    OperationalManagementServiceFactoryImpl()
   override val aggregate: TextusControlCenterComponent.AggregateServiceFactory =
     AggregateServiceFactoryImpl()
   override val view: TextusControlCenterComponent.ViewServiceFactory =
@@ -131,6 +139,7 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
         now = core.executionContext.clock.instant()
         next <- exec_from(SubsystemRegistry.register(current.map(to_registry), input, principal, now).fold(registry_error, Consequence.success))
         stored <- persist(next)
+        _ <- ensure_adopted_operational_component(stored.artifactId, now)
       } yield OperationResponse(safe_projection(to_registry(stored), now))
   }
 
@@ -364,6 +373,34 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
         source.registrationPrincipalId
       ))
 
+    protected final def ensure_adopted_operational_component(artifactid: Option[String], now: Instant): ExecUowM[Unit] =
+      artifactid match {
+        case Some(value) =>
+          for {
+            existing <- find_operational_components(value)
+            _ <- latest_operational_component(existing) match {
+              case Some(_) => exec_from(Consequence.unit)
+              case None => entity_create(OperationalComponentCreate(None, value, "adopted", now, now)).map(_ => ())
+            }
+          } yield ()
+        case None => exec_from(Consequence.unit)
+      }
+
+    protected final def find_operational_components(artifactid: String): ExecUowM[Vector[OperationalComponentEntity]] =
+      for {
+        fields <- exec_pure(EntityQueryFieldResolver(core.component, "OperationalComponent"))
+        query = EntityQuery[OperationalComponentEntity](
+          OperationalComponentQuery.collectionId,
+          fields.rewrite(Query.fromRecord(Record.dataAuto("artifactId" -> artifactid))),
+          scope = EntitySearchScope.Store,
+          visibilityScope = Some(EntityVisibilityScope.Admin)
+        )
+        result <- entity_search_internal[OperationalComponentEntity](query)
+      } yield result.data.filter(_.artifactId == artifactid)
+
+    protected final def latest_operational_component(sources: Vector[OperationalComponentEntity]): Option[OperationalComponentEntity] =
+      sources.sortBy(source => (source.lastObservedAt, source.id.print)).lastOption
+
     protected final def safe_projection(source: RegistrySubsystem, now: Instant): Record =
       SubsystemRegistry.projection(source, now, STALE_THRESHOLD) match {
         case Right(projection) => Record.dataAuto(
@@ -524,6 +561,7 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
     ): ExecUowM[ManagedCarSourceEntity] =
       for {
         _ <- ensure_managed_car(source, existingcars, now)
+        _ <- ensure_auto_managed_operational_component(source, now)
         retained = retain_source_facts(source, existingsources)
         recommended = retained.availableVersions.headOption
         latest = retained.availableVersions.lastOption
@@ -531,9 +569,41 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
       } yield ManagedCarSourceEntity(stored.id, retained.artifactId, retained.sourceId, retained.sourceKind.mark, retained.refreshState.toString.toLowerCase, retained.componentName, recommended, latest, retained.snapshotAt, retained.diagnostic, retained.privateLocator)
     protected final def ensure_managed_car(source: CatalogManagedCarSource, existing: Vector[ManagedCarEntity], now: Instant): ExecUowM[Unit] =
       existing.find(_.artifactId == source.artifactId) match {
-        case Some(car) => entity_update(car.copy(componentName = source.componentName.orElse(car.componentName), lastObservedAt = now)).map(_ => ())
+        case Some(car) =>
+          for {
+            patch <- exec_from(managed_car_update(source.componentName.orElse(car.componentName), now))
+            _ <- entity_update(car.id, patch)
+          } yield ()
         case None => entity_create(ManagedCarCreate(None, source.artifactId, source.componentName, now, now)).map(_ => ())
       }
+    protected final def ensure_auto_managed_operational_component(source: CatalogManagedCarSource, now: Instant): ExecUowM[Unit] =
+      if (source.sourceKind == org.simplemodeling.textus.controlcenter.catalog.ManagedCarSourceKind.Development) {
+        for {
+          existing <- find_operational_components(source.artifactId)
+          _ <- latest_operational_component(existing) match {
+            case Some(component) if component.managementState == "excluded" => exec_from(Consequence.unit)
+            case Some(component) =>
+              for {
+                patch <- exec_from(operational_component_update("auto-managed", now))
+                _ <- entity_update(component.id, patch)
+              } yield ()
+            case None => entity_create(OperationalComponentCreate(None, source.artifactId, "auto-managed", now, now)).map(_ => ())
+          }
+        } yield ()
+      } else {
+        exec_from(Consequence.unit)
+      }
+    protected final def find_operational_components(artifactid: String): ExecUowM[Vector[OperationalComponentEntity]] =
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "OperationalComponent")); query = EntityQuery[OperationalComponentEntity](OperationalComponentQuery.collectionId, fields.rewrite(Query.fromRecord(Record.dataAuto("artifactId" -> artifactid))), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[OperationalComponentEntity](query) } yield result.data.filter(_.artifactId == artifactid)
+    protected final def latest_operational_component(sources: Vector[OperationalComponentEntity]): Option[OperationalComponentEntity] =
+      sources.sortBy(source => (source.lastObservedAt, source.id.print)).lastOption
+    protected final def managed_car_update(componentname: Option[String], now: Instant): Consequence[ManagedCarUpdate] =
+      componentname match {
+        case Some(value) => new ManagedCarUpdate.Builder().withComponentName(value).withLastObservedAt(now).buildC()
+        case None => new ManagedCarUpdate.Builder().withLastObservedAt(now).buildC()
+      }
+    protected final def operational_component_update(managementstate: String, now: Instant): Consequence[OperationalComponentUpdate] =
+      new OperationalComponentUpdate.Builder().withManagementState(managementstate).withLastObservedAt(now).buildC()
     protected final def retain_source_facts(source: CatalogManagedCarSource, existing: Vector[ManagedCarSourceEntity]): CatalogManagedCarSource =
       if (source.refreshState == org.simplemodeling.textus.controlcenter.catalog.ManagedCarRefreshState.Available) source
       else latest_sources(existing).find(current => current.artifactId == source.artifactId && current.sourceId == source.sourceId) match {
@@ -571,6 +641,108 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
 
 object SubsystemInventoryServiceFactoryImpl {
   def apply(): SubsystemInventoryServiceFactoryImpl = new SubsystemInventoryServiceFactoryImpl()
+}
+
+final class OperationalManagementServiceFactoryImpl extends TextusControlCenterComponent.OperationalManagementServiceFactory {
+  import TextusControlCenterComponent.OperationalManagementService.*
+
+  override def createListOperationalComponentsActionCall(core: ActionCall.Core, action: ListOperationalComponents): ListOperationalComponentsActionCall =
+    ListOperationalComponentsActionCallImpl(core, action)
+  override def createGetOperationalComponentActionCall(core: ActionCall.Core, action: GetOperationalComponent): GetOperationalComponentActionCall =
+    GetOperationalComponentActionCallImpl(core, action)
+  override def createRemoveOperationalComponentActionCall(core: ActionCall.Core, action: RemoveOperationalComponent): RemoveOperationalComponentActionCall =
+    RemoveOperationalComponentActionCallImpl(core, action)
+  override def createRestoreOperationalComponentActionCall(core: ActionCall.Core, action: RestoreOperationalComponent): RestoreOperationalComponentActionCall =
+    RestoreOperationalComponentActionCallImpl(core, action)
+
+  private final case class ListOperationalComponentsActionCallImpl(core: ActionCall.Core, override val action: ListOperationalComponents)
+      extends ListOperationalComponentsActionCall with OperationalManagementActionSupport {
+    protected def build_Program: ExecUowM[OperationResponse] =
+      for {
+        _ <- exec_from(administrative_principal)
+        components <- find_operational_components_all
+        text = action.record.getString("text").map(_.trim.toLowerCase).filter(_.nonEmpty)
+        offset = action.record.getInt("offset").getOrElse(0).max(0)
+        limit = action.record.getInt("limit").getOrElse(100).max(0)
+        filtered = latest_operational_components(components).filter(component => component.managementState != "excluded" && text.forall(value => component.artifactId.toLowerCase.contains(value)))
+        page = filtered.drop(offset).take(limit)
+      } yield OperationResponse(Record.dataAuto("data" -> page.map(safe_projection), "totalCount" -> filtered.size, "offset" -> offset, "limit" -> limit))
+  }
+
+  private final case class GetOperationalComponentActionCallImpl(core: ActionCall.Core, override val action: GetOperationalComponent)
+      extends GetOperationalComponentActionCall with OperationalManagementActionSupport {
+    protected def build_Program: ExecUowM[OperationResponse] =
+      for {
+        _ <- exec_from(administrative_principal)
+        artifactid <- exec_from(required_string(action.record, "artifactId"))
+        components <- find_operational_components(artifactid)
+        component <- exec_from(latest_operational_component(components).toRight(RegistryError.Missing(artifactid)).fold(registry_error, Consequence.success))
+      } yield OperationResponse(safe_projection(component))
+  }
+
+  private final case class RemoveOperationalComponentActionCallImpl(core: ActionCall.Core, override val action: RemoveOperationalComponent)
+      extends RemoveOperationalComponentActionCall with OperationalManagementActionSupport {
+    protected def build_Program: ExecUowM[OperationResponse] =
+      for {
+        _ <- exec_from(administrative_principal)
+        artifactid <- exec_from(required_string(action.record, "artifactId"))
+        components <- find_operational_components(artifactid)
+        component <- exec_from(latest_operational_component(components).toRight(RegistryError.Missing(artifactid)).fold(registry_error, Consequence.success))
+        now = core.executionContext.clock.instant()
+        patch <- exec_from(operational_component_update("excluded", now))
+        _ <- entity_update(component.id, patch)
+        stored = component.copy(managementState = "excluded", lastObservedAt = now)
+      } yield OperationResponse(safe_projection(stored))
+  }
+
+  private final case class RestoreOperationalComponentActionCallImpl(core: ActionCall.Core, override val action: RestoreOperationalComponent)
+      extends RestoreOperationalComponentActionCall with OperationalManagementActionSupport {
+    protected def build_Program: ExecUowM[OperationResponse] =
+      for {
+        _ <- exec_from(administrative_principal)
+        artifactid <- exec_from(required_string(action.record, "artifactId"))
+        components <- find_operational_components(artifactid)
+        component <- exec_from(latest_operational_component(components).toRight(RegistryError.Missing(artifactid)).fold(registry_error, Consequence.success))
+        sources <- find_managed_sources_all
+        registered <- find_registered_subsystems_all
+        developmentavailable = latest_managed_sources(sources).exists(source => source.artifactId == artifactid && source.sourceKind == "DEV" && source.refreshState == "available")
+        accepteduse = registered.exists(_.artifactId.contains(artifactid))
+        state <- exec_from(OperationalComponentManagement.reconcile(Some(OperationalManagementState.Excluded), developmentavailable, accepteduse, exclusionrecordexists = false).toRight("No development source or accepted launcher use evidence exists.").fold(Consequence.operationInvalid, Consequence.success))
+        now = core.executionContext.clock.instant()
+        patch <- exec_from(operational_component_update(state.mark, now))
+        _ <- entity_update(component.id, patch)
+        stored = component.copy(managementState = state.mark, lastObservedAt = now)
+      } yield OperationResponse(safe_projection(stored))
+  }
+
+  private trait OperationalManagementActionSupport { self: ActionCall =>
+    protected final def administrative_principal: Consequence[Unit] = {
+      val subject = SecuritySubject.current(using executionContext)
+      val privileges = Vector(SecurityContext.Privilege.ApplicationContentManager, SecurityContext.Privilege.Operator, SecurityContext.Privilege.System, SecurityContext.Privilege.Internal)
+      if (subject.isAuthenticated && privileges.exists(privilege => subject.hasPrivilege(privilege.name) || subject.hasCapability(privilege.name) || subject.hasRole(privilege.name))) Consequence.unit
+      else Consequence.securityPermissionDenied("Operational component management requires administrative authorization.")
+    }
+    protected final def required_string(record: Record, name: String): Consequence[String] =
+      record.getString(name).map(_.trim).filter(_.nonEmpty).toRight(s"$name is required").fold(Consequence.operationInvalid, Consequence.success)
+    protected final def registry_error(error: RegistryError): Consequence[Nothing] = error match {
+      case RegistryError.Missing(_) => Consequence.resourceNotFound(error.message)
+      case _ => Consequence.operationInvalid(error.message)
+    }
+    protected final def find_operational_components(artifactid: String): ExecUowM[Vector[OperationalComponentEntity]] =
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "OperationalComponent")); query = EntityQuery[OperationalComponentEntity](OperationalComponentQuery.collectionId, fields.rewrite(Query.fromRecord(Record.dataAuto("artifactId" -> artifactid))), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[OperationalComponentEntity](query) } yield result.data.filter(_.artifactId == artifactid)
+    protected final def find_operational_components_all: ExecUowM[Vector[OperationalComponentEntity]] =
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "OperationalComponent")); query = EntityQuery[OperationalComponentEntity](OperationalComponentQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[OperationalComponentEntity](query) } yield result.data
+    protected final def find_managed_sources_all: ExecUowM[Vector[ManagedCarSourceEntity]] =
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "ManagedCarSource")); query = EntityQuery[ManagedCarSourceEntity](ManagedCarSourceQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[ManagedCarSourceEntity](query) } yield result.data
+    protected final def find_registered_subsystems_all: ExecUowM[Vector[RegisteredSubsystemEntity]] =
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "RegisteredSubsystem")); query = EntityQuery[RegisteredSubsystemEntity](RegisteredSubsystemQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[RegisteredSubsystemEntity](query) } yield result.data
+    protected final def latest_operational_component(sources: Vector[OperationalComponentEntity]): Option[OperationalComponentEntity] = sources.sortBy(source => (source.lastObservedAt, source.id.print)).lastOption
+    protected final def latest_operational_components(sources: Vector[OperationalComponentEntity]): Vector[OperationalComponentEntity] = sources.groupBy(_.artifactId).valuesIterator.flatMap(latest_operational_component).toVector.sortBy(_.artifactId)
+    protected final def latest_managed_sources(sources: Vector[ManagedCarSourceEntity]): Vector[ManagedCarSourceEntity] = sources.groupBy(source => (source.artifactId, source.sourceId)).valuesIterator.flatMap(source => source.sortBy(value => (value.snapshotAt, value.id.print)).lastOption).toVector
+    protected final def operational_component_update(managementstate: String, now: Instant): Consequence[OperationalComponentUpdate] =
+      new OperationalComponentUpdate.Builder().withManagementState(managementstate).withLastObservedAt(now).buildC()
+    protected final def safe_projection(component: OperationalComponentEntity): Record = Record.dataAuto("artifactId" -> component.artifactId, "managementState" -> component.managementState, "firstManagedAt" -> component.firstManagedAt, "lastObservedAt" -> component.lastObservedAt)
+  }
 }
 
 final class EntityServiceFactoryImpl extends TextusControlCenterComponent.EntityServiceFactory

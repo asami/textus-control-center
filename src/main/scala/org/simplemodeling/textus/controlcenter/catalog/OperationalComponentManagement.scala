@@ -5,6 +5,12 @@ package org.simplemodeling.textus.controlcenter.catalog
 
 enum OperationalManagementState {
   case AutoManaged, Adopted, Excluded
+
+  def mark: String = this match {
+    case OperationalManagementState.AutoManaged => "auto-managed"
+    case OperationalManagementState.Adopted => "adopted"
+    case OperationalManagementState.Excluded => "excluded"
+  }
 }
 
 object OperationalComponentManagement {

@@ -234,6 +234,110 @@ GetManagedCar
 
 GetManagedCarResult
 
+# SERVICE
+
+## OperationalManagement
+
+### DESCRIPTION
+
+Administrative operating-target records derived from catalog sources and accepted launcher use.
+
+### OPERATION
+
+#### listOperationalComponents
+
+##### DESCRIPTION
+
+Lists components retained in standalone operational management.
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ListOperationalComponents
+
+##### OUTPUT
+
+###### TYPE
+
+ListOperationalComponentsResult
+
+### OPERATION
+
+#### getOperationalComponent
+
+##### DESCRIPTION
+
+Loads one operating-target record and its current safe management projection.
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetOperationalComponent
+
+##### OUTPUT
+
+###### TYPE
+
+GetOperationalComponentResult
+
+### OPERATION
+
+#### removeOperationalComponent
+
+##### DESCRIPTION
+
+Excludes an operating target without stopping its currently running instances.
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+RemoveOperationalComponent
+
+##### OUTPUT
+
+###### TYPE
+
+RemoveOperationalComponentResult
+
+### OPERATION
+
+#### restoreOperationalComponent
+
+##### DESCRIPTION
+
+Restores an explicitly excluded operating target when supported source or use evidence exists.
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+RestoreOperationalComponent
+
+##### OUTPUT
+
+###### TYPE
+
+RestoreOperationalComponentResult
+
 # ENTITY
 
 ## RegisteredSubsystem
@@ -289,6 +393,35 @@ GetManagedCarResult
 | snapshotAt         | instant                  | 1            |                 |
 | diagnostic         | ManagedCarDiagnostic     | ?            |                 |
 | privateLocator     | ManagedCarPrivateLocator | ?            | internal        |
+
+## OperationalComponent
+
+### ATTRIBUTE
+
+| name            | type                       | multiplicity | confidentiality |
+|-----------------|----------------------------|--------------|-----------------|
+| id              | entityid                   | 1            |                 |
+| artifactId      | ManagedCarArtifactId       | 1            |                 |
+| managementState | OperationalManagementState | 1            |                 |
+| firstManagedAt  | instant                    | 1            |                 |
+| lastObservedAt  | instant                    | 1            |                 |
+
+## LifecycleRequest
+
+### ATTRIBUTE
+
+| name              | type                    | multiplicity | confidentiality |
+|-------------------|-------------------------|--------------|-----------------|
+| id                | entityid                | 1            |                 |
+| requestId         | LifecycleRequestId      | 1            |                 |
+| artifactId        | ManagedCarArtifactId    | 1            |                 |
+| lifecycleAction   | LifecycleAction         | 1            |                 |
+| requestState      | LifecycleRequestState   | 1            |                 |
+| idempotencyKey    | LifecycleIdempotencyKey | 1            | internal        |
+| requestedAt       | instant                 | 1            |                 |
+| completedAt       | instant                 | ?            |                 |
+| diagnostic        | LifecycleDiagnostic     | ?            |                 |
+| operatorSubjectId | OperatorSubjectId       | 1            | internal        |
 
 # COMMAND
 
@@ -350,6 +483,22 @@ GetManagedCarResult
 |------------|--------|--------------|
 | artifactId | string | ?            |
 
+## RemoveOperationalComponent
+
+### ATTRIBUTE
+
+| name       | type   | multiplicity |
+|------------|--------|--------------|
+| artifactId | string | 1            |
+
+## RestoreOperationalComponent
+
+### ATTRIBUTE
+
+| name       | type   | multiplicity |
+|------------|--------|--------------|
+| artifactId | string | 1            |
+
 # QUERY
 
 ## ListSubsystems
@@ -381,6 +530,24 @@ GetManagedCarResult
 | limit  | int    | ?            |
 
 ## GetManagedCar
+
+### ATTRIBUTE
+
+| name       | type   | multiplicity |
+|------------|--------|--------------|
+| artifactId | string | 1            |
+
+## ListOperationalComponents
+
+### ATTRIBUTE
+
+| name   | type   | multiplicity |
+|--------|--------|--------------|
+| text   | string | ?            |
+| offset | int    | ?            |
+| limit  | int    | ?            |
+
+## GetOperationalComponent
 
 ### ATTRIBUTE
 
@@ -550,6 +717,62 @@ GetManagedCarResult
 |-------|--------|--------------|
 | value | string | 1            |
 
+## OperationalManagementState
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## LifecycleRequestId
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## LifecycleAction
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## LifecycleRequestState
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## LifecycleIdempotencyKey
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## LifecycleDiagnostic
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## OperatorSubjectId
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
 # VALUE
 
 ## RegisterSubsystemResult
@@ -595,6 +818,30 @@ OperationResult
 OperationResult
 
 ## GetManagedCarResult
+
+### EXTENDS
+
+OperationResult
+
+## ListOperationalComponentsResult
+
+### EXTENDS
+
+OperationResult
+
+## GetOperationalComponentResult
+
+### EXTENDS
+
+OperationResult
+
+## RemoveOperationalComponentResult
+
+### EXTENDS
+
+OperationResult
+
+## RestoreOperationalComponentResult
 
 ### EXTENDS
 

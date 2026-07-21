@@ -64,8 +64,12 @@ Status: IN_PROGRESS
 - [x] Add the executable management-state decision model for automatic
   management, repository adoption, retained source loss, and exclusion
   precedence.
-- [ ] Add CML records and generated Operations for operating-target and
-  lifecycle-request management.
+- [x] Add CML records for `OperationalComponent` and `LifecycleRequest`.
+- [x] Generate protected list, detail, remove, and restore Operations for
+  operating-target management; cover development auto-management, exclusion,
+  restore, and launcher-use adoption with executable specifications.
+- [ ] Generate Start, Stop, Restart, request-status, idempotency, and audit
+  Operations for lifecycle-request management.
 - [ ] Implement administrative authorization and audit projections.
 - [ ] Implement command, automatic REST, and static Web read/write projections
   through the same Operations.

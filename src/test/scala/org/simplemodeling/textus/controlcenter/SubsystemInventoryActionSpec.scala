@@ -1,5 +1,5 @@
 /*
- * @version Jul. 19, 2026
+ * @version Jul. 22, 2026
  */
 package org.simplemodeling.textus.controlcenter
 
@@ -197,8 +197,9 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       When("a launcher reports an artifact-identified running instance and an operator reads the catalog")
       _execute(component, launchercontext, _registration_request("registerSubsystem", Instant.parse("2026-07-21T00:00:00Z"), Some("textus-catalog-spec"))).toOption should not be empty
       _execute(component, launchercontext, _registration_request("heartbeatSubsystem", Instant.parse("2026-07-21T00:00:00Z"), Some("textus-catalog-spec"))).toOption should not be empty
-      val refresh = _execute(component, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog"))
-        .toOption.getOrElse(fail("catalog refresh failed"))
+      val refreshresult = _execute(component, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog"))
+      val refresh = refreshresult
+        .toOption.getOrElse(fail(s"catalog refresh failed: $refreshresult"))
         .asInstanceOf[OperationResponse.RecordResponse].record
       val listresult = _execute(component, operatorcontext, Request.ofService("CarCatalog", "listManagedCars"))
       val listed = listresult
@@ -274,6 +275,88 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       Then("both declared roots contribute their direct CAR projects")
       refreshed.getInt("refreshedSourceCount") shouldBe Some(2)
       _records(listed).map(_.getString("artifactId")) shouldBe Vector(Some("textus-catalog-first"), Some("textus-catalog-second"))
+    }
+
+    "manage development CARs as operational targets while retaining an explicit exclusion" in {
+      Given("a configured standalone development root with one CAR descriptor")
+      val root = Files.createTempDirectory("control-center-operational-management")
+      _write_car_descriptor(root, "textus-operational-spec", "operational-spec-component")
+      val fixture = _fixture()
+      val component = _component(_catalog_configuration(root))
+      val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
+      val launchercontext = fixture.launcherContextFor(SecurityContext.Privilege.Internal)
+
+      When("the operator refreshes the catalog")
+      _execute(component, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
+      val listed = _execute(component, operatorcontext, Request.ofService("OperationalManagement", "listOperationalComponents"))
+        .toOption.getOrElse(fail("operational component list failed"))
+        .asInstanceOf[OperationResponse.RecordResponse].record
+
+      Then("the development CAR is automatically retained as an operating target")
+      _records(listed).map(_.getString("artifactId")) shouldBe Vector(Some("textus-operational-spec"))
+      _records(listed).head.getString("managementState") shouldBe Some("auto-managed")
+
+      When("a launcher reports accepted use of the development CAR")
+      val registrationresult = _execute(
+        component,
+        launchercontext,
+        _registration_request("registerSubsystem", Instant.parse("2026-07-22T00:00:00Z"), Some("textus-operational-spec"))
+      )
+      registrationresult.toOption.getOrElse(fail(s"development registration failed: $registrationresult"))
+      val afterregistration = _execute(component, operatorcontext, Request.ofService("OperationalManagement", "getOperationalComponent", properties = List(Property("artifactId", "textus-operational-spec", None))))
+        .toOption.getOrElse(fail("operational component detail failed"))
+        .asInstanceOf[OperationResponse.RecordResponse].record
+
+      Then("development auto-management remains the stronger management reason")
+      afterregistration.getString("managementState") shouldBe Some("auto-managed")
+
+      When("the operator removes the target from operational management and refreshes again")
+      val removalresult = _execute(
+        component,
+        operatorcontext,
+        Request.ofService("OperationalManagement", "removeOperationalComponent", properties = List(Property("artifactId", "textus-operational-spec", None)))
+      )
+      val removed = removalresult.toOption.getOrElse(fail(s"operational component removal failed: $removalresult")).asInstanceOf[OperationResponse.RecordResponse].record
+      _execute(component, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
+      val excluded = _execute(component, operatorcontext, Request.ofService("OperationalManagement", "listOperationalComponents"))
+        .toOption.getOrElse(fail("excluded operational component list failed"))
+        .asInstanceOf[OperationResponse.RecordResponse].record
+
+      Then("the explicit exclusion persists and hides the target from the panel list")
+      removed.getString("managementState") shouldBe Some("excluded")
+      _records(excluded) shouldBe empty
+
+      When("the operator restores the excluded target")
+      val restored = _execute(
+        component,
+        operatorcontext,
+        Request.ofService("OperationalManagement", "restoreOperationalComponent", properties = List(Property("artifactId", "textus-operational-spec", None)))
+      ).toOption.getOrElse(fail("operational component restoration failed")).asInstanceOf[OperationResponse.RecordResponse].record
+
+      Then("the development evidence restores its auto-managed state")
+      restored.getString("managementState") shouldBe Some("auto-managed")
+    }
+
+    "adopt a component after accepted launcher use without a development source" in {
+      Given("a Control Center receiving an artifact-identified launcher registration")
+      val fixture = _fixture()
+      val component = _component()
+      val launchercontext = fixture.launcherContextFor(SecurityContext.Privilege.Internal)
+      val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
+
+      When("the launcher registers the component instance")
+      _execute(
+        component,
+        launchercontext,
+        _registration_request("registerSubsystem", Instant.parse("2026-07-22T00:00:00Z"), Some("textus-adopted-spec"))
+      ).toOption should not be empty
+      val listed = _execute(component, operatorcontext, Request.ofService("OperationalManagement", "listOperationalComponents"))
+        .toOption.getOrElse(fail("adopted operational component list failed"))
+        .asInstanceOf[OperationResponse.RecordResponse].record
+
+      Then("accepted launcher use retains the component as adopted")
+      _records(listed).map(_.getString("artifactId")) shouldBe Vector(Some("textus-adopted-spec"))
+      _records(listed).head.getString("managementState") shouldBe Some("adopted")
     }
   }
 
