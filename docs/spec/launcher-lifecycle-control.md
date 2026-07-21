@@ -28,6 +28,17 @@ resolved by the Control Center's normal configuration provider and is never
 stored in a lifecycle request or sent to a browser. The supervisor must bind to
 loopback by default and authenticate requests before resolving a profile.
 
+| Control Center configuration key | Required when enabled | Meaning |
+| --- | --- | --- |
+| `textus-control-center.lifecycle.supervisor.id` | yes | Stable local supervisor identity. |
+| `textus-control-center.lifecycle.supervisor.endpoint` | yes | Loopback HTTP base endpoint. |
+| `textus-control-center.lifecycle.supervisor.timeout` | no | Bounded request timeout; default `5s`, maximum `30s`. |
+| `textus-control-center.lifecycle.supervisor.token-env` | yes | Environment-variable name containing the supervisor credential. |
+
+Absence of every key means lifecycle dispatch is unavailable and is recorded as
+`supervisor-not-configured`. A partial or unsafe declaration is not a fallback:
+it is recorded as `supervisor-protocol-unavailable` and must not be contacted.
+
 `textus-launcher` is a compatible client of this same local supervisor. It may
 delegate a repository-CAR request, but it may not construct an independent
 process ownership record or use a process-table search to emulate one.
