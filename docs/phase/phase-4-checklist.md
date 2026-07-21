@@ -92,8 +92,10 @@ Status: IN_PROGRESS
 - [x] Restrict Start, Stop, and Restart to supervisor-owned child handles;
   reject duplicate, stale-after-restart, dead-child, and persistence-failed
   ownership paths without PID discovery or arbitrary process signalling.
-- [ ] Implement the canonical development-directory executor, default-port
-  preflight, and registration/heartbeat correlation in `cncf-launcher`.
+- [x] Implement the canonical development-directory executor and default-port
+  preflight in `cncf-launcher`, including fail-closed durable-state handling.
+- [ ] Implement a locally hosted/configured supervisor daemon and
+  registration/heartbeat correlation in `cncf-launcher`.
 - [ ] Implement the compatible Textus launcher adapter and executable
   specifications in `textus-launcher`.
 - [ ] Validate request failure isolation and registration/heartbeat continuity.

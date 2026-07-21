@@ -3,11 +3,12 @@
 Stage Status:
 
 - Current status: IN_PROGRESS
-- Current step: Complete the canonical development-directory executor and
-  port preflight behind the launcher-owned supervisor (OC-04/OC-05).
+- Current step: Add a locally hosted/configured launcher-supervisor daemon,
+  Control Center dispatch, and registration correlation (OC-04/OC-05).
   Operating-target records, protected management Operations, rejected
   preflight audit records, retry-stable request identity, durable supervisor
-  request state, and supervisor-owned child-handle control are covered by
+  request state, supervisor-owned child-handle control, canonical
+  development-directory execution, and default-port preflight are covered by
   executable specifications.
 - Owner: Textus Control Center Phase 4
 - Update rule: Update this block and `phase-4-checklist.md` whenever a stable
@@ -84,9 +85,11 @@ its sources, and its runtime invocations.
 - D (IN_PROGRESS): OC-04 - Generate and implement Control Center records,
   Operations, authorization, and projections.
 - E (IN_PROGRESS): OC-05 - Complete the CNCF/Textus launcher supervisor
-  adapters, canonical development-directory execution, and registration
-  correlation. The CNCF launcher already owns durable lifecycle state and only
-  controls child handles created by its current supervisor process.
+  adapters, locally hosted/configured supervisor daemon, and registration
+  correlation. The CNCF launcher already owns durable lifecycle state, only
+  controls child handles created by its current supervisor process, and
+  executes registered development directories through the declared default
+  port after loopback preflight.
 - F (IN_PROGRESS): OC-06 - Implement the operating-panel Web UI and operator guide.
 - G (PLANNED): OC-07 - Run standalone acceptance, failure-isolation, and
   cross-repository executable specifications; close the phase.
