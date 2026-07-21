@@ -271,28 +271,41 @@ Execution ledger:
 - `docs/phase/phase-3.md`
 - `docs/phase/phase-3-checklist.md`
 
-### Phase 4: Runtime Health and Observability Summary
+### Phase 4: Standalone Operational Component Control
 
-Goal: enrich registered instances with bounded health, version, component, and
-low-cardinality runtime metric summaries obtained from stable CNCF Operations.
+Goal: make a machine-local Control Center the durable operating panel for
+managed components, including authorized local start, stop, and restart through
+an explicit launcher-owned supervisor contract.
 
-Phase 4 must use each Subsystem's authenticated Operation/REST boundary. It
+Phase 4 adds a persistent operational-component model between the CAR catalog
+and launcher invocation inventory. A development source automatically makes a
+component an operating target; a repository CAR becomes an operating target
+when it is first used through a launcher. Stopping an instance does not remove
+its operating target. An explicit exclusion record is required to remove it
+from the panel and must survive catalog refresh.
+
+The standalone lifecycle authority is owned by `cncf-launcher`; `textus-launcher`
+uses the same contract. Textus Control Center submits structured requests and
+projects their results, but never scans for or signals arbitrary PIDs. See
+`docs/phase/phase-4.md`.
+
+### Phase 5: Runtime Health and Observability Summary
+
+Goal: enrich operating components and their registered instances with bounded
+health, version, component, and low-cardinality runtime metric summaries
+obtained from stable CNCF Operations.
+
+This phase must use each Subsystem's authenticated Operation/REST boundary. It
 must not scrape HTML or treat a Web dashboard JSON implementation detail as the
 long-term management API.
 
-### Phase 5: Launcher Lifecycle Control
-
-Goal: add authorized start, stop, and restart requests through an explicit
-launcher/supervisor control contract.
-
-Textus Control Center must not signal arbitrary PIDs. Lifecycle control requires a
-launcher-owned or host-agent-owned authority with request identity, audit,
-idempotency, timeout, and structured result semantics.
-
-### Phase 6: Multi-Host Operations and Audit
+### Phase 6: Multi-Host Lifecycle Control and Audit
 
 Goal: operate registered Subsystems across hosts with explicit host identity,
 credential rotation, role policy, audit history, and connectivity status.
+
+The standalone launcher supervisor from Phase 4 is replaceable by a host agent
+without changing operational-component, lifecycle-request, or audit contracts.
 
 ### Phase 7: Operational Automation
 

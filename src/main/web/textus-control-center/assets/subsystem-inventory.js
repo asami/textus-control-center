@@ -12,7 +12,11 @@
     instances: document.getElementById("instances"),
     dialog: document.getElementById("detail-dialog"),
     closeDetail: document.getElementById("close-detail"),
-    detailFields: document.getElementById("detail-fields")
+    detailFields: document.getElementById("detail-fields"),
+    runningCount: document.getElementById("running-count"),
+    stoppedCount: document.getElementById("stopped-count"),
+    attentionCount: document.getElementById("attention-count"),
+    registeredCount: document.getElementById("registered-count")
   };
 
   let records = [];
@@ -26,6 +30,27 @@
     elements.empty.hidden = true;
     elements.error.hidden = true;
     elements.inventory.hidden = true;
+  }
+
+  function renderOverview() {
+    const counts = records.reduce((result, record) => {
+      const status = String(record.status || "").toLowerCase();
+      result.total += 1;
+      if (status === "running") result.running += 1;
+      else if (status === "stopped" || status === "not-running") result.stopped += 1;
+      else if (status === "starting" || status === "stale") result.attention += 1;
+      return result;
+    }, { running: 0, stopped: 0, attention: 0, total: 0 });
+    elements.runningCount.textContent = counts.running;
+    elements.stoppedCount.textContent = counts.stopped;
+    elements.attentionCount.textContent = counts.attention;
+    elements.registeredCount.textContent = counts.total;
+  }
+
+  function resetOverview() {
+    [elements.runningCount, elements.stoppedCount, elements.attentionCount, elements.registeredCount].forEach((element) => {
+      element.textContent = "—";
+    });
   }
 
   function showError(message) {
@@ -165,10 +190,12 @@
 
   async function loadInventory() {
     clearState();
+    resetOverview();
     elements.loading.hidden = false;
     try {
       const response = await request("list-subsystems?offset=0&limit=100");
       records = Array.isArray(response.data) ? response.data.map(inventoryRecord) : [];
+      renderOverview();
       render();
     } catch (error) {
       showError(error.message || "The subsystem inventory could not be loaded.");

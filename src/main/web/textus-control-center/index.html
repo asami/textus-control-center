@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Subsystem inventory | Textus Control Center</title>
+    <title>Subsystem control panel | Textus Control Center</title>
     <link rel="stylesheet" href="/web/assets/bootstrap.min.css">
     <link rel="stylesheet" href="/web/assets/textus-bootstrap-material.css">
     <link rel="stylesheet" href="/web/assets/textus-material-icons.css">
@@ -32,7 +32,8 @@
               <div class="card-body p-2">
                 <p class="control-center-nav-label">Control Center</p>
                 <div class="list-group list-group-flush">
-                  <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link is-active" href="/web/textus-control-center" aria-current="page"><span class="textus-material-icon" data-icon="api" aria-hidden="true"></span>Subsystem inventory</a>
+                  <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link is-active" href="/web/textus-control-center" aria-current="page"><span class="textus-material-icon" data-icon="dashboard" aria-hidden="true"></span>Subsystem control panel</a>
+                  <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link" href="#invocation-inventory"><span class="textus-material-icon" data-icon="api" aria-hidden="true"></span>Invocation inventory</a>
                   <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link" href="/web/textus-control-center/catalog.html"><span class="textus-material-icon" data-icon="inventory_2" aria-hidden="true"></span>CAR catalog</a>
                 </div>
                 <p class="control-center-nav-label mt-3">Runtime</p>
@@ -51,7 +52,8 @@
             <section>
               <p class="control-center-nav-label">Control Center</p>
               <div class="list-group list-group-flush">
-                <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link is-active" href="/web/textus-control-center" aria-current="page"><span class="textus-material-icon" data-icon="api" aria-hidden="true"></span>Subsystem inventory</a>
+                <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link is-active" href="/web/textus-control-center" aria-current="page"><span class="textus-material-icon" data-icon="dashboard" aria-hidden="true"></span>Subsystem control panel</a>
+                <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link" href="#invocation-inventory"><span class="textus-material-icon" data-icon="api" aria-hidden="true"></span>Invocation inventory</a>
                 <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link" href="/web/textus-control-center/catalog.html"><span class="textus-material-icon" data-icon="inventory_2" aria-hidden="true"></span>CAR catalog</a>
               </div>
             </section>
@@ -75,13 +77,58 @@
       <header class="page-header">
         <div>
           <p class="eyebrow">Textus Control Center</p>
-          <h1 id="page-title">Subsystem inventory</h1>
-          <p class="lead">Launcher-started server instances visible to administrators.</p>
+          <h1 id="page-title">Subsystem control panel</h1>
+          <p class="lead">A machine-local operating view for managed Subsystems and their launcher-started invocations.</p>
         </div>
         <button id="refresh" class="button" type="button"><span class="textus-material-icon" data-icon="refresh" aria-hidden="true"></span>Refresh</button>
       </header>
 
-      <section class="toolbar" aria-label="Inventory filters">
+      <section class="control-panel-overview" aria-label="Subsystem status overview">
+        <article class="control-panel-metric">
+          <span class="control-panel-metric-label">Running</span>
+          <strong id="running-count">—</strong>
+          <span>Launcher-reported running instances</span>
+        </article>
+        <article class="control-panel-metric">
+          <span class="control-panel-metric-label">Stopped</span>
+          <strong id="stopped-count">—</strong>
+          <span>Retained invocation records</span>
+        </article>
+        <article class="control-panel-metric">
+          <span class="control-panel-metric-label">Needs attention</span>
+          <strong id="attention-count">—</strong>
+          <span>Starting or stale instances</span>
+        </article>
+        <article class="control-panel-metric">
+          <span class="control-panel-metric-label">Registered</span>
+          <strong id="registered-count">—</strong>
+          <span>Total launcher invocation records</span>
+        </article>
+      </section>
+
+      <section class="control-panel-actions" aria-label="Subsystem operations">
+        <a class="control-panel-action" href="/web/textus-control-center/catalog.html">
+          <span class="textus-material-icon" data-icon="inventory_2" aria-hidden="true"></span>
+          <span><strong>Manage CAR catalog</strong><small>Review development, local, and public CAR sources.</small></span>
+        </a>
+        <a class="control-panel-action" href="/web/system/dashboard">
+          <span class="textus-material-icon" data-icon="timeline" aria-hidden="true"></span>
+          <span><strong>Open System dashboard</strong><small>Inspect the Control Center runtime.</small></span>
+        </a>
+        <a class="control-panel-action" href="/web/system/admin">
+          <span class="textus-material-icon" data-icon="edit" aria-hidden="true"></span>
+          <span><strong>Open System admin</strong><small>Open system-level administrative functions.</small></span>
+        </a>
+      </section>
+
+      <section id="invocation-inventory" class="control-panel-inventory" aria-labelledby="invocation-inventory-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="invocation-inventory-title">Invocation inventory</h2>
+            <p>Launcher-reported execution records. Select a row for its detailed registration facts.</p>
+          </div>
+        </div>
+      <section class="toolbar" aria-label="Invocation inventory filters">
         <label for="search">Filter Subsystems</label>
         <input id="search" type="search" autocomplete="off" placeholder="Component, execution, launcher, or host">
       </section>
@@ -104,6 +151,7 @@
           </thead>
           <tbody id="instances"></tbody>
         </table>
+      </section>
       </section>
         </main>
       </div>

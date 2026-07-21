@@ -26,6 +26,21 @@ body { margin: 0; }
 .eyebrow { margin: 0 0 .25rem; color: #536174; font-weight: 700; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; }
 h1, h2 { margin: 0; }
 .lead { margin: .5rem 0 0; color: #536174; }
+.control-panel-overview { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.control-panel-metric { display: grid; gap: .25rem; min-height: 8.5rem; padding: 1rem; border: 1px solid #d4dce7; border-radius: .55rem; background: #fff; box-shadow: 0 1px 2px rgb(15 23 42 / 5%); }
+.control-panel-metric-label { color: #536174; font-size: .78rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+.control-panel-metric strong { color: #0f3f7a; font-size: 2rem; line-height: 1.1; }
+.control-panel-metric span:last-child { color: #66758a; font-size: .85rem; }
+.control-panel-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.control-panel-action { display: flex; align-items: flex-start; gap: .75rem; min-height: 6.4rem; padding: 1rem; border: 1px solid #cbd9ea; border-radius: .55rem; background: #f7fbff; color: #173b66; text-decoration: none; }
+.control-panel-action:hover { border-color: #0a58ca; background: #edf6ff; color: #084298; }
+.control-panel-action > .textus-material-icon { color: #0a58ca; font-size: 1.5rem; }
+.control-panel-action strong, .control-panel-action small { display: block; }
+.control-panel-action small { margin-top: .25rem; color: #536174; }
+.control-panel-inventory { scroll-margin-top: 5rem; }
+.section-heading { margin-bottom: 1rem; }
+.section-heading h2 { font-size: 1.35rem; }
+.section-heading p { margin: .35rem 0 0; color: #536174; }
 .toolbar { display: grid; gap: .4rem; max-width: 36rem; margin-bottom: 1rem; }
 .toolbar label { font-weight: 650; }
 input { width: 100%; min-height: 2.6rem; border: 1px solid #aeb9ca; border-radius: .35rem; padding: .55rem .7rem; font: inherit; }
@@ -74,6 +89,7 @@ dt { font-weight: 700; } dd { margin: 0; overflow-wrap: anywhere; }
   .control-center-topbar nav .btn { flex: 1 1 0; }
   .control-center-main { padding: 1.25rem 1rem 2rem; }
   .page-header { align-items: stretch; flex-direction: column; }
+  .control-panel-overview, .control-panel-actions { grid-template-columns: 1fr; }
   .button { width: 100%; }
   dl { grid-template-columns: 1fr; gap: .2rem; }
   dd { margin-bottom: .6rem; }

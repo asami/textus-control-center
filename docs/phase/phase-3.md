@@ -3,7 +3,7 @@
 Stage Status:
 
 - Current status: DONE
-- Current step: Phase closed; Phase 4 is the documented successor.
+- Current step: Phase closed; Phase 4 operational-component control is the documented successor.
 - Owner: Textus Control Center Phase 3
 - Update rule: Update this block and `phase-3-checklist.md` whenever a stable
   checklist state changes. Close the phase only when every in-scope checklist
