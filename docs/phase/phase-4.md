@@ -3,10 +3,10 @@
 Stage Status:
 
 - Current status: IN_PROGRESS
-- Current step: Complete Control Center lifecycle-request Operations and their
-  administrative audit projections (OC-04). Operating-target records and
-  protected list/detail/remove/restore Operations are generated and covered by
-  executable specifications.
+- Current step: Connect the generated Control Center lifecycle-request
+  Operations to a launcher-owned supervisor (OC-04/OC-05). Operating-target
+  records, protected management Operations, rejected preflight audit records,
+  and retry-stable request identity are covered by executable specifications.
 - Owner: Textus Control Center Phase 4
 - Update rule: Update this block and `phase-4-checklist.md` whenever a stable
   checklist state changes. Do not begin implementation before the lifecycle

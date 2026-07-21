@@ -68,9 +68,14 @@ Status: IN_PROGRESS
 - [x] Generate protected list, detail, remove, and restore Operations for
   operating-target management; cover development auto-management, exclusion,
   restore, and launcher-use adoption with executable specifications.
-- [ ] Generate Start, Stop, Restart, request-status, idempotency, and audit
+- [x] Generate Start, Stop, Restart, request-status, idempotency, and audit
   Operations for lifecycle-request management.
-- [ ] Implement administrative authorization and audit projections.
+- [x] Persist safe rejected preflights and retry-stable lifecycle audit records
+  when the local supervisor is unavailable or unsupported.
+- [ ] Dispatch accepted requests to the launcher supervisor and retain its
+  result, receiver identity, and instance correlation.
+- [ ] Implement complete administrative authorization and audit projections
+  across accepted supervisor results.
 - [ ] Implement command, automatic REST, and static Web read/write projections
   through the same Operations.
 - [ ] Preserve all Phase 1–3 list, detail, source, and invocation contracts.

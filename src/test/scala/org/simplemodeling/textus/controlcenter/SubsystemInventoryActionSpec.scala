@@ -358,6 +358,45 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       _records(listed).map(_.getString("artifactId")) shouldBe Vector(Some("textus-adopted-spec"))
       _records(listed).head.getString("managementState") shouldBe Some("adopted")
     }
+
+    "retain an idempotent rejected lifecycle request when no supervisor is configured" in {
+      Given("an auto-managed development component without a local supervisor")
+      val root = Files.createTempDirectory("control-center-lifecycle-request")
+      _write_car_descriptor(root, "textus-lifecycle-spec", "lifecycle-spec-component")
+      val fixture = _fixture()
+      val component = _component(_catalog_configuration(root))
+      val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
+      _execute(component, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
+      val request = Request.ofService(
+        "LifecycleControl",
+        "startOperationalComponent",
+        properties = List(
+          Property("artifactId", "textus-lifecycle-spec", None),
+          Property("idempotencyKey", "lifecycle-request-spec-key", None)
+        )
+      )
+
+      When("the operator requests a start and retries with the same idempotency key")
+      val first = _execute(component, operatorcontext, request)
+        .toOption.getOrElse(fail("lifecycle request failed"))
+        .asInstanceOf[OperationResponse.RecordResponse].record
+      val second = _execute(component, operatorcontext, request)
+        .toOption.getOrElse(fail("lifecycle request retry failed"))
+        .asInstanceOf[OperationResponse.RecordResponse].record
+      val audit = _execute(
+        component,
+        operatorcontext,
+        Request.ofService("LifecycleControl", "listLifecycleRequests", properties = List(Property("artifactId", "textus-lifecycle-spec", None)))
+      ).toOption.getOrElse(fail("lifecycle request audit list failed")).asInstanceOf[OperationResponse.RecordResponse].record
+
+      Then("the failed preflight is safe, retained, and does not create a duplicate request")
+      first.getString("requestState") shouldBe Some("rejected")
+      first.getString("diagnostic") shouldBe Some("supervisor-not-configured")
+      second.getString("requestId") shouldBe first.getString("requestId")
+      _records(audit).map(_.getString("requestId")) shouldBe Vector(first.getString("requestId"))
+      _records(audit).head.getAny("idempotencyKey") shouldBe empty
+      _records(audit).head.getAny("operatorSubjectId") shouldBe empty
+    }
   }
 
   private def _fixture(datastorepath: Option[Path] = None): _Fixture = {

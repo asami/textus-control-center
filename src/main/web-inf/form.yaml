@@ -4,3 +4,12 @@ expose:
   textus-control-center.car-catalog.refresh-car-catalog: protected
   textus-control-center.car-catalog.list-managed-cars: protected
   textus-control-center.car-catalog.get-managed-car: protected
+  textus-control-center.operational-management.list-operational-components: protected
+  textus-control-center.operational-management.get-operational-component: protected
+  textus-control-center.operational-management.remove-operational-component: protected
+  textus-control-center.operational-management.restore-operational-component: protected
+  textus-control-center.lifecycle-control.start-operational-component: protected
+  textus-control-center.lifecycle-control.stop-operational-component: protected
+  textus-control-center.lifecycle-control.restart-operational-component: protected
+  textus-control-center.lifecycle-control.list-lifecycle-requests: protected
+  textus-control-center.lifecycle-control.get-lifecycle-request: protected

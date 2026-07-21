@@ -4,6 +4,7 @@
 package org.simplemodeling.textus.controlcenter.impl
 
 import java.time.{Duration, Instant}
+import java.util.UUID
 
 import cats.syntax.all.*
 import org.goldenport.Consequence
@@ -23,17 +24,21 @@ import org.simplemodeling.textus.controlcenter.TextusControlCenterComponent
 import org.simplemodeling.textus.controlcenter.entity.{RegisteredSubsystem as RegisteredSubsystemEntity}
 import org.simplemodeling.textus.controlcenter.entity.{ManagedCar as ManagedCarEntity, ManagedCarSource as ManagedCarSourceEntity}
 import org.simplemodeling.textus.controlcenter.entity.{OperationalComponent as OperationalComponentEntity}
+import org.simplemodeling.textus.controlcenter.entity.{LifecycleRequest as LifecycleRequestEntity}
 import org.simplemodeling.textus.controlcenter.entity.create.{RegisteredSubsystem as RegisteredSubsystemCreate}
 import org.simplemodeling.textus.controlcenter.entity.create.RegisteredSubsystem.given
 import org.simplemodeling.textus.controlcenter.entity.query.{RegisteredSubsystem as RegisteredSubsystemQuery}
 import org.simplemodeling.textus.controlcenter.entity.query.{ManagedCar as ManagedCarQuery, ManagedCarSource as ManagedCarSourceQuery}
 import org.simplemodeling.textus.controlcenter.entity.query.{OperationalComponent as OperationalComponentQuery}
+import org.simplemodeling.textus.controlcenter.entity.query.{LifecycleRequest as LifecycleRequestQuery}
 import org.simplemodeling.textus.controlcenter.entity.create.{ManagedCar as ManagedCarCreate, ManagedCarSource as ManagedCarSourceCreate}
 import org.simplemodeling.textus.controlcenter.entity.create.{OperationalComponent as OperationalComponentCreate}
+import org.simplemodeling.textus.controlcenter.entity.create.{LifecycleRequest as LifecycleRequestCreate}
 import org.simplemodeling.textus.controlcenter.entity.update.{ManagedCar as ManagedCarUpdate, OperationalComponent as OperationalComponentUpdate}
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCar.given
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCarSource.given
 import org.simplemodeling.textus.controlcenter.entity.create.OperationalComponent.given
+import org.simplemodeling.textus.controlcenter.entity.create.LifecycleRequest.given
 import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCar as CatalogManagedCar, ManagedCarCatalog, ManagedCarSource as CatalogManagedCarSource, OperationalComponentManagement, OperationalManagementState, PublicRepositoryCatalog, RuntimeInstance, RuntimeInstanceStatus, StandaloneCatalogConfiguration, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
 import org.simplemodeling.textus.controlcenter.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
 
@@ -51,6 +56,7 @@ abstract class TextusControlCenterParticipantFactoryBase extends TextusControlCe
       TextusControlCenterComponent.SubsystemInventoryService
       , TextusControlCenterComponent.CarCatalogService
       , TextusControlCenterComponent.OperationalManagementService
+      , TextusControlCenterComponent.LifecycleControlService
     )
 
   protected final def component_core(
@@ -65,6 +71,8 @@ abstract class TextusControlCenterParticipantFactoryBase extends TextusControlCe
     CarCatalogServiceFactoryImpl()
   override val OperationalManagement: TextusControlCenterComponent.OperationalManagementServiceFactory =
     OperationalManagementServiceFactoryImpl()
+  override val LifecycleControl: TextusControlCenterComponent.LifecycleControlServiceFactory =
+    LifecycleControlServiceFactoryImpl()
   override val aggregate: TextusControlCenterComponent.AggregateServiceFactory =
     AggregateServiceFactoryImpl()
   override val view: TextusControlCenterComponent.ViewServiceFactory =
@@ -742,6 +750,147 @@ final class OperationalManagementServiceFactoryImpl extends TextusControlCenterC
     protected final def operational_component_update(managementstate: String, now: Instant): Consequence[OperationalComponentUpdate] =
       new OperationalComponentUpdate.Builder().withManagementState(managementstate).withLastObservedAt(now).buildC()
     protected final def safe_projection(component: OperationalComponentEntity): Record = Record.dataAuto("artifactId" -> component.artifactId, "managementState" -> component.managementState, "firstManagedAt" -> component.firstManagedAt, "lastObservedAt" -> component.lastObservedAt)
+  }
+}
+
+final class LifecycleControlServiceFactoryImpl extends TextusControlCenterComponent.LifecycleControlServiceFactory {
+  import TextusControlCenterComponent.LifecycleControlService.*
+
+  override def createStartOperationalComponentActionCall(core: ActionCall.Core, action: StartOperationalComponent): StartOperationalComponentActionCall =
+    StartOperationalComponentActionCallImpl(core, action)
+  override def createStopOperationalComponentActionCall(core: ActionCall.Core, action: StopOperationalComponent): StopOperationalComponentActionCall =
+    StopOperationalComponentActionCallImpl(core, action)
+  override def createRestartOperationalComponentActionCall(core: ActionCall.Core, action: RestartOperationalComponent): RestartOperationalComponentActionCall =
+    RestartOperationalComponentActionCallImpl(core, action)
+  override def createListLifecycleRequestsActionCall(core: ActionCall.Core, action: ListLifecycleRequests): ListLifecycleRequestsActionCall =
+    ListLifecycleRequestsActionCallImpl(core, action)
+  override def createGetLifecycleRequestActionCall(core: ActionCall.Core, action: GetLifecycleRequest): GetLifecycleRequestActionCall =
+    GetLifecycleRequestActionCallImpl(core, action)
+
+  private final case class StartOperationalComponentActionCallImpl(core: ActionCall.Core, override val action: StartOperationalComponent)
+      extends StartOperationalComponentActionCall with LifecycleControlActionSupport {
+    protected def build_Program: ExecUowM[OperationResponse] = lifecycle_request("start", action.record)
+  }
+
+  private final case class StopOperationalComponentActionCallImpl(core: ActionCall.Core, override val action: StopOperationalComponent)
+      extends StopOperationalComponentActionCall with LifecycleControlActionSupport {
+    protected def build_Program: ExecUowM[OperationResponse] = lifecycle_request("stop", action.record)
+  }
+
+  private final case class RestartOperationalComponentActionCallImpl(core: ActionCall.Core, override val action: RestartOperationalComponent)
+      extends RestartOperationalComponentActionCall with LifecycleControlActionSupport {
+    protected def build_Program: ExecUowM[OperationResponse] = lifecycle_request("restart", action.record)
+  }
+
+  private final case class ListLifecycleRequestsActionCallImpl(core: ActionCall.Core, override val action: ListLifecycleRequests)
+      extends ListLifecycleRequestsActionCall with LifecycleControlActionSupport {
+    protected def build_Program: ExecUowM[OperationResponse] =
+      for {
+        _ <- exec_from(administrative_principal)
+        artifactid <- exec_from(required_string(action.record, "artifactId"))
+        requests <- find_lifecycle_requests(artifactid)
+        offset = action.record.getInt("offset").getOrElse(0).max(0)
+        limit = action.record.getInt("limit").getOrElse(100).max(0)
+        page = requests.sortBy(value => (value.requestedAt, value.id.print)).reverse.drop(offset).take(limit)
+      } yield OperationResponse(Record.dataAuto(
+        "data" -> page.map(safe_projection),
+        "totalCount" -> requests.size,
+        "offset" -> offset,
+        "limit" -> limit
+      ))
+  }
+
+  private final case class GetLifecycleRequestActionCallImpl(core: ActionCall.Core, override val action: GetLifecycleRequest)
+      extends GetLifecycleRequestActionCall with LifecycleControlActionSupport {
+    protected def build_Program: ExecUowM[OperationResponse] =
+      for {
+        _ <- exec_from(administrative_principal)
+        requestid <- exec_from(required_string(action.record, "requestId"))
+        requests <- find_lifecycle_requests_all
+        request <- exec_from(requests.find(_.requestId == requestid).toRight(requestid).fold(Consequence.resourceNotFound, Consequence.success))
+      } yield OperationResponse(safe_projection(request))
+  }
+
+  private trait LifecycleControlActionSupport { self: ActionCall =>
+    protected final def lifecycle_request(actionname: String, record: Record): ExecUowM[OperationResponse] =
+      for {
+        _ <- exec_from(administrative_principal)
+        artifactid <- exec_from(required_string(record, "artifactId"))
+        idempotencykey <- exec_from(required_string(record, "idempotencyKey"))
+        requests <- find_lifecycle_requests(artifactid)
+        response <- requests.find(value => value.lifecycleAction == actionname && value.idempotencyKey == idempotencykey) match {
+          case Some(existing) => exec_pure(OperationResponse(safe_projection(existing)))
+          case None => create_rejected_request(artifactid, actionname, idempotencykey)
+        }
+      } yield response
+
+    private def create_rejected_request(artifactid: String, actionname: String, idempotencykey: String): ExecUowM[OperationResponse] =
+      for {
+        components <- find_operational_components(artifactid)
+        component <- exec_from(latest_operational_component(components).toRight(artifactid).fold(Consequence.resourceNotFound, Consequence.success))
+        now = core.executionContext.clock.instant()
+        supervisorid = config_string("textus-control-center.lifecycle.supervisor.id").map(_.trim).filter(_.nonEmpty)
+        diagnostic = lifecycle_diagnostic(component, supervisorid)
+        stored <- entity_create(LifecycleRequestCreate(
+          None,
+          UUID.randomUUID().toString,
+          artifactid,
+          actionname,
+          "rejected",
+          idempotencykey,
+          now,
+          Some(now),
+          Some(diagnostic),
+          executionContext.security.principal.id.value,
+          supervisorid,
+          None
+        ))
+        request = LifecycleRequestEntity(
+          stored.id,
+          stored.requestId,
+          artifactid,
+          actionname,
+          "rejected",
+          idempotencykey,
+          now,
+          Some(now),
+          Some(diagnostic),
+          executionContext.security.principal.id.value,
+          supervisorid,
+          None
+        )
+      } yield OperationResponse(safe_projection(request))
+
+    protected final def administrative_principal: Consequence[Unit] = {
+      val subject = SecuritySubject.current(using executionContext)
+      val privileges = Vector(SecurityContext.Privilege.ApplicationContentManager, SecurityContext.Privilege.Operator, SecurityContext.Privilege.System, SecurityContext.Privilege.Internal)
+      if (subject.isAuthenticated && privileges.exists(privilege => subject.hasPrivilege(privilege.name) || subject.hasCapability(privilege.name) || subject.hasRole(privilege.name))) Consequence.unit
+      else Consequence.securityPermissionDenied("Lifecycle control requires administrative authorization.")
+    }
+    protected final def required_string(record: Record, name: String): Consequence[String] =
+      record.getString(name).map(_.trim).filter(_.nonEmpty).toRight(s"$name is required").fold(Consequence.operationInvalid, Consequence.success)
+    protected final def find_operational_components(artifactid: String): ExecUowM[Vector[OperationalComponentEntity]] =
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "OperationalComponent")); query = EntityQuery[OperationalComponentEntity](OperationalComponentQuery.collectionId, fields.rewrite(Query.fromRecord(Record.dataAuto("artifactId" -> artifactid))), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[OperationalComponentEntity](query) } yield result.data.filter(_.artifactId == artifactid)
+    protected final def find_lifecycle_requests(artifactid: String): ExecUowM[Vector[LifecycleRequestEntity]] =
+      for { values <- find_lifecycle_requests_all } yield values.filter(_.artifactId == artifactid)
+    protected final def find_lifecycle_requests_all: ExecUowM[Vector[LifecycleRequestEntity]] =
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "LifecycleRequest")); query = EntityQuery[LifecycleRequestEntity](LifecycleRequestQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[LifecycleRequestEntity](query) } yield result.data
+    protected final def latest_operational_component(values: Vector[OperationalComponentEntity]): Option[OperationalComponentEntity] =
+      values.sortBy(value => (value.lastObservedAt, value.id.print)).lastOption
+    protected final def lifecycle_diagnostic(component: OperationalComponentEntity, supervisorid: Option[String]): String =
+      if (component.managementState == "excluded") "component-not-managed"
+      else supervisorid.fold("supervisor-not-configured")(_ => "supervisor-protocol-unavailable")
+    protected final def safe_projection(request: LifecycleRequestEntity): Record = Record.dataAuto(
+      "requestId" -> request.requestId,
+      "artifactId" -> request.artifactId,
+      "lifecycleAction" -> request.lifecycleAction,
+      "requestState" -> request.requestState,
+      "requestedAt" -> request.requestedAt,
+      "completedAt" -> request.completedAt,
+      "diagnostic" -> request.diagnostic,
+      "supervisorId" -> request.supervisorId,
+      "instanceId" -> request.instanceId
+    )
   }
 }
 

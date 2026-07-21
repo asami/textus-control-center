@@ -338,6 +338,134 @@ RestoreOperationalComponent
 
 RestoreOperationalComponentResult
 
+# SERVICE
+
+## LifecycleControl
+
+### DESCRIPTION
+
+Administrative lifecycle requests for managed operational components. The local launcher supervisor owns process execution.
+
+### OPERATION
+
+#### startOperationalComponent
+
+##### DESCRIPTION
+
+Requests a start from the selected local launcher supervisor.
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+StartOperationalComponent
+
+##### OUTPUT
+
+###### TYPE
+
+StartOperationalComponentResult
+
+### OPERATION
+
+#### stopOperationalComponent
+
+##### DESCRIPTION
+
+Requests a stop from the selected local launcher supervisor.
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+StopOperationalComponent
+
+##### OUTPUT
+
+###### TYPE
+
+StopOperationalComponentResult
+
+### OPERATION
+
+#### restartOperationalComponent
+
+##### DESCRIPTION
+
+Requests a restart from the selected local launcher supervisor.
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+RestartOperationalComponent
+
+##### OUTPUT
+
+###### TYPE
+
+RestartOperationalComponentResult
+
+### OPERATION
+
+#### listLifecycleRequests
+
+##### DESCRIPTION
+
+Lists safe lifecycle request audit projections for one managed component.
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ListLifecycleRequests
+
+##### OUTPUT
+
+###### TYPE
+
+ListLifecycleRequestsResult
+
+### OPERATION
+
+#### getLifecycleRequest
+
+##### DESCRIPTION
+
+Loads one safe lifecycle request audit projection.
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetLifecycleRequest
+
+##### OUTPUT
+
+###### TYPE
+
+GetLifecycleRequestResult
+
 # ENTITY
 
 ## RegisteredSubsystem
@@ -422,6 +550,8 @@ RestoreOperationalComponentResult
 | completedAt       | instant                 | ?            |                 |
 | diagnostic        | LifecycleDiagnostic     | ?            |                 |
 | operatorSubjectId | OperatorSubjectId       | 1            | internal        |
+| supervisorId      | LifecycleSupervisorId   | ?            |                 |
+| instanceId        | SubsystemInstanceId     | ?            |                 |
 
 # COMMAND
 
@@ -499,6 +629,33 @@ RestoreOperationalComponentResult
 |------------|--------|--------------|
 | artifactId | string | 1            |
 
+## StartOperationalComponent
+
+### ATTRIBUTE
+
+| name           | type   | multiplicity |
+|----------------|--------|--------------|
+| artifactId     | string | 1            |
+| idempotencyKey | string | 1            |
+
+## StopOperationalComponent
+
+### ATTRIBUTE
+
+| name           | type   | multiplicity |
+|----------------|--------|--------------|
+| artifactId     | string | 1            |
+| idempotencyKey | string | 1            |
+
+## RestartOperationalComponent
+
+### ATTRIBUTE
+
+| name           | type   | multiplicity |
+|----------------|--------|--------------|
+| artifactId     | string | 1            |
+| idempotencyKey | string | 1            |
+
 # QUERY
 
 ## ListSubsystems
@@ -554,6 +711,24 @@ RestoreOperationalComponentResult
 | name       | type   | multiplicity |
 |------------|--------|--------------|
 | artifactId | string | 1            |
+
+## ListLifecycleRequests
+
+### ATTRIBUTE
+
+| name       | type   | multiplicity |
+|------------|--------|--------------|
+| artifactId | string | 1            |
+| offset     | int    | ?            |
+| limit      | int    | ?            |
+
+## GetLifecycleRequest
+
+### ATTRIBUTE
+
+| name      | type   | multiplicity |
+|-----------|--------|--------------|
+| requestId | string | 1            |
 
 # DATATYPE
 
@@ -773,6 +948,14 @@ RestoreOperationalComponentResult
 |-------|--------|--------------|
 | value | string | 1            |
 
+## LifecycleSupervisorId
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
 # VALUE
 
 ## RegisterSubsystemResult
@@ -842,6 +1025,36 @@ OperationResult
 OperationResult
 
 ## RestoreOperationalComponentResult
+
+### EXTENDS
+
+OperationResult
+
+## StartOperationalComponentResult
+
+### EXTENDS
+
+OperationResult
+
+## StopOperationalComponentResult
+
+### EXTENDS
+
+OperationResult
+
+## RestartOperationalComponentResult
+
+### EXTENDS
+
+OperationResult
+
+## ListLifecycleRequestsResult
+
+### EXTENDS
+
+OperationResult
+
+## GetLifecycleRequestResult
 
 ### EXTENDS
 
