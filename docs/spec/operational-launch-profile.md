@@ -1,4 +1,4 @@
-status = draft
+status = accepted-for-implementation
 scope = Phase 4 safe standalone launch-profile resolution
 
 # Operational Launch Profile Specification
@@ -29,7 +29,7 @@ CAR descriptor. The standalone initial profile permits one selected default
 port per operational component. It does not guess a dynamic port or reuse a
 port currently owned by another active profile.
 
-Before submitting Start or Restart, the supervisor validates source presence,
+Before accepting Start or Restart, the supervisor validates source presence,
 descriptor validity, runtime compatibility, dependency resolution, and port
 availability. Failure returns a stable structured code and changes neither the
 operating target nor existing instances.
