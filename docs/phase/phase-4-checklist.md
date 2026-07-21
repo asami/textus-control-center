@@ -94,8 +94,8 @@ Status: PLANNED
 
 Status: PLANNED
 
-- [ ] Replace the top-page invocation-first layout with an
-  operational-component-first panel.
+- [x] Replace the top-page invocation-first layout with an
+  operational-component-first panel backed by protected Operations.
 - [ ] Show management state, source, runtime state, active URL, last lifecycle
   result, and actions.
 - [ ] Keep invocation history and private launch detail behind protected detail

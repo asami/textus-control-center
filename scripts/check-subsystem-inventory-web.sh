@@ -4,12 +4,14 @@ set -euo pipefail
 project_root="$(cd "$(dirname "$0")/.." && pwd)"
 page="$project_root/src/main/web/textus-control-center/index.html"
 script="$project_root/src/main/web/textus-control-center/assets/subsystem-inventory.js"
+operationalscript="$project_root/src/main/web/textus-control-center/assets/operational-panel.js"
 style="$project_root/src/main/web/textus-control-center/assets/subsystem-inventory.css"
 form="$project_root/src/main/web-inf/form.yaml"
 web="$project_root/src/main/web-inf/web.yaml"
 
 rg -F -- 'Subsystem control panel' "$page" >/dev/null
 rg -F -- 'Invocation inventory' "$page" >/dev/null
+rg -F -- 'Operational components' "$page" >/dev/null
 rg -F -- '/web/assets/bootstrap.min.css' "$page" >/dev/null
 rg -F -- '/web/assets/textus-bootstrap-material.css' "$page" >/dev/null
 rg -F -- 'class="control-center-topbar navbar navbar-expand-lg' "$page" >/dev/null
@@ -20,6 +22,7 @@ rg -F -- 'href="/web/system/admin"' "$page" >/dev/null
 rg -F -- 'href="/man/textus-control-center"' "$page" >/dev/null
 rg -F -- '/web/textus-control-center/assets/subsystem-inventory.css' "$page" >/dev/null
 rg -F -- '/web/textus-control-center/assets/subsystem-inventory.js' "$page" >/dev/null
+rg -F -- '/web/textus-control-center/assets/operational-panel.js' "$page" >/dev/null
 rg -F -- 'class="table align-middle mb-0"' "$page" >/dev/null
 rg -F -- 'id="loading"' "$page" >/dev/null
 rg -F -- 'id="empty"' "$page" >/dev/null
@@ -39,9 +42,16 @@ rg -F -- 'systemAdminUrl' "$script" >/dev/null
 rg -F -- 'credentials: "same-origin"' "$script" >/dev/null
 rg -F -- 'function renderOverview()' "$script" >/dev/null
 rg -F -- 'function resetOverview()' "$script" >/dev/null
+rg -F -- 'const managementEndpoint = "/rest/v1/textus-control-center/operational-management"' "$operationalscript" >/dev/null
+rg -F -- 'const lifecycleEndpoint = "/rest/v1/textus-control-center/lifecycle-control"' "$operationalscript" >/dev/null
+rg -F -- 'list-operational-components?offset=0&limit=100' "$operationalscript" >/dev/null
+rg -F -- 'start-operational-component?artifactId=' "$operationalscript" >/dev/null
+rg -F -- 'remove-operational-component?artifactId=' "$operationalscript" >/dev/null
 rg -F -- '@media' "$style" >/dev/null
 rg -F -- 'textus-control-center.subsystem-inventory.list-subsystems: protected' "$form" >/dev/null
 rg -F -- 'textus-control-center.subsystem-inventory.get-subsystem: protected' "$form" >/dev/null
+rg -F -- 'textus-control-center.operational-management.list-operational-components: protected' "$form" >/dev/null
+rg -F -- 'textus-control-center.lifecycle-control.start-operational-component: protected' "$form" >/dev/null
 rg -F -- 'route: /web/{component}/textus-control-center' "$web" >/dev/null
 rg -F -- 'path: /web/textus-control-center' "$web" >/dev/null
 rg -F -- 'kind: alias' "$web" >/dev/null

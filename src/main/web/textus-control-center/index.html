@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Subsystem control panel | Textus Control Center</title>
+    <title>Operational component control panel | Textus Control Center</title>
     <link rel="stylesheet" href="/web/assets/bootstrap.min.css">
     <link rel="stylesheet" href="/web/assets/textus-bootstrap-material.css">
     <link rel="stylesheet" href="/web/assets/textus-material-icons.css">
@@ -32,7 +32,7 @@
               <div class="card-body p-2">
                 <p class="control-center-nav-label">Control Center</p>
                 <div class="list-group list-group-flush">
-                  <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link is-active" href="/web/textus-control-center" aria-current="page"><span class="textus-material-icon" data-icon="dashboard" aria-hidden="true"></span>Subsystem control panel</a>
+                  <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link is-active" href="/web/textus-control-center" aria-current="page"><span class="textus-material-icon" data-icon="dashboard" aria-hidden="true"></span>Operational components</a>
                   <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link" href="#invocation-inventory"><span class="textus-material-icon" data-icon="api" aria-hidden="true"></span>Invocation inventory</a>
                   <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link" href="/web/textus-control-center/catalog.html"><span class="textus-material-icon" data-icon="inventory_2" aria-hidden="true"></span>CAR catalog</a>
                 </div>
@@ -52,7 +52,7 @@
             <section>
               <p class="control-center-nav-label">Control Center</p>
               <div class="list-group list-group-flush">
-                <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link is-active" href="/web/textus-control-center" aria-current="page"><span class="textus-material-icon" data-icon="dashboard" aria-hidden="true"></span>Subsystem control panel</a>
+                <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link is-active" href="/web/textus-control-center" aria-current="page"><span class="textus-material-icon" data-icon="dashboard" aria-hidden="true"></span>Operational components</a>
                 <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link" href="#invocation-inventory"><span class="textus-material-icon" data-icon="api" aria-hidden="true"></span>Invocation inventory</a>
                 <a class="list-group-item list-group-item-action border-0 rounded-2 control-center-nav-link" href="/web/textus-control-center/catalog.html"><span class="textus-material-icon" data-icon="inventory_2" aria-hidden="true"></span>CAR catalog</a>
               </div>
@@ -77,11 +77,28 @@
       <header class="page-header">
         <div>
           <p class="eyebrow">Textus Control Center</p>
-          <h1 id="page-title">Subsystem control panel</h1>
-          <p class="lead">A machine-local operating view for managed Subsystems and their launcher-started invocations.</p>
+          <h1 id="page-title">Operational component control panel</h1>
+          <p class="lead">A machine-local operating view for managed components, their launcher-reported runtime state, and lifecycle requests.</p>
         </div>
         <button id="refresh" class="button" type="button"><span class="textus-material-icon" data-icon="refresh" aria-hidden="true"></span>Refresh</button>
       </header>
+
+      <section id="operational-components" class="control-panel-inventory" aria-labelledby="operational-components-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="operational-components-title">Operational components</h2>
+            <p>Development components are auto-managed. Repository components appear after accepted launcher use. Select a row for request history and details.</p>
+          </div>
+        </div>
+        <section id="operational-loading" class="notice" role="status">Loading operational components…</section>
+        <section id="operational-empty" class="notice" hidden>No components are currently under operational management.</section>
+        <section id="operational-error" class="notice error" role="alert" hidden></section>
+        <section id="operational-inventory" class="table-responsive" aria-live="polite" hidden>
+          <table class="table align-middle mb-0"><thead><tr>
+            <th scope="col">Runtime</th><th scope="col">Component</th><th scope="col">Management</th><th scope="col">Last observed</th><th scope="col">Actions</th>
+          </tr></thead><tbody id="operational-component-rows"></tbody></table>
+        </section>
+      </section>
 
       <section class="control-panel-overview" aria-label="Subsystem status overview">
         <article class="control-panel-metric">
@@ -167,6 +184,15 @@
       </article>
     </dialog>
 
+    <dialog id="operational-detail-dialog" aria-labelledby="operational-detail-title">
+      <article>
+        <header class="dialog-header"><h2 id="operational-detail-title">Operational component detail</h2><button id="close-operational-detail" class="button secondary" type="button">Close</button></header>
+        <dl id="operational-detail-fields"></dl>
+        <section class="catalog-detail-sources"><h3>Lifecycle requests</h3><div id="lifecycle-request-history"></div></section>
+      </article>
+    </dialog>
+
+    <script src="/web/textus-control-center/assets/operational-panel.js" defer></script>
     <script src="/web/textus-control-center/assets/subsystem-inventory.js" defer></script>
   </body>
 </html>
