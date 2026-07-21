@@ -86,6 +86,14 @@ same safe projection: `requestId`, `state`, `diagnosticCode`, `diagnostic`,
 is retried with the original request ID and idempotency key; the supervisor
 returns the original durable record.
 
+Control Center first commits its own request with state `queued`, then routes a
+post-commit internal continuation that submits the request. The continuation is
+durable work, not a browser request. If it is delayed or its response is lost,
+an administrative `GetLifecycleRequest` retries the same stable request identity
+and reconciles the launcher result. An unavailable endpoint or credential is
+recorded as a safe terminal Control Center result; it never affects a launcher-
+owned server.
+
 On a successful start or restart, the launcher supplies correlation between the
 lifecycle request and its newly created `instanceId`. Ordinary registration,
 heartbeat, and deregistration remain the source of runtime state; a successful

@@ -14,10 +14,11 @@ import org.goldenport.cncf.directive.Query
 import org.goldenport.cncf.entity.{EntityQuery, EntitySearchScope, EntityVisibilityScope}
 import org.goldenport.cncf.entity.runtime.EntityQueryFieldResolver
 import org.goldenport.cncf.context.SecurityContext
+import org.goldenport.cncf.event.{CmlEventCategory, CmlEventDefinition, CmlSubscriptionDefinition, DispatchRoute, EventOriginBoundary, EventReceptionCondition, EventReceptionExecutionPolicy, EventReceptionRule, ReceptionDomainEvent, ReceptionInput, ReceptionOutcome}
 import org.goldenport.cncf.security.AuthenticationProvider
 import org.goldenport.cncf.security.SecuritySubject
-import org.goldenport.cncf.unitofwork.ExecUowM
-import org.goldenport.protocol.Property
+import org.goldenport.cncf.unitofwork.{ExecUowM, UnitOfWorkOp}
+import org.goldenport.protocol.{Property, Request}
 import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
 import org.simplemodeling.textus.controlcenter.TextusControlCenterComponent
@@ -34,14 +35,14 @@ import org.simplemodeling.textus.controlcenter.entity.query.{LifecycleRequest as
 import org.simplemodeling.textus.controlcenter.entity.create.{ManagedCar as ManagedCarCreate, ManagedCarSource as ManagedCarSourceCreate}
 import org.simplemodeling.textus.controlcenter.entity.create.{OperationalComponent as OperationalComponentCreate}
 import org.simplemodeling.textus.controlcenter.entity.create.{LifecycleRequest as LifecycleRequestCreate}
-import org.simplemodeling.textus.controlcenter.entity.update.{ManagedCar as ManagedCarUpdate, OperationalComponent as OperationalComponentUpdate}
+import org.simplemodeling.textus.controlcenter.entity.update.{LifecycleRequest as LifecycleRequestUpdate, ManagedCar as ManagedCarUpdate, OperationalComponent as OperationalComponentUpdate}
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCar.given
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCarSource.given
 import org.simplemodeling.textus.controlcenter.entity.create.OperationalComponent.given
 import org.simplemodeling.textus.controlcenter.entity.create.LifecycleRequest.given
 import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCar as CatalogManagedCar, ManagedCarCatalog, ManagedCarSource as CatalogManagedCarSource, OperationalComponentManagement, OperationalManagementState, PublicRepositoryCatalog, RuntimeInstance, RuntimeInstanceStatus, StandaloneCatalogConfiguration, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
 import org.simplemodeling.textus.controlcenter.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
-import org.simplemodeling.textus.controlcenter.supervisor.{LifecycleSupervisorConfiguration, LifecycleSupervisorConfigurationError}
+import org.simplemodeling.textus.controlcenter.supervisor.{LifecycleSupervisorConfiguration, LifecycleSupervisorConfigurationError, LifecycleSupervisorProtocol, LifecycleSupervisorRequest, LifecycleSupervisorResult}
 
 final class ComponentFactory extends Component.BundleFactory {
   def primaryFactory: Component.PrimaryComponentFactory =
@@ -87,6 +88,29 @@ final class TextusControlCenterPrimaryComponent(
 ) extends TextusControlCenterComponent {
   override def authenticationProviders: Vector[AuthenticationProvider] =
     Vector(registrationauthentication)
+
+  override def eventReceptionDefinitions: Vector[CmlEventDefinition] =
+    Vector(CmlEventDefinition("textus-control-center.lifecycle-request.queued", CmlEventCategory.NonActionEvent))
+
+  override def eventSubscriptionDefinitions: Vector[CmlSubscriptionDefinition] =
+    Vector(CmlSubscriptionDefinition(
+      name = "dispatch-queued-lifecycle-request",
+      eventName = "textus-control-center.lifecycle-request.queued",
+      route = DispatchRoute.Broadcast,
+      actionName = "lifecycle-control.dispatch-lifecycle-request"
+    ))
+
+  override def eventReceptionRuleDefinitions: Vector[EventReceptionRule] =
+    eventReceptionDefinitions.map { definition =>
+      EventReceptionRule(
+        name = s"textus-control-center-post-commit-${definition.name.replace('.', '-')}",
+        condition = EventReceptionCondition(
+          originBoundary = Some(EventOriginBoundary.SameSubsystem),
+          eventName = Some(definition.name)
+        ),
+        policy = EventReceptionExecutionPolicy.AsyncNewJobSameSaga
+      )
+    }
 }
 
 object TextusControlCenterPrimaryFactory extends TextusControlCenterParticipantFactoryBase with Component.PrimaryComponentFactory {
@@ -763,6 +787,8 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
     StopOperationalComponentActionCallImpl(core, action)
   override def createRestartOperationalComponentActionCall(core: ActionCall.Core, action: RestartOperationalComponent): RestartOperationalComponentActionCall =
     RestartOperationalComponentActionCallImpl(core, action)
+  override def createDispatchLifecycleRequestActionCall(core: ActionCall.Core, action: DispatchLifecycleRequest): DispatchLifecycleRequestActionCall =
+    DispatchLifecycleRequestActionCallImpl(core, action)
   override def createListLifecycleRequestsActionCall(core: ActionCall.Core, action: ListLifecycleRequests): ListLifecycleRequestsActionCall =
     ListLifecycleRequestsActionCallImpl(core, action)
   override def createGetLifecycleRequestActionCall(core: ActionCall.Core, action: GetLifecycleRequest): GetLifecycleRequestActionCall =
@@ -781,6 +807,18 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
   private final case class RestartOperationalComponentActionCallImpl(core: ActionCall.Core, override val action: RestartOperationalComponent)
       extends RestartOperationalComponentActionCall with LifecycleControlActionSupport {
     protected def build_Program: ExecUowM[OperationResponse] = lifecycle_request("restart", action.record)
+  }
+
+  private final case class DispatchLifecycleRequestActionCallImpl(core: ActionCall.Core, override val action: DispatchLifecycleRequest)
+      extends DispatchLifecycleRequestActionCall with LifecycleControlActionSupport {
+    protected def build_Program: ExecUowM[OperationResponse] =
+      for {
+        _ <- exec_from(administrative_principal)
+        requestid <- exec_from(required_string(action.record, "requestId"))
+        requests <- find_lifecycle_requests_all
+        request <- exec_from(requests.find(_.requestId == requestid).toRight(requestid).fold(Consequence.resourceNotFound, Consequence.success))
+        result <- dispatch_lifecycle_request(request)
+      } yield OperationResponse(safe_projection(result))
   }
 
   private final case class ListLifecycleRequestsActionCallImpl(core: ActionCall.Core, override val action: ListLifecycleRequests)
@@ -809,7 +847,8 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         requestid <- exec_from(required_string(action.record, "requestId"))
         requests <- find_lifecycle_requests_all
         request <- exec_from(requests.find(_.requestId == requestid).toRight(requestid).fold(Consequence.resourceNotFound, Consequence.success))
-      } yield OperationResponse(safe_projection(request))
+        reconciled <- if (request.requestState == "queued") reconcile_lifecycle_request(request) else exec_pure(request)
+      } yield OperationResponse(safe_projection(reconciled))
   }
 
   private trait LifecycleControlActionSupport { self: ActionCall =>
@@ -821,11 +860,11 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         requests <- find_lifecycle_requests(artifactid)
         response <- requests.find(value => value.lifecycleAction == actionname && value.idempotencyKey == idempotencykey) match {
           case Some(existing) => exec_pure(OperationResponse(safe_projection(existing)))
-          case None => create_rejected_request(artifactid, actionname, idempotencykey)
+          case None => create_lifecycle_request(artifactid, actionname, idempotencykey)
         }
       } yield response
 
-    private def create_rejected_request(artifactid: String, actionname: String, idempotencykey: String): ExecUowM[OperationResponse] =
+    private def create_lifecycle_request(artifactid: String, actionname: String, idempotencykey: String): ExecUowM[OperationResponse] =
       for {
         components <- find_operational_components(artifactid)
         component <- exec_from(latest_operational_component(components).toRight(artifactid).fold(Consequence.resourceNotFound, Consequence.success))
@@ -833,44 +872,173 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         supervisorconfiguration = lifecycle_supervisor_configuration
         deadlineat = now.plus(supervisorconfiguration.toOption.flatten.map(_.timeout).getOrElse(Duration.ofSeconds(5)))
         supervisorid = supervisorconfiguration.toOption.flatten.map(_.supervisorId)
-        diagnostic = lifecycle_diagnostic(component, supervisorconfiguration)
+        queued = component.managementState != "excluded" && supervisorconfiguration.toOption.flatten.isDefined
+        state = if (queued) "queued" else "rejected"
+        diagnostic = if (queued) None else Some(lifecycle_diagnostic(component, supervisorconfiguration))
+        completedat = if (queued) None else Some(now)
+        requestid = UUID.randomUUID().toString
         stored <- entity_create(LifecycleRequestCreate(
           None,
-          UUID.randomUUID().toString,
+          requestid,
           artifactid,
           actionname,
-          "rejected",
+          state,
           idempotencykey,
           now,
           deadlineat,
           None,
-          Some(now),
+          completedat,
           None,
-          Some(diagnostic),
-          Some(diagnostic),
+          diagnostic,
+          diagnostic,
           executionContext.security.principal.id.value,
           supervisorid,
           None
         ))
         request = LifecycleRequestEntity(
           stored.id,
-          stored.requestId,
+          requestid,
           artifactid,
           actionname,
-          "rejected",
+          state,
           idempotencykey,
           now,
           deadlineat,
           None,
-          Some(now),
+          completedat,
           None,
-          Some(diagnostic),
-          Some(diagnostic),
+          diagnostic,
+          diagnostic,
           executionContext.security.principal.id.value,
           supervisorid,
           None
         )
+        _ <- if (queued) exec_from(stage_lifecycle_dispatch_event(request.requestId)) else exec_pure(())
       } yield OperationResponse(safe_projection(request))
+
+    protected final def dispatch_lifecycle_request(request: LifecycleRequestEntity): ExecUowM[LifecycleRequestEntity] =
+      if (request.requestState != "queued") exec_pure(request)
+      else {
+        val now = core.executionContext.clock.instant()
+        val supervisorconfiguration = lifecycle_supervisor_configuration
+        val protocolrequest = LifecycleSupervisorRequest(
+          request.requestId,
+          request.idempotencyKey,
+          request.artifactId,
+          request.lifecycleAction,
+          request.operatorSubjectId,
+          request.deadlineAt
+        )
+        val result = supervisorconfiguration match {
+          case Right(Some(configuration)) => submit_lifecycle_request(configuration, protocolrequest, now)
+          case Right(None) => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.getOrElse(""), "supervisor-not-configured", now)
+          case Left(_) => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.getOrElse(""), "supervisor-protocol-unavailable", now)
+        }
+        for {
+          patch <- exec_from(lifecycle_request_update(result))
+          _ <- entity_update(request.id, patch)
+        } yield lifecycle_request_entity(request, result)
+      }
+
+    protected final def reconcile_lifecycle_request(request: LifecycleRequestEntity): ExecUowM[LifecycleRequestEntity] =
+      if (request.requestState != "queued") exec_pure(request)
+      else {
+        val now = core.executionContext.clock.instant()
+        val supervisorconfiguration = lifecycle_supervisor_configuration
+        val protocolrequest = LifecycleSupervisorRequest(request.requestId, request.idempotencyKey, request.artifactId, request.lifecycleAction, request.operatorSubjectId, request.deadlineAt)
+        val result = supervisorconfiguration match {
+          case Right(Some(configuration)) => lookup_lifecycle_request(configuration, protocolrequest).getOrElse(submit_lifecycle_request(configuration, protocolrequest, now))
+          case Right(None) => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.getOrElse(""), "supervisor-not-configured", now)
+          case Left(_) => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.getOrElse(""), "supervisor-protocol-unavailable", now)
+        }
+        for { patch <- exec_from(lifecycle_request_update(result)); _ <- entity_update(request.id, patch) } yield lifecycle_request_entity(request, result)
+      }
+
+    protected final def submit_lifecycle_request(
+      configuration: LifecycleSupervisorConfiguration,
+      request: LifecycleSupervisorRequest,
+      now: Instant
+    ): LifecycleSupervisorResult =
+      config_string(configuration.tokenEnv).fold(
+        LifecycleSupervisorProtocol.unavailable(request, configuration.supervisorId, "supervisor-credential-unavailable", now)
+      ) { token =>
+        core.executionContext.runtime.unitOfWorkInterpreter(UnitOfWorkOp.HttpPost(
+          LifecycleSupervisorProtocol.requestEndpoint(configuration).toString,
+          Some(LifecycleSupervisorProtocol.requestBody(request)),
+          Map("Authorization" -> s"Bearer $token", "Content-Type" -> "application/json"),
+          Vector(Property("http.timeout-seconds", configuration.timeout.toSeconds.toString, None))
+        )) match {
+          case Consequence.Success(response) if response.code / 100 == 2 =>
+            response.getString.flatMap(value => LifecycleSupervisorProtocol.response(value).toOption)
+              .getOrElse(LifecycleSupervisorProtocol.unavailable(request, configuration.supervisorId, "supervisor-response-invalid", now))
+          case Consequence.Success(_) => LifecycleSupervisorProtocol.unavailable(request, configuration.supervisorId, "supervisor-request-rejected", now)
+          case _ => LifecycleSupervisorProtocol.unavailable(request, configuration.supervisorId, "supervisor-unreachable", now)
+        }
+      }
+
+    protected final def lookup_lifecycle_request(configuration: LifecycleSupervisorConfiguration, request: LifecycleSupervisorRequest): Option[LifecycleSupervisorResult] =
+      config_string(configuration.tokenEnv).flatMap { token =>
+        core.executionContext.runtime.unitOfWorkInterpreter(UnitOfWorkOp.HttpGet(
+          LifecycleSupervisorProtocol.lookupEndpoint(configuration, request.requestId).toString,
+          Map("Authorization" -> s"Bearer $token"),
+          Vector(Property("http.timeout-seconds", configuration.timeout.toSeconds.toString, None))
+        )) match {
+          case Consequence.Success(response) if response.code / 100 == 2 => response.getString.flatMap(value => LifecycleSupervisorProtocol.response(value).toOption)
+          case _ => None
+        }
+      }
+
+    protected final def lifecycle_request_update(result: LifecycleSupervisorResult): Consequence[LifecycleRequestUpdate] =
+      new LifecycleRequestUpdate.Builder()
+        .withRequestState(result.state)
+        .withAcceptedAt(result.acceptedAt.orNull)
+        .withCompletedAt(result.completedAt.orNull)
+        .withDiagnosticCode(result.diagnosticCode.orNull)
+        .withDiagnostic(result.diagnostic.orNull)
+        .withSupervisorId(result.supervisorId)
+        .withInstanceId(result.instanceId.orNull)
+        .buildC()
+
+    protected final def lifecycle_request_entity(request: LifecycleRequestEntity, result: LifecycleSupervisorResult): LifecycleRequestEntity =
+      request.copy(
+        requestState = result.state,
+        acceptedAt = result.acceptedAt,
+        completedAt = result.completedAt,
+        diagnosticCode = result.diagnosticCode,
+        diagnostic = result.diagnostic,
+        supervisorId = Some(result.supervisorId).filter(_.nonEmpty),
+        instanceId = result.instanceId
+      )
+
+    protected final def stage_lifecycle_dispatch_event(requestid: String): Consequence[Unit] = {
+      val event = ReceptionDomainEvent(
+        name = "textus-control-center.lifecycle-request.queued",
+        kind = "lifecycle-request",
+        payload = Map("requestId" -> requestid),
+        attributes = Map("component" -> "textus-control-center"),
+        occurredAt = core.executionContext.clock.instant()
+      )
+      val routableevent = event.copy(attributes = event.attributes.updated(
+        org.goldenport.cncf.event.EventReception.StandardAttribute.operationEventTransactionRequirement,
+        "ignore"
+      ))
+      core.executionContext.runtime.unitOfWork.stageEvent(routableevent)
+      given org.goldenport.cncf.context.ExecutionContext = core.executionContext
+      core.component.flatMap(_.eventReception) match {
+        case Some(reception) =>
+          reception.receiveInternal(ReceptionInput(
+            name = routableevent.name,
+            kind = routableevent.kind,
+            payload = routableevent.payload,
+            attributes = routableevent.attributes,
+            persistent = false
+          )).flatMap { result =>
+            if (result.outcome == ReceptionOutcome.Routed && result.dispatchedCount > 0) Consequence.unit
+            else Consequence.stateConflict(s"Lifecycle request event was not routed: ${routableevent.name}: $result")
+          }
+        case None => Consequence.stateConflict(s"Lifecycle request event reception is not initialized: ${routableevent.name}")
+      }
+    }
 
     protected final def administrative_principal: Consequence[Unit] = {
       val subject = SecuritySubject.current(using executionContext)

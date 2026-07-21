@@ -420,6 +420,36 @@ RestartOperationalComponentResult
 
 ### OPERATION
 
+#### dispatchLifecycleRequest
+
+##### DESCRIPTION
+
+Delivers one already-persisted lifecycle request to the configured local
+launcher supervisor. This is an internal post-commit continuation and is not a
+browser-facing lifecycle command.
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+DispatchLifecycleRequest
+
+##### OUTPUT
+
+###### TYPE
+
+DispatchLifecycleRequestResult
+
+##### VISIBILITY
+
+internal
+
+### OPERATION
+
 #### listLifecycleRequests
 
 ##### DESCRIPTION
@@ -659,6 +689,14 @@ GetLifecycleRequestResult
 |----------------|--------|--------------|
 | artifactId     | string | 1            |
 | idempotencyKey | string | 1            |
+
+## DispatchLifecycleRequest
+
+### ATTRIBUTE
+
+| name      | type   | multiplicity |
+|-----------|--------|--------------|
+| requestId | string | 1            |
 
 # QUERY
 
@@ -1063,6 +1101,12 @@ OperationResult
 OperationResult
 
 ## RestartOperationalComponentResult
+
+### EXTENDS
+
+OperationResult
+
+## DispatchLifecycleRequestResult
 
 ### EXTENDS
 

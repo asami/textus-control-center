@@ -3,8 +3,8 @@
 Stage Status:
 
 - Current status: IN_PROGRESS
-- Current step: Implement Control Center dispatch and launcher registration
-  correlation (OC-04/OC-05).
+- Current step: Implement launcher registration correlation (OC-05) after the
+  Control Center durable dispatch continuation (OC-04).
   Operating-target records, protected management Operations, rejected
   preflight audit records, retry-stable request identity, durable supervisor
   request state, supervisor-owned child-handle control, canonical

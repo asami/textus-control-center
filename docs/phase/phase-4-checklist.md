@@ -72,8 +72,8 @@ Status: IN_PROGRESS
   Operations for lifecycle-request management.
 - [x] Persist safe rejected preflights and retry-stable lifecycle audit records
   when the local supervisor is unavailable or unsupported.
-- [ ] Dispatch accepted requests to the launcher supervisor and retain its
-  result, receiver identity, and instance correlation.
+- [x] Dispatch accepted requests through the durable post-commit supervisor
+  continuation; retain safe result, receiver identity, and instance correlation.
 - [ ] Implement complete administrative authorization and audit projections
   across accepted supervisor results.
 - [x] Implement generated command, automatic REST, and static Web
