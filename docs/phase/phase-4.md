@@ -13,7 +13,7 @@ Stage Status:
   contracts are accepted by Textus Control Center, CNCF launcher, and Textus
   launcher.
 
-status = planned
+status = in_progress
 
 ## 1. Purpose
 
@@ -81,9 +81,9 @@ its sources, and its runtime invocations.
   cross-repository ownership.
 - D (IN_PROGRESS): OC-04 - Generate and implement Control Center records,
   Operations, authorization, and projections.
-- E (PLANNED): OC-05 - Implement the CNCF/Textus launcher supervisor adapters
+- E (IN_PROGRESS): OC-05 - Implement the CNCF/Textus launcher supervisor adapters
   and registration correlation.
-- F (PLANNED): OC-06 - Implement the operating-panel Web UI and operator guide.
+- F (IN_PROGRESS): OC-06 - Implement the operating-panel Web UI and operator guide.
 - G (PLANNED): OC-07 - Run standalone acceptance, failure-isolation, and
   cross-repository executable specifications; close the phase.
 

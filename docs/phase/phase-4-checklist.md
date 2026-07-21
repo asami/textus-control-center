@@ -76,13 +76,14 @@ Status: IN_PROGRESS
   result, receiver identity, and instance correlation.
 - [ ] Implement complete administrative authorization and audit projections
   across accepted supervisor results.
-- [ ] Implement command, automatic REST, and static Web read/write projections
-  through the same Operations.
+- [x] Implement generated command, automatic REST, and static Web
+  read/write projections through the same Operations; supervisor-unavailable
+  actions retain a safe rejected audit result.
 - [ ] Preserve all Phase 1–3 list, detail, source, and invocation contracts.
 
 ## OC-05: Launcher Implementations
 
-Status: PLANNED
+Status: IN_PROGRESS
 
 - [ ] Implement the local supervisor adapter and executable specifications in
   `cncf-launcher`.
@@ -92,16 +93,18 @@ Status: PLANNED
 
 ## OC-06: Operating Panel and Documentation
 
-Status: PLANNED
+Status: IN_PROGRESS
 
 - [x] Replace the top-page invocation-first layout with an
   operational-component-first panel backed by protected Operations.
-- [ ] Show management state, source, runtime state, active URL, last lifecycle
-  result, and actions.
+- [x] Show management state, source, runtime state, active URL, last lifecycle
+  result, and actions; development locators remain available only in protected
+  detail projections.
 - [ ] Keep invocation history and private launch detail behind protected detail
   views.
-- [ ] Update the command/REST reference only after selectors are generated.
-- [ ] Publish the standalone operator guide and update strategy/phase evidence.
+- [x] Update the command/REST reference after selectors are generated.
+- [x] Publish the current standalone operator guide and phase evidence,
+  including the supervisor-integration boundary.
 
 ## OC-07: Standalone Acceptance
 

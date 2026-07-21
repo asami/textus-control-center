@@ -44,7 +44,10 @@ rg -F -- 'function renderOverview()' "$script" >/dev/null
 rg -F -- 'function resetOverview()' "$script" >/dev/null
 rg -F -- 'const managementEndpoint = "/rest/v1/textus-control-center/operational-management"' "$operationalscript" >/dev/null
 rg -F -- 'const lifecycleEndpoint = "/rest/v1/textus-control-center/lifecycle-control"' "$operationalscript" >/dev/null
+rg -F -- 'const catalogEndpoint = "/rest/v1/textus-control-center/car-catalog"' "$operationalscript" >/dev/null
 rg -F -- 'list-operational-components?offset=0&limit=100' "$operationalscript" >/dev/null
+rg -F -- 'get-managed-car?artifactId=' "$operationalscript" >/dev/null
+rg -F -- 'value.private_locator' "$operationalscript" >/dev/null
 rg -F -- 'start-operational-component?artifactId=' "$operationalscript" >/dev/null
 rg -F -- 'remove-operational-component?artifactId=' "$operationalscript" >/dev/null
 rg -F -- '@media' "$style" >/dev/null

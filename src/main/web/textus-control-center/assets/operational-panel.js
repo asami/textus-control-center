@@ -4,11 +4,12 @@
   const managementEndpoint = "/rest/v1/textus-control-center/operational-management";
   const lifecycleEndpoint = "/rest/v1/textus-control-center/lifecycle-control";
   const inventoryEndpoint = "/rest/v1/textus-control-center/subsystem-inventory";
+  const catalogEndpoint = "/rest/v1/textus-control-center/car-catalog";
   const elements = {
     refresh: document.getElementById("refresh"), loading: document.getElementById("operational-loading"), empty: document.getElementById("operational-empty"),
     error: document.getElementById("operational-error"), inventory: document.getElementById("operational-inventory"), rows: document.getElementById("operational-component-rows"),
     dialog: document.getElementById("operational-detail-dialog"), closeDetail: document.getElementById("close-operational-detail"), detailFields: document.getElementById("operational-detail-fields"),
-    lifecycleHistory: document.getElementById("lifecycle-request-history")
+    lifecycleHistory: document.getElementById("lifecycle-request-history"), sources: document.getElementById("operational-component-sources")
   };
   let components = [];
   let invocations = [];
@@ -20,6 +21,7 @@
   function showError(value) { clearState(); elements.error.textContent = value; elements.error.hidden = false; }
   function componentRecord(value) { return { artifactId: value.artifact_id, managementState: value.management_state, firstManagedAt: value.first_managed_at, lastObservedAt: value.last_observed_at }; }
   function invocationRecord(value) { return { artifactId: value.artifact_id, status: value.status, instanceId: value.instance_id, baseUrl: value.base_url }; }
+  function catalogRecord(value) { return { componentName: value.component_name, sources: Array.isArray(value.sources) ? value.sources : [] }; }
   async function request(endpoint, path) {
     const response = await fetch(`${endpoint}/${path}`, { credentials: "same-origin" });
     const body = await response.json().catch(() => ({}));
@@ -34,6 +36,7 @@
     if (values.includes("stopped")) return "stopped";
     return "not-running";
   }
+  function activeUrls(component) { return invocations.filter((value) => value.artifactId === component.artifactId && value.baseUrl && ["running", "starting"].includes(String(value.status || "").toLowerCase())).map((value) => value.baseUrl); }
   function button(label, action, component) {
     const value = document.createElement("button");
     value.type = "button"; value.className = "button secondary operational-action"; value.textContent = label;
@@ -87,12 +90,15 @@
   }
   async function loadDetail(component, latest) {
     try {
-      const [detail, history] = await Promise.all([
+      const [detail, history, catalog] = await Promise.all([
         request(managementEndpoint, `get-operational-component?artifactId=${encodeURIComponent(component.artifactId)}`),
-        request(lifecycleEndpoint, `list-lifecycle-requests?artifactId=${encodeURIComponent(component.artifactId)}&offset=0&limit=20`)
+        request(lifecycleEndpoint, `list-lifecycle-requests?artifactId=${encodeURIComponent(component.artifactId)}&offset=0&limit=20`),
+        request(catalogEndpoint, `get-managed-car?artifactId=${encodeURIComponent(component.artifactId)}`).catch(() => null)
       ]);
-      const record = componentRecord(detail); elements.detailFields.replaceChildren(); elements.lifecycleHistory.replaceChildren();
-      [["Artifact ID", record.artifactId], ["Management", record.managementState], ["Runtime", runtime(record)], ["First managed", formatInstant(record.firstManagedAt)], ["Last observed", formatInstant(record.lastObservedAt)]].forEach(([label, value]) => { const term = document.createElement("dt"); term.textContent = label; const definition = document.createElement("dd"); definition.textContent = text(value); elements.detailFields.append(term, definition); });
+      const record = componentRecord(detail); const source = catalog ? catalogRecord(catalog) : { componentName: null, sources: [] }; const urls = activeUrls(record); elements.detailFields.replaceChildren(); elements.sources.replaceChildren(); elements.lifecycleHistory.replaceChildren();
+      [["Artifact ID", record.artifactId], ["Component", source.componentName], ["Management", record.managementState], ["Runtime", runtime(record)], ["Active URL", urls.join(", ")], ["First managed", formatInstant(record.firstManagedAt)], ["Last observed", formatInstant(record.lastObservedAt)]].forEach(([label, value]) => { const term = document.createElement("dt"); term.textContent = label; const definition = document.createElement("dd"); definition.textContent = text(value); elements.detailFields.append(term, definition); });
+      if (!source.sources.length) { elements.sources.textContent = "No source facts are available."; }
+      source.sources.forEach((value) => { const item = document.createElement("p"); item.className = "subtle"; item.textContent = [value.source_kind, value.source_id, value.refresh_state, value.recommended_version || value.latest_version, value.diagnostic, value.private_locator].filter(Boolean).join(" · "); elements.sources.append(item); });
       const requests = Array.isArray(history.data) ? history.data : [];
       if (!requests.length) { elements.lifecycleHistory.textContent = latest ? `${text(latest.lifecycle_action)}: ${text(latest.request_state)}` : "No lifecycle requests have been recorded."; }
       requests.forEach((value) => { const item = document.createElement("p"); item.className = "subtle"; item.textContent = [value.lifecycle_action, value.request_state, value.diagnostic, formatInstant(value.requested_at)].filter(Boolean).join(" · "); elements.lifecycleHistory.append(item); });

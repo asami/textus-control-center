@@ -1,4 +1,4 @@
-# Subsystem Inventory Command and REST Reference
+# Control Center Command and REST Reference
 
 The canonical Command selectors are generated from the Cozy component and
 service names. They are intentionally distinct from deprecated `cncf dev
@@ -35,3 +35,37 @@ contains `registrationPrincipalId`.
 `TextusControlCenter.meta.openapi` is the machine-readable source of the automatic
 REST paths. `scripts/check-control-center-read-flows.sh` verifies the generated
 selectors and OpenAPI routes.
+
+## Operational Management
+
+These administrative Operations manage the durable operating-target panel.
+`List` omits excluded components; use `Detail` for a known managed artifact.
+`Remove` changes the component to `excluded` without stopping a running server,
+and `Restore` restores its source-derived management state.
+
+| Operation | Command selector | Automatic REST path |
+|---|---|---|
+| List | `textus-control-center.operational-management.list-operational-components` | `GET /rest/v1/textus-control-center/operational-management/list-operational-components` |
+| Detail | `textus-control-center.operational-management.get-operational-component` | `GET /rest/v1/textus-control-center/operational-management/get-operational-component` |
+| Remove | `textus-control-center.operational-management.remove-operational-component` | `GET /rest/v1/textus-control-center/operational-management/remove-operational-component` |
+| Restore | `textus-control-center.operational-management.restore-operational-component` | `GET /rest/v1/textus-control-center/operational-management/restore-operational-component` |
+
+## Lifecycle Requests
+
+Start, Stop, and Restart create idempotent lifecycle-request records. The same
+`artifactId`, action, and `idempotencyKey` returns the original request. Until a
+launcher supervisor protocol is configured, these actions intentionally return
+a persisted `rejected` request with a safe diagnostic; they do not start or
+stop an operating-system process.
+
+| Operation | Command selector | Automatic REST path |
+|---|---|---|
+| Start | `textus-control-center.lifecycle-control.start-operational-component` | `GET /rest/v1/textus-control-center/lifecycle-control/start-operational-component` |
+| Stop | `textus-control-center.lifecycle-control.stop-operational-component` | `GET /rest/v1/textus-control-center/lifecycle-control/stop-operational-component` |
+| Restart | `textus-control-center.lifecycle-control.restart-operational-component` | `GET /rest/v1/textus-control-center/lifecycle-control/restart-operational-component` |
+| List requests | `textus-control-center.lifecycle-control.list-lifecycle-requests` | `GET /rest/v1/textus-control-center/lifecycle-control/list-lifecycle-requests` |
+| Request detail | `textus-control-center.lifecycle-control.get-lifecycle-request` | `GET /rest/v1/textus-control-center/lifecycle-control/get-lifecycle-request` |
+
+All lifecycle and operational-management selectors require an administrative
+principal. Lifecycle responses deliberately omit the idempotency key and
+operator identity.
