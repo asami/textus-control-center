@@ -41,6 +41,7 @@ import org.simplemodeling.textus.controlcenter.entity.create.OperationalComponen
 import org.simplemodeling.textus.controlcenter.entity.create.LifecycleRequest.given
 import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCar as CatalogManagedCar, ManagedCarCatalog, ManagedCarSource as CatalogManagedCarSource, OperationalComponentManagement, OperationalManagementState, PublicRepositoryCatalog, RuntimeInstance, RuntimeInstanceStatus, StandaloneCatalogConfiguration, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
 import org.simplemodeling.textus.controlcenter.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
+import org.simplemodeling.textus.controlcenter.supervisor.{LifecycleSupervisorConfiguration, LifecycleSupervisorConfigurationError}
 
 final class ComponentFactory extends Component.BundleFactory {
   def primaryFactory: Component.PrimaryComponentFactory =
@@ -829,9 +830,10 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         components <- find_operational_components(artifactid)
         component <- exec_from(latest_operational_component(components).toRight(artifactid).fold(Consequence.resourceNotFound, Consequence.success))
         now = core.executionContext.clock.instant()
-        deadlineat = now.plusSeconds(5L)
-        supervisorid = config_string("textus-control-center.lifecycle.supervisor.id").map(_.trim).filter(_.nonEmpty)
-        diagnostic = lifecycle_diagnostic(component, supervisorid)
+        supervisorconfiguration = lifecycle_supervisor_configuration
+        deadlineat = now.plus(supervisorconfiguration.toOption.flatten.map(_.timeout).getOrElse(Duration.ofSeconds(5)))
+        supervisorid = supervisorconfiguration.toOption.flatten.map(_.supervisorId)
+        diagnostic = lifecycle_diagnostic(component, supervisorconfiguration)
         stored <- entity_create(LifecycleRequestCreate(
           None,
           UUID.randomUUID().toString,
@@ -886,9 +888,21 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "LifecycleRequest")); query = EntityQuery[LifecycleRequestEntity](LifecycleRequestQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[LifecycleRequestEntity](query) } yield result.data
     protected final def latest_operational_component(values: Vector[OperationalComponentEntity]): Option[OperationalComponentEntity] =
       values.sortBy(value => (value.lastObservedAt, value.id.print)).lastOption
-    protected final def lifecycle_diagnostic(component: OperationalComponentEntity, supervisorid: Option[String]): String =
+    protected final def lifecycle_diagnostic(component: OperationalComponentEntity, supervisorconfiguration: Either[LifecycleSupervisorConfigurationError, Option[LifecycleSupervisorConfiguration]]): String =
       if (component.managementState == "excluded") "component-not-managed"
-      else supervisorid.fold("supervisor-not-configured")(_ => "supervisor-protocol-unavailable")
+      else supervisorconfiguration match {
+        case Right(None) => "supervisor-not-configured"
+        case _ => "supervisor-protocol-unavailable"
+      }
+    protected final def lifecycle_supervisor_configuration: Either[LifecycleSupervisorConfigurationError, Option[LifecycleSupervisorConfiguration]] =
+      LifecycleSupervisorConfiguration.fromProperties(
+        Vector(
+          LifecycleSupervisorConfiguration.SUPERVISOR_ID,
+          LifecycleSupervisorConfiguration.ENDPOINT,
+          LifecycleSupervisorConfiguration.TIMEOUT,
+          LifecycleSupervisorConfiguration.TOKEN_ENV
+        ).flatMap(key => config_string(key).map(key -> _)).toMap
+      )
     protected final def safe_projection(request: LifecycleRequestEntity): Record = Record.dataAuto(
       "requestId" -> request.requestId,
       "artifactId" -> request.artifactId,

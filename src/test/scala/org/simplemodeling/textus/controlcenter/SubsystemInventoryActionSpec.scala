@@ -401,6 +401,53 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       _records(audit).head.getAny("idempotencyKey") shouldBe empty
       _records(audit).head.getAny("operatorSubjectId") shouldBe empty
     }
+
+    "retain a safe protocol-unavailable lifecycle request for an incomplete or unavailable supervisor declaration" in {
+      Given("an auto-managed development component with supervisor dispatch configuration")
+      val root = Files.createTempDirectory("control-center-lifecycle-supervisor")
+      _write_car_descriptor(root, "textus-lifecycle-supervisor-spec", "lifecycle-supervisor-spec-component")
+      val fixture = _fixture()
+      val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
+      val incompletecomponent = _component(_lifecycle_configuration(root, Map(
+        "textus-control-center.lifecycle.supervisor.id" -> "incomplete-local-supervisor"
+      )))
+      val configuredcomponent = _component(_lifecycle_configuration(root, Map(
+        "textus-control-center.lifecycle.supervisor.id" -> "local-cncf-launcher",
+        "textus-control-center.lifecycle.supervisor.endpoint" -> "http://127.0.0.1:19400",
+        "textus-control-center.lifecycle.supervisor.token-env" -> "TEXTUS_LIFECYCLE_SUPERVISOR_TOKEN",
+        "textus-control-center.lifecycle.supervisor.timeout" -> "2s"
+      )))
+      val incompleteRequest = Request.ofService(
+        "LifecycleControl",
+        "startOperationalComponent",
+        properties = List(
+          Property("artifactId", "textus-lifecycle-supervisor-spec", None),
+          Property("idempotencyKey", "lifecycle-incomplete-supervisor-spec-key", None)
+        )
+      )
+      val configuredRequest = Request.ofService(
+        "LifecycleControl",
+        "startOperationalComponent",
+        properties = List(
+          Property("artifactId", "textus-lifecycle-supervisor-spec", None),
+          Property("idempotencyKey", "lifecycle-configured-supervisor-spec-key", None)
+        )
+      )
+
+      When("the supervisor declaration is incomplete or the adapter has not yet been installed")
+      _execute(incompletecomponent, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
+      _execute(configuredcomponent, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
+      val incomplete = _execute(incompletecomponent, operatorcontext, incompleteRequest).toOption.getOrElse(fail("incomplete supervisor request failed")).asInstanceOf[OperationResponse.RecordResponse].record
+      val configured = _execute(configuredcomponent, operatorcontext, configuredRequest).toOption.getOrElse(fail("configured supervisor request failed")).asInstanceOf[OperationResponse.RecordResponse].record
+
+      Then("neither declaration dispatches or creates an unsafe ownership claim")
+      incomplete.getString("requestState") shouldBe Some("rejected")
+      incomplete.getString("diagnosticCode") shouldBe Some("supervisor-protocol-unavailable")
+      incomplete.getAny("supervisorId") shouldBe empty
+      configured.getString("requestState") shouldBe Some("rejected")
+      configured.getString("diagnosticCode") shouldBe Some("supervisor-protocol-unavailable")
+      configured.getString("supervisorId") shouldBe Some("local-cncf-launcher")
+    }
   }
 
   private def _fixture(datastorepath: Option[Path] = None): _Fixture = {
@@ -529,6 +576,15 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       Configuration(Map(
         "textus-control-center.catalog.development.root" -> ConfigurationValue.StringValue(root.toString)
       )),
+      ConfigurationTrace.empty
+    )
+
+  private def _lifecycle_configuration(root: Path, values: Map[String, String]): ResolvedConfiguration =
+    ResolvedConfiguration(
+      Configuration(
+        Map("textus-control-center.catalog.development.root" -> ConfigurationValue.StringValue(root.toString)) ++
+          values.map { case (key, value) => key -> ConfigurationValue.StringValue(value) }
+      ),
       ConfigurationTrace.empty
     )
 
