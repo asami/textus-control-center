@@ -99,6 +99,15 @@ lifecycle request and its newly created `instanceId`. Ordinary registration,
 heartbeat, and deregistration remain the source of runtime state; a successful
 request alone does not assert that the server is healthy.
 
+For a supervisor-created development-directory child, `cncf-launcher` allocates
+the instance ID before it starts the child, stores that exact ID in the durable
+lifecycle result, and passes it only as launcher-internal registration metadata.
+The child launcher reuses that ID for its registration and every heartbeat; it
+removes the metadata before invoking the Textus runtime. Direct launcher starts
+continue to allocate a fresh instance ID. Therefore a Control Center can join a
+lifecycle result and a registry record only when both report the same opaque
+instance ID, without inferring a process from a port, command line, or directory.
+
 ## 5. Failure Isolation
 
 Control Center unavailability, request timeout, lost response, or Control
@@ -124,5 +133,8 @@ role policy are future extensions.
 - Control Center restart preserves its request identity and a later lookup
   reconciles the launcher-owned result;
 - launcher restart never invents ownership from a PID, command line, or port;
+- a supervisor-created child registers and heartbeats with the exact instance ID
+  returned by its lifecycle result, while that internal correlation metadata is
+  not forwarded to the Textus runtime;
 - registration and heartbeat remain available while a request is rejected,
   times out, or fails.
