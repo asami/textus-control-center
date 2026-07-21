@@ -3,9 +3,9 @@
 Stage Status:
 
 - Current status: IN_PROGRESS
-- Current step: Complete the compatible `textus-launcher` adapter and prove
-  lifecycle failure isolation (OC-05) after the CNCF launcher registration
-  correlation.
+- Current step: Complete protected lifecycle-result audit projections and
+  preserve the Phase 1–3 list/detail contracts (OC-04/OC-06) before standalone
+  acceptance.
   Operating-target records, protected management Operations, rejected
   preflight audit records, retry-stable request identity, durable supervisor
   request state, supervisor-owned child-handle control, canonical

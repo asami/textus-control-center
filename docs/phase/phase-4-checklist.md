@@ -98,9 +98,9 @@ Status: IN_PROGRESS
   `cncf-launcher`, including strict private configuration, token-env lookup,
   foreground lifecycle, and safe startup failure handling.
 - [x] Implement registration/heartbeat correlation in `cncf-launcher`.
-- [ ] Implement the compatible Textus launcher adapter and executable
+- [x] Implement the compatible Textus launcher adapter and executable
   specifications in `textus-launcher`.
-- [ ] Validate request failure isolation and registration/heartbeat continuity.
+- [x] Validate request failure isolation and registration/heartbeat continuity.
 
 ## OC-06: Operating Panel and Documentation
 
