@@ -860,11 +860,11 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         requests <- find_lifecycle_requests(artifactid)
         response <- requests.find(value => value.lifecycleAction == actionname && value.idempotencyKey == idempotencykey) match {
           case Some(existing) => exec_pure(OperationResponse(safe_projection(existing)))
-          case None => create_lifecycle_request(artifactid, actionname, idempotencykey)
+          case None => _create_lifecycle_request(artifactid, actionname, idempotencykey)
         }
       } yield response
 
-    private def create_lifecycle_request(artifactid: String, actionname: String, idempotencykey: String): ExecUowM[OperationResponse] =
+    private def _create_lifecycle_request(artifactid: String, actionname: String, idempotencykey: String): ExecUowM[OperationResponse] =
       for {
         components <- find_operational_components(artifactid)
         component <- exec_from(latest_operational_component(components).toRight(artifactid).fold(Consequence.resourceNotFound, Consequence.success))
