@@ -101,7 +101,14 @@
       source.sources.forEach((value) => { const item = document.createElement("p"); item.className = "subtle"; item.textContent = [value.source_kind, value.source_id, value.refresh_state, value.recommended_version || value.latest_version, value.diagnostic, value.private_locator].filter(Boolean).join(" · "); elements.sources.append(item); });
       const requests = Array.isArray(history.data) ? history.data : [];
       if (!requests.length) { elements.lifecycleHistory.textContent = latest ? `${text(latest.lifecycle_action)}: ${text(latest.request_state)}` : "No lifecycle requests have been recorded."; }
-      requests.forEach((value) => { const item = document.createElement("p"); item.className = "subtle"; item.textContent = [value.lifecycle_action, value.request_state, value.diagnostic, formatInstant(value.requested_at)].filter(Boolean).join(" · "); elements.lifecycleHistory.append(item); });
+      requests.forEach((value) => {
+        const item = document.createElement("section"); item.className = "catalog-source";
+        const title = document.createElement("h4"); title.textContent = [text(value.lifecycle_action), text(value.request_state)].join(" · "); item.append(title);
+        [["Request", value.request_id], ["Supervisor", value.supervisor_id], ["Instance", value.instance_id], ["Requested", formatInstant(value.requested_at)], ["Accepted", formatInstant(value.accepted_at)], ["Completed", formatInstant(value.completed_at)], ["Diagnostic", value.diagnostic_code || value.diagnostic]].forEach(([label, fact]) => {
+          if (fact && fact !== "—") { const detail = document.createElement("p"); detail.textContent = `${label}: ${fact}`; item.append(detail); }
+        });
+        elements.lifecycleHistory.append(item);
+      });
       elements.dialog.showModal();
     } catch (error) { showError(error.message || "The operational component detail could not be loaded."); }
   }

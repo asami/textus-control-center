@@ -1,6 +1,6 @@
 # Standalone Operations Guide
 
-status = in_progress
+status = implemented
 scope = Phase 4 operator workflow
 
 This guide describes the implemented Control Center portion of the Phase 4
@@ -32,11 +32,12 @@ Each request has an idempotency key and creates a durable, safe-to-project
 lifecycle audit record. Retrying the same component/action/key returns the
 same request record rather than creating a second action.
 
-The request is currently rejected with `supervisor-not-configured` or
-`supervisor-protocol-unavailable` until the local launcher supervisor protocol
-is installed. A rejected request does not imply that a server was stopped or
-started. Once the supervisor integration is available, an accepted request will
-retain the receiver identity, instance correlation, and launcher result.
+When the local loopback supervisor is configured, the request is committed as
+`queued` and dispatched after commit. Its safe result retains the supervisor,
+instance correlation, outcome, timestamps, and diagnostic in the protected
+component detail view. An unavailable, malformed, or unauthenticated supervisor
+is retained as a safe rejected audit result; it does not imply that a server was
+stopped or started.
 
 The panel is not a generic process manager. It cannot control a process that
 was not launched through the authorized supervisor, and it never searches for
@@ -52,7 +53,7 @@ it is not a separate process-control channel.
 ## Related Views
 
 - The operating panel answers what is being managed, shows lifecycle-request
-  history, and submits lifecycle actions.
+  audit history in protected component detail, and submits lifecycle actions.
 - CAR Catalog answers where a CAR is available from (`DEV`, `LOCAL`, or
   `PUBLIC`).
 - Invocation inventory answers which launcher instances have reported their

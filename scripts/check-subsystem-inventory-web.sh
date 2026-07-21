@@ -9,7 +9,7 @@ style="$project_root/src/main/web/textus-control-center/assets/subsystem-invento
 form="$project_root/src/main/web-inf/form.yaml"
 web="$project_root/src/main/web-inf/web.yaml"
 
-rg -F -- 'Subsystem control panel' "$page" >/dev/null
+rg -F -- 'Operational component control panel' "$page" >/dev/null
 rg -F -- 'Invocation inventory' "$page" >/dev/null
 rg -F -- 'Operational components' "$page" >/dev/null
 rg -F -- '/web/assets/bootstrap.min.css' "$page" >/dev/null
@@ -48,7 +48,11 @@ rg -F -- 'const catalogEndpoint = "/rest/v1/textus-control-center/car-catalog"' 
 rg -F -- 'list-operational-components?offset=0&limit=100' "$operationalscript" >/dev/null
 rg -F -- 'get-managed-car?artifactId=' "$operationalscript" >/dev/null
 rg -F -- 'value.private_locator' "$operationalscript" >/dev/null
-rg -F -- 'start-operational-component?artifactId=' "$operationalscript" >/dev/null
+rg -F -- 'list-lifecycle-requests?artifactId=' "$operationalscript" >/dev/null
+rg -F -- 'value.supervisor_id' "$operationalscript" >/dev/null
+rg -F -- 'value.instance_id' "$operationalscript" >/dev/null
+rg -F -- 'function requestLifecycle(action, component, control)' "$operationalscript" >/dev/null
+rg -F -- '`${action}-operational-component?artifactId=' "$operationalscript" >/dev/null
 rg -F -- 'remove-operational-component?artifactId=' "$operationalscript" >/dev/null
 rg -F -- '@media' "$style" >/dev/null
 rg -F -- 'textus-control-center.subsystem-inventory.list-subsystems: protected' "$form" >/dev/null
