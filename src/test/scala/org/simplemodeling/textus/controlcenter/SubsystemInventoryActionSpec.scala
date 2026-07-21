@@ -391,6 +391,10 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
 
       Then("the failed preflight is safe, retained, and does not create a duplicate request")
       first.getString("requestState") shouldBe Some("rejected")
+      first.getAny("deadlineAt") should not be empty
+      first.getAny("acceptedAt") shouldBe empty
+      first.getAny("launchProfileId") shouldBe empty
+      first.getString("diagnosticCode") shouldBe Some("supervisor-not-configured")
       first.getString("diagnostic") shouldBe Some("supervisor-not-configured")
       second.getString("requestId") shouldBe first.getString("requestId")
       _records(audit).map(_.getString("requestId")) shouldBe Vector(first.getString("requestId"))

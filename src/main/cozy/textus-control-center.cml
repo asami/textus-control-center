@@ -547,7 +547,11 @@ GetLifecycleRequestResult
 | requestState      | LifecycleRequestState   | 1            |                 |
 | idempotencyKey    | LifecycleIdempotencyKey | 1            | internal        |
 | requestedAt       | instant                 | 1            |                 |
+| deadlineAt        | instant                 | 1            |                 |
+| acceptedAt        | instant                 | ?            |                 |
 | completedAt       | instant                 | ?            |                 |
+| launchProfileId   | LifecycleLaunchProfileId| ?            |                 |
+| diagnosticCode    | LifecycleDiagnosticCode | ?            |                 |
 | diagnostic        | LifecycleDiagnostic     | ?            |                 |
 | operatorSubjectId | OperatorSubjectId       | 1            | internal        |
 | supervisorId      | LifecycleSupervisorId   | ?            |                 |
@@ -925,6 +929,22 @@ GetLifecycleRequestResult
 | value | string | 1            |
 
 ## LifecycleIdempotencyKey
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## LifecycleLaunchProfileId
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
+## LifecycleDiagnosticCode
 
 ### ATTRIBUTE
 

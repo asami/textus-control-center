@@ -829,6 +829,7 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         components <- find_operational_components(artifactid)
         component <- exec_from(latest_operational_component(components).toRight(artifactid).fold(Consequence.resourceNotFound, Consequence.success))
         now = core.executionContext.clock.instant()
+        deadlineat = now.plusSeconds(5L)
         supervisorid = config_string("textus-control-center.lifecycle.supervisor.id").map(_.trim).filter(_.nonEmpty)
         diagnostic = lifecycle_diagnostic(component, supervisorid)
         stored <- entity_create(LifecycleRequestCreate(
@@ -839,7 +840,11 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
           "rejected",
           idempotencykey,
           now,
+          deadlineat,
+          None,
           Some(now),
+          None,
+          Some(diagnostic),
           Some(diagnostic),
           executionContext.security.principal.id.value,
           supervisorid,
@@ -853,7 +858,11 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
           "rejected",
           idempotencykey,
           now,
+          deadlineat,
+          None,
           Some(now),
+          None,
+          Some(diagnostic),
           Some(diagnostic),
           executionContext.security.principal.id.value,
           supervisorid,
@@ -886,7 +895,11 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
       "lifecycleAction" -> request.lifecycleAction,
       "requestState" -> request.requestState,
       "requestedAt" -> request.requestedAt,
+      "deadlineAt" -> request.deadlineAt,
+      "acceptedAt" -> request.acceptedAt,
       "completedAt" -> request.completedAt,
+      "launchProfileId" -> request.launchProfileId,
+      "diagnosticCode" -> request.diagnosticCode,
       "diagnostic" -> request.diagnostic,
       "supervisorId" -> request.supervisorId,
       "instanceId" -> request.instanceId
