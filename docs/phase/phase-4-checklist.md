@@ -94,8 +94,10 @@ Status: IN_PROGRESS
   ownership paths without PID discovery or arbitrary process signalling.
 - [x] Implement the canonical development-directory executor and default-port
   preflight in `cncf-launcher`, including fail-closed durable-state handling.
-- [ ] Implement a locally hosted/configured supervisor daemon and
-  registration/heartbeat correlation in `cncf-launcher`.
+- [x] Implement a locally hosted/configured loopback supervisor daemon in
+  `cncf-launcher`, including strict private configuration, token-env lookup,
+  foreground lifecycle, and safe startup failure handling.
+- [ ] Implement registration/heartbeat correlation in `cncf-launcher`.
 - [ ] Implement the compatible Textus launcher adapter and executable
   specifications in `textus-launcher`.
 - [ ] Validate request failure isolation and registration/heartbeat continuity.
