@@ -3,7 +3,7 @@
 Stage Status:
 
 - Current status: IN_PROGRESS
-- Current step: Implement Control Center operating-target records and projections (OC-04).
+- Current step: Implement Control Center operating-target records and projections (OC-04); the management-state decision model is covered by an executable specification.
 - Owner: Textus Control Center Phase 4
 - Update rule: Update this block and `phase-4-checklist.md` whenever a stable
   checklist state changes. Do not begin implementation before the lifecycle
@@ -76,7 +76,7 @@ its sources, and its runtime invocations.
 - B (DONE): OC-02 - Freeze safe local launch-profile and default-port rules.
 - C (DONE): OC-03 - Freeze the launcher-supervisor lifecycle protocol and
   cross-repository ownership.
-- D (PLANNED): OC-04 - Generate and implement Control Center records,
+- D (IN_PROGRESS): OC-04 - Generate and implement Control Center records,
   Operations, authorization, and projections.
 - E (PLANNED): OC-05 - Implement the CNCF/Textus launcher supervisor adapters
   and registration correlation.

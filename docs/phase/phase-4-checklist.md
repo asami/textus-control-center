@@ -59,8 +59,11 @@ Acceptance evidence:
 
 ## OC-04: Control Center Model and Projections
 
-Status: PLANNED
+Status: IN_PROGRESS
 
+- [x] Add the executable management-state decision model for automatic
+  management, repository adoption, retained source loss, and exclusion
+  precedence.
 - [ ] Add CML records and generated Operations for operating-target and
   lifecycle-request management.
 - [ ] Implement administrative authorization and audit projections.
