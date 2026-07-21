@@ -85,8 +85,15 @@ Status: IN_PROGRESS
 
 Status: IN_PROGRESS
 
-- [ ] Implement the local supervisor adapter and executable specifications in
-  `cncf-launcher`.
+- [x] Implement the launcher-private supervisor endpoint, explicit
+  `~/.cncf/launcher/supervisor.yaml` development-directory profile resolution,
+  durable request/result state, idempotency lookup, and executable
+  specifications in `cncf-launcher`.
+- [x] Restrict Start, Stop, and Restart to supervisor-owned child handles;
+  reject duplicate, stale-after-restart, dead-child, and persistence-failed
+  ownership paths without PID discovery or arbitrary process signalling.
+- [ ] Implement the canonical development-directory executor, default-port
+  preflight, and registration/heartbeat correlation in `cncf-launcher`.
 - [ ] Implement the compatible Textus launcher adapter and executable
   specifications in `textus-launcher`.
 - [ ] Validate request failure isolation and registration/heartbeat continuity.
