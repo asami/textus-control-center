@@ -2,9 +2,9 @@
 
 Stage Status:
 
-- Current status: IN_REVIEW
-- Current step: Review the completed standalone acceptance evidence and close
-  Phase 4 only after the clean cross-repository review passes.
+- Current status: COMPLETE
+- Current step: Closed. The standalone acceptance evidence and clean
+  cross-repository validation passed on Jul. 22, 2026.
   Operating-target records, protected management Operations, rejected
   preflight audit records, retry-stable request identity, durable supervisor
   request state, supervisor-owned child-handle control, canonical
@@ -83,16 +83,16 @@ its sources, and its runtime invocations.
 - B (DONE): OC-02 - Freeze safe local launch-profile and default-port rules.
 - C (DONE): OC-03 - Freeze the launcher-supervisor lifecycle protocol and
   cross-repository ownership.
-- D (IN_PROGRESS): OC-04 - Generate and implement Control Center records,
+- D (DONE): OC-04 - Generate and implement Control Center records,
   Operations, authorization, and projections.
-- E (IN_PROGRESS): OC-05 - Complete the CNCF/Textus launcher supervisor
+- E (DONE): OC-05 - Complete the CNCF/Textus launcher supervisor
   adapters and registration correlation. The CNCF launcher already owns
   durable lifecycle state, only controls child handles created by its current
   supervisor process, executes registered development directories through the
   declared default port after loopback preflight, and hosts the authenticated
   standalone supervisor through its private foreground daemon command.
-- F (IN_PROGRESS): OC-06 - Implement the operating-panel Web UI and operator guide.
-- G (PLANNED): OC-07 - Run standalone acceptance, failure-isolation, and
+- F (DONE): OC-06 - Implement the operating-panel Web UI and operator guide.
+- G (DONE): OC-07 - Run standalone acceptance, failure-isolation, and
   cross-repository executable specifications; close the phase.
 
 Detailed progress and acceptance evidence belong in `phase-4-checklist.md`.
