@@ -969,7 +969,7 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
           Vector(Property("http.timeout-seconds", configuration.timeout.toSeconds.toString, None))
         )) match {
           case Consequence.Success(response) if response.code / 100 == 2 =>
-            response.getString.flatMap(value => LifecycleSupervisorProtocol.response(value).toOption)
+            response.getString.flatMap(value => LifecycleSupervisorProtocol.response(value, request.requestId).toOption)
               .getOrElse(LifecycleSupervisorProtocol.unavailable(request, configuration.supervisorId, "supervisor-response-invalid", now))
           case Consequence.Success(_) => LifecycleSupervisorProtocol.unavailable(request, configuration.supervisorId, "supervisor-request-rejected", now)
           case _ => LifecycleSupervisorProtocol.unavailable(request, configuration.supervisorId, "supervisor-unreachable", now)
@@ -983,7 +983,7 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
           Map("Authorization" -> s"Bearer $token"),
           Vector(Property("http.timeout-seconds", configuration.timeout.toSeconds.toString, None))
         )) match {
-          case Consequence.Success(response) if response.code / 100 == 2 => response.getString.flatMap(value => LifecycleSupervisorProtocol.response(value).toOption)
+          case Consequence.Success(response) if response.code / 100 == 2 => response.getString.flatMap(value => LifecycleSupervisorProtocol.response(value, request.requestId).toOption)
           case _ => None
         }
       }

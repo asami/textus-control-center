@@ -86,6 +86,11 @@ same safe projection: `requestId`, `state`, `diagnosticCode`, `diagnostic`,
 is retried with the original request ID and idempotency key; the supervisor
 returns the original durable record.
 
+Control Center accepts a response only when its `requestId` equals the already
+persisted request identity. A malformed or mismatched response is recorded as
+the safe `supervisor-response-invalid` outcome and can never update another
+lifecycle request's audit facts.
+
 Control Center first commits its own request with state `queued`, then routes a
 post-commit internal continuation that submits the request. The continuation is
 durable work, not a browser request. If it is delayed or its response is lost,

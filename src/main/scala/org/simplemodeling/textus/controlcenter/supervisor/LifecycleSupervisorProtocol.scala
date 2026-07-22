@@ -39,8 +39,10 @@ object LifecycleSupervisorProtocol {
 
   def requestBody(request: LifecycleSupervisorRequest): String = request.asJson.noSpaces
 
-  def response(body: String): Either[String, LifecycleSupervisorResult] =
-    decode[LifecycleSupervisorResult](body).left.map(_ => "supervisor-response-invalid")
+  def response(body: String, expectedRequestId: String): Either[String, LifecycleSupervisorResult] =
+    decode[LifecycleSupervisorResult](body).left.map(_ => "supervisor-response-invalid").flatMap { result =>
+      Either.cond(result.requestId == expectedRequestId, result, "supervisor-response-request-mismatch")
+    }
 
   def requestEndpoint(configuration: LifecycleSupervisorConfiguration): URI =
     configuration.endpoint.resolve(REQUEST_PATH)

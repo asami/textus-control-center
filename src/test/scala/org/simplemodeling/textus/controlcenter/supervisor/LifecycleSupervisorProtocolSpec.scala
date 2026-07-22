@@ -66,5 +66,16 @@ final class LifecycleSupervisorProtocolSpec extends AnyWordSpec with Matchers wi
       result.diagnosticCode shouldBe Some("supervisor-credential-unavailable")
       result.instanceId shouldBe empty
     }
+
+    "reject a supervisor response for a different durable request" in {
+      Given("a local supervisor response whose request identity differs from the persisted Control Center request")
+      val body = """{"requestId":"other-request","state":"accepted","diagnosticCode":null,"diagnostic":null,"supervisorId":"local-supervisor","instanceId":"instance-1","acceptedAt":"2026-07-22T00:00:00Z","completedAt":null}"""
+
+      When("the Control Center reconciles that response")
+      val result = LifecycleSupervisorProtocol.response(body, "request-1")
+
+      Then("it refuses to project another request's lifecycle result")
+      result shouldBe Left("supervisor-response-request-mismatch")
+    }
   }
 }
