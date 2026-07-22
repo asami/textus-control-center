@@ -3,10 +3,11 @@
 status = implemented
 scope = Phase 4 operator workflow
 
-This guide describes the implemented Control Center portion of the Phase 4
-operating-panel workflow. It is deliberately a standalone local-machine
-workflow: the panel records and manages operating targets, while a launcher
-supervisor is the only authority that may start or stop a server.
+This guide describes the Control Center portion of the Phase 4 operating-panel
+workflow. It is deliberately a standalone local-machine workflow: a launcher
+started with its normal `server` command records local evidence first, then the
+panel presents the launcher-provided operational view. A separate
+`cncf launcher supervisor serve` command is not a user-facing prerequisite.
 
 ## Operating Targets
 
@@ -57,4 +58,6 @@ it is not a separate process-control channel.
 - CAR Catalog answers where a CAR is available from (`DEV`, `LOCAL`, or
   `PUBLIC`).
 - Invocation inventory answers which launcher instances have reported their
-  lifecycle facts.
+  lifecycle facts. Its source evidence is retained by CNCF Launcher and Textus
+  Launcher together under `~/.cncf/launcher/server-evidence.json`, even while
+  Control Center is unavailable.

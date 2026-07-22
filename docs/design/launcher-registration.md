@@ -3,7 +3,7 @@
 ## Purpose
 
 This design defines the boundary by which `textus-launcher` and
-`cncf-launcher` report a server invocation to Textus Control Center during Phase 1.
+`cncf-launcher` retain and report a server invocation to Textus Control Center.
 The boundary creates an inventory of launcher-started Subsystem instances. It
 does not make Textus Control Center a process supervisor.
 
@@ -17,9 +17,19 @@ Operations. It decides the derived display status from accepted launcher facts
 and server-observed receipt time.
 
 Each launcher owns one invocation's lifecycle facts. It creates the invocation
-identity, sends registration and heartbeat requests, and reports normal
-termination. The launcher retains ownership of the target process/JVM and
-continues server startup when Textus Control Center is unavailable.
+identity and first persists start, last-seen, and normal-termination evidence in
+the shared launcher store, `~/.cncf/launcher/server-evidence.json`. Both CNCF
+Launcher and Textus Launcher use the same schema and serialize updates with the
+same store lock. It then sends registration and heartbeat requests when a
+Control Center is reachable. The launcher retains ownership of the target
+process/JVM and continues server startup when Textus Control Center is
+unavailable.
+
+The Control Center does not read that local file directly. A future Launcher
+reconciliation interface will project its safe evidence to the Control Center,
+which can then decide whether the record represents a current or historical
+invocation. Thus the evidence remains available even if no Control Center was
+installed when `server` started.
 
 The managed Subsystem remains the authority for its own runtime health,
 metrics, Jobs, configuration, and detailed diagnostics. Phase 1 exposes links
@@ -33,10 +43,13 @@ For a managed server invocation, the launcher performs the following sequence:
 1. Resolve the target, runtime, externally reachable base URL, and safe host
    label.
 2. Create one high-entropy `instanceId` for the invocation.
-3. Send a bounded registration request with `launcherState = starting`.
-4. Start a bounded daemon heartbeat task.
-5. Invoke the CNCF server.
-6. In a `finally` boundary, stop the heartbeat task and send a best-effort
+3. Atomically record `startedAt`, `lastSeenAt`, and `launcherKind` in the
+   launcher-owned shared evidence store.
+4. Send a bounded registration request with `launcherState = starting`.
+5. Start bounded daemon tasks for local evidence and, when configured, a
+   Control Center heartbeat.
+6. Invoke the CNCF server.
+7. In a `finally` boundary, stop both tasks, record `stoppedAt`, and send a best-effort
    deregistration request with `launcherState = stopped`.
 
 After server invocation begins, heartbeat requests report
@@ -46,7 +59,8 @@ requests when integration is disabled.
 The registration client has no retry loop that can delay process shutdown or
 outlive the launcher invocation. Each request uses the configured bounded
 timeout. Failures are emitted as sanitized launcher warnings and do not alter
-the target server's exit status.
+the target server's exit status. A local-evidence write failure is likewise a
+sanitized warning and does not block `cncf server` or `textus <artifact> server`.
 
 ## Canonical Launcher Coverage
 
