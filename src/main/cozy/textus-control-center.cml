@@ -427,7 +427,7 @@ GetLauncherEvidenceResult
 
 ### DESCRIPTION
 
-Administrative lifecycle requests for managed operational components. The local launcher supervisor owns process execution.
+Administrative lifecycle requests for managed operational components. The local Launcher lifecycle authority owns process execution; Control Center invokes only its bounded CLI.
 
 ### OPERATION
 
@@ -435,7 +435,7 @@ Administrative lifecycle requests for managed operational components. The local 
 
 ##### DESCRIPTION
 
-Requests a start from the selected local launcher supervisor.
+Requests a start through the local Launcher lifecycle authority.
 
 ##### TYPE
 
@@ -459,7 +459,7 @@ StartOperationalComponentResult
 
 ##### DESCRIPTION
 
-Requests a stop from the selected local launcher supervisor.
+Requests a stop through the local Launcher lifecycle authority.
 
 ##### TYPE
 
@@ -483,7 +483,7 @@ StopOperationalComponentResult
 
 ##### DESCRIPTION
 
-Requests a restart from the selected local launcher supervisor.
+Requests a restart through the local Launcher lifecycle authority.
 
 ##### TYPE
 
@@ -507,8 +507,8 @@ RestartOperationalComponentResult
 
 ##### DESCRIPTION
 
-Delivers one already-persisted lifecycle request to the configured local
-launcher supervisor. This is an internal post-commit continuation and is not a
+Delivers one already-persisted lifecycle request through the bounded local
+Launcher CLI. This is an internal post-commit continuation and is not a
 browser-facing lifecycle command.
 
 ##### TYPE

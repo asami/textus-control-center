@@ -17,7 +17,7 @@ import org.goldenport.cncf.context.SecurityContext
 import org.goldenport.cncf.event.{CmlEventCategory, CmlEventDefinition, CmlSubscriptionDefinition, DispatchRoute, EventOriginBoundary, EventReceptionCondition, EventReceptionExecutionPolicy, EventReceptionRule, ReceptionDomainEvent, ReceptionInput, ReceptionOutcome}
 import org.goldenport.cncf.security.AuthenticationProvider
 import org.goldenport.cncf.security.SecuritySubject
-import org.goldenport.cncf.unitofwork.{ExecUowM, UnitOfWorkOp}
+import org.goldenport.cncf.unitofwork.ExecUowM
 import org.goldenport.protocol.{Property, Request}
 import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
@@ -47,8 +47,8 @@ import org.simplemodeling.textus.controlcenter.entity.create.LifecycleRequest.gi
 import org.simplemodeling.textus.controlcenter.entity.create.LauncherEvidenceRecord.given
 import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCar as CatalogManagedCar, ManagedCarCatalog, ManagedCarSource as CatalogManagedCarSource, OperationalComponentManagement, OperationalManagementState, PublicRepositoryCatalog, RuntimeInstance, RuntimeInstanceStatus, StandaloneCatalogConfiguration, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
 import org.simplemodeling.textus.controlcenter.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
-import org.simplemodeling.textus.controlcenter.supervisor.{LifecycleSupervisorConfiguration, LifecycleSupervisorConfigurationError, LifecycleSupervisorProtocol, LifecycleSupervisorRequest, LifecycleSupervisorResult}
-import org.simplemodeling.textus.controlcenter.launcher.{LauncherEvidenceClient, LauncherEvidenceClientConfiguration, LauncherEvidenceEntry}
+import org.simplemodeling.textus.controlcenter.supervisor.{LifecycleSupervisorProtocol, LifecycleSupervisorRequest, LifecycleSupervisorResult}
+import org.simplemodeling.textus.controlcenter.launcher.{LauncherEvidenceClient, LauncherEvidenceClientConfiguration, LauncherEvidenceEntry, LauncherLifecycleClient, LauncherLifecycleClientConfiguration}
 
 final class ComponentFactory extends Component.BundleFactory {
   def primaryFactory: Component.PrimaryComponentFactory =
@@ -1004,12 +1004,11 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         components <- find_operational_components(artifactid)
         component <- exec_from(latest_operational_component(components).toRight(artifactid).fold(Consequence.resourceNotFound, Consequence.success))
         now = core.executionContext.clock.instant()
-        supervisorconfiguration = lifecycle_supervisor_configuration
-        deadlineat = now.plus(supervisorconfiguration.toOption.flatten.map(_.timeout).getOrElse(Duration.ofSeconds(5)))
-        supervisorid = supervisorconfiguration.toOption.flatten.map(_.supervisorId)
-        queued = component.managementState != "excluded" && supervisorconfiguration.toOption.flatten.isDefined
+        launcherconfiguration = launcher_lifecycle_configuration
+        deadlineat = now.plus(launcherconfiguration.toOption.map(_.timeout).getOrElse(Duration.ofSeconds(5)))
+        queued = component.managementState != "excluded" && launcherconfiguration.isRight
         state = if (queued) "queued" else "rejected"
-        diagnostic = if (queued) None else Some(lifecycle_diagnostic(component, supervisorconfiguration))
+        diagnostic = if (queued) None else Some(lifecycle_diagnostic(component, launcherconfiguration))
         completedat = if (queued) None else Some(now)
         requestid = UUID.randomUUID().toString
         stored <- entity_create(LifecycleRequestCreate(
@@ -1027,7 +1026,7 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
           diagnostic,
           diagnostic,
           executionContext.security.principal.id.value,
-          supervisorid,
+          None,
           None
         ))
         request = LifecycleRequestEntity(
@@ -1045,7 +1044,7 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
           diagnostic,
           diagnostic,
           executionContext.security.principal.id.value,
-          supervisorid,
+          None,
           None
         )
         _ <- if (queued) exec_from(stage_lifecycle_dispatch_event(request.requestId)) else exec_pure(())
@@ -1055,7 +1054,7 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
       if (request.requestState != "queued") exec_pure(request)
       else {
         val now = core.executionContext.clock.instant()
-        val supervisorconfiguration = lifecycle_supervisor_configuration
+        val launcherconfiguration = launcher_lifecycle_configuration
         val protocolrequest = LifecycleSupervisorRequest(
           request.requestId,
           request.idempotencyKey,
@@ -1064,10 +1063,9 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
           request.operatorSubjectId,
           request.deadlineAt
         )
-        val result = supervisorconfiguration match {
-          case Right(Some(configuration)) => submit_lifecycle_request(configuration, protocolrequest, now)
-          case Right(None) => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.getOrElse(""), "supervisor-not-configured", now)
-          case Left(_) => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.getOrElse(""), "supervisor-protocol-unavailable", now)
+        val result = launcherconfiguration match {
+          case Right(configuration) => submit_lifecycle_request(configuration, protocolrequest, now)
+          case Left(code) => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.getOrElse(""), code, now)
         }
         for {
           patch <- exec_from(lifecycle_request_update(result))
@@ -1079,49 +1077,26 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
       if (request.requestState != "queued") exec_pure(request)
       else {
         val now = core.executionContext.clock.instant()
-        val supervisorconfiguration = lifecycle_supervisor_configuration
+        val launcherconfiguration = launcher_lifecycle_configuration
         val protocolrequest = LifecycleSupervisorRequest(request.requestId, request.idempotencyKey, request.artifactId, request.lifecycleAction, request.operatorSubjectId, request.deadlineAt)
-        val result = supervisorconfiguration match {
-          case Right(Some(configuration)) => lookup_lifecycle_request(configuration, protocolrequest).getOrElse(submit_lifecycle_request(configuration, protocolrequest, now))
-          case Right(None) => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.getOrElse(""), "supervisor-not-configured", now)
-          case Left(_) => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.getOrElse(""), "supervisor-protocol-unavailable", now)
+        val result = launcherconfiguration match {
+          case Right(configuration) => lookup_lifecycle_request(configuration, protocolrequest).getOrElse(submit_lifecycle_request(configuration, protocolrequest, now))
+          case Left(code) => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.getOrElse(""), code, now)
         }
         for { patch <- exec_from(lifecycle_request_update(result)); _ <- entity_update(request.id, patch) } yield lifecycle_request_entity(request, result)
       }
 
     protected final def submit_lifecycle_request(
-      configuration: LifecycleSupervisorConfiguration,
+      configuration: LauncherLifecycleClientConfiguration,
       request: LifecycleSupervisorRequest,
       now: Instant
     ): LifecycleSupervisorResult =
-      config_string(configuration.tokenEnv).fold(
-        LifecycleSupervisorProtocol.unavailable(request, configuration.supervisorId, "supervisor-credential-unavailable", now)
-      ) { token =>
-        core.executionContext.runtime.unitOfWorkInterpreter(UnitOfWorkOp.HttpPost(
-          LifecycleSupervisorProtocol.requestEndpoint(configuration).toString,
-          Some(LifecycleSupervisorProtocol.requestBody(request)),
-          Map("Authorization" -> s"Bearer $token", "Content-Type" -> "application/json"),
-          Vector(Property("http.timeout-seconds", configuration.timeout.toSeconds.toString, None))
-        )) match {
-          case Consequence.Success(response) if response.code / 100 == 2 =>
-            response.getString.flatMap(value => LifecycleSupervisorProtocol.response(value, request.requestId).toOption)
-              .getOrElse(LifecycleSupervisorProtocol.unavailable(request, configuration.supervisorId, "supervisor-response-invalid", now))
-          case Consequence.Success(_) => LifecycleSupervisorProtocol.unavailable(request, configuration.supervisorId, "supervisor-request-rejected", now)
-          case _ => LifecycleSupervisorProtocol.unavailable(request, configuration.supervisorId, "supervisor-unreachable", now)
-        }
-      }
+      LauncherLifecycleClient(configuration).submit(request).getOrElse(
+        LifecycleSupervisorProtocol.unavailable(request, "", "launcher-lifecycle-unavailable", now)
+      )
 
-    protected final def lookup_lifecycle_request(configuration: LifecycleSupervisorConfiguration, request: LifecycleSupervisorRequest): Option[LifecycleSupervisorResult] =
-      config_string(configuration.tokenEnv).flatMap { token =>
-        core.executionContext.runtime.unitOfWorkInterpreter(UnitOfWorkOp.HttpGet(
-          LifecycleSupervisorProtocol.lookupEndpoint(configuration, request.requestId).toString,
-          Map("Authorization" -> s"Bearer $token"),
-          Vector(Property("http.timeout-seconds", configuration.timeout.toSeconds.toString, None))
-        )) match {
-          case Consequence.Success(response) if response.code / 100 == 2 => response.getString.flatMap(value => LifecycleSupervisorProtocol.response(value, request.requestId).toOption)
-          case _ => None
-        }
-      }
+    protected final def lookup_lifecycle_request(configuration: LauncherLifecycleClientConfiguration, request: LifecycleSupervisorRequest): Option[LifecycleSupervisorResult] =
+      LauncherLifecycleClient(configuration).lookup(request.requestId)
 
     protected final def lifecycle_request_update(result: LifecycleSupervisorResult): Consequence[LifecycleRequestUpdate] =
       new LifecycleRequestUpdate.Builder()
@@ -1191,19 +1166,14 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "LifecycleRequest")); query = EntityQuery[LifecycleRequestEntity](LifecycleRequestQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[LifecycleRequestEntity](query) } yield result.data
     protected final def latest_operational_component(values: Vector[OperationalComponentEntity]): Option[OperationalComponentEntity] =
       values.sortBy(value => (value.lastObservedAt, value.id.print)).lastOption
-    protected final def lifecycle_diagnostic(component: OperationalComponentEntity, supervisorconfiguration: Either[LifecycleSupervisorConfigurationError, Option[LifecycleSupervisorConfiguration]]): String =
+    protected final def lifecycle_diagnostic(component: OperationalComponentEntity, launcherconfiguration: Either[String, LauncherLifecycleClientConfiguration]): String =
       if (component.managementState == "excluded") "component-not-managed"
-      else supervisorconfiguration match {
-        case Right(None) => "supervisor-not-configured"
-        case _ => "supervisor-protocol-unavailable"
-      }
-    protected final def lifecycle_supervisor_configuration: Either[LifecycleSupervisorConfigurationError, Option[LifecycleSupervisorConfiguration]] =
-      LifecycleSupervisorConfiguration.fromProperties(
+      else launcherconfiguration.fold(identity, _ => "launcher-lifecycle-unavailable")
+    protected final def launcher_lifecycle_configuration: Either[String, LauncherLifecycleClientConfiguration] =
+      LauncherLifecycleClientConfiguration.fromProperties(
         Vector(
-          LifecycleSupervisorConfiguration.SUPERVISOR_ID,
-          LifecycleSupervisorConfiguration.ENDPOINT,
-          LifecycleSupervisorConfiguration.TIMEOUT,
-          LifecycleSupervisorConfiguration.TOKEN_ENV
+          LauncherLifecycleClientConfiguration.Command,
+          LauncherLifecycleClientConfiguration.Timeout
         ).flatMap(key => config_string(key).map(key -> _)).toMap
       )
     protected final def safe_projection(request: LifecycleRequestEntity): Record = Record.dataAuto(

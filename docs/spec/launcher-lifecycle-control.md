@@ -1,5 +1,5 @@
 status = accepted-for-implementation
-scope = Phase 4 Control Center to launcher-owned local supervisor protocol
+scope = Phase 4 Control Center to launcher-owned local lifecycle authority
 
 # Launcher Lifecycle Control Specification
 
@@ -22,22 +22,20 @@ ownership/request records live below the launcher-owned CNCF home (normally
 and development-directory configuration. Textus Control Center must not open,
 enumerate, modify, or infer those files.
 
-The Control Center is configured with only the loopback supervisor identity,
-endpoint, timeout, and a credential *reference*. The credential value is
-resolved by the Control Center's normal configuration provider and is never
-stored in a lifecycle request or sent to a browser. The supervisor must bind to
-loopback by default and authenticate requests before resolving a profile.
+Control Center invokes a bounded local `cncf launcher lifecycle` command. It
+does not receive the authority endpoint, the supervisor credential, or the
+authority-state location. Launcher resolves its own configuration and
+environment-only credential, ensures the loopback authority when needed, then
+submits or looks up the request internally.
 
 | Control Center configuration key | Required when enabled | Meaning |
 | --- | --- | --- |
-| `textus-control-center.lifecycle.supervisor.id` | yes | Stable local supervisor identity. |
-| `textus-control-center.lifecycle.supervisor.endpoint` | yes | Loopback HTTP base endpoint. |
-| `textus-control-center.lifecycle.supervisor.timeout` | no | Bounded request timeout; default `5s`, maximum `30s`. |
-| `textus-control-center.lifecycle.supervisor.token-env` | yes | Environment-variable name containing the supervisor credential. |
+| `textus-control-center.launcher.lifecycle.command` | no | One executable name; default `cncf`. Multi-token values are rejected. |
+| `textus-control-center.launcher.lifecycle.timeout` | no | Bounded command and request deadline; default/minimum `20s`, maximum `30s`. This leaves authority cold-start and submission time inside one request. |
 
-Absence of every key means lifecycle dispatch is unavailable and is recorded as
-`supervisor-not-configured`. A partial or unsafe declaration is not a fallback:
-it is recorded as `supervisor-protocol-unavailable` and must not be contacted.
+An unavailable or invalid Launcher command is recorded as a safe terminal
+result. It is never replaced with direct HTTP, filesystem, PID, or credential
+access by Control Center.
 
 `textus-launcher` is a compatible client of this same local supervisor. It may
 delegate a repository-CAR request, but it may not construct an independent
@@ -50,9 +48,8 @@ an opaque request ID, an idempotency key scoped to the operational component,
 the requested action, a selected launch-profile identity, an authenticated
 operator identity, and a bounded timeout.
 
-A request is sent as `POST /v1/lifecycle-requests` to the configured loopback
-endpoint. It carries `Authorization: Bearer <resolved credential>` and the
-following JSON values:
+A request is passed through the bounded Launcher command using the following
+named values:
 
 | Field | Meaning |
 | --- | --- |
@@ -80,11 +77,11 @@ or `timed-out` with a stable diagnostic code and safe message. Repeating the
 same idempotency key returns the same request/result, rather than starting an
 additional server.
 
-The immediate response and `GET /v1/lifecycle-requests/{requestId}` return the
+The Launcher `submit` response and its bounded `lookup` command return the
 same safe projection: `requestId`, `state`, `diagnosticCode`, `diagnostic`,
 `supervisorId`, `instanceId`, `acceptedAt`, and `completedAt`. A lost response
-is retried with the original request ID and idempotency key; the supervisor
-returns the original durable record.
+is retried with the original request ID and idempotency key; Launcher returns
+the original durable record.
 
 Control Center accepts a response only when its `requestId` equals the already
 persisted request identity. A malformed or mismatched response is recorded as
@@ -95,9 +92,9 @@ Control Center first commits its own request with state `queued`, then routes a
 post-commit internal continuation that submits the request. The continuation is
 durable work, not a browser request. If it is delayed or its response is lost,
 an administrative `GetLifecycleRequest` retries the same stable request identity
-and reconciles the launcher result. An unavailable endpoint or credential is
-recorded as a safe terminal Control Center result; it never affects a launcher-
-owned server.
+and reconciles the Launcher result. An unavailable command or authority is
+recorded as a safe terminal Control Center result; it never affects a
+Launcher-owned server.
 
 On a successful start or restart, the launcher supplies correlation between the
 lifecycle request and its newly created `instanceId`. Ordinary registration,
@@ -133,7 +130,7 @@ role policy are future extensions.
 
 - identical retries return one supervisor request and never create a second
   server instance;
-- an unavailable endpoint records a retry-safe `rejected` or `timed-out`
+- an unavailable Launcher command or authority records a retry-safe `rejected` or `timed-out`
   Control Center result without affecting a server;
 - Control Center restart preserves its request identity and a later lookup
   reconciles the launcher-owned result;

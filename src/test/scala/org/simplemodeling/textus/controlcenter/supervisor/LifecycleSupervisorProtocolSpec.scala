@@ -32,38 +32,21 @@ final class LifecycleSupervisorProtocolSpec extends AnyWordSpec with Matchers wi
       body should not include "token"
     }
 
-    "resolve only the configured loopback supervisor request paths" in {
-      Given("a loopback supervisor declaration")
-      val configuration = LifecycleSupervisorConfiguration.fromProperties(Map(
-        LifecycleSupervisorConfiguration.SUPERVISOR_ID -> "local-supervisor",
-        LifecycleSupervisorConfiguration.ENDPOINT -> "http://127.0.0.1:18014",
-        LifecycleSupervisorConfiguration.TOKEN_ENV -> "LIFECYCLE_TOKEN"
-      )).toOption.flatten.getOrElse(fail("configuration is unavailable"))
-
-      When("a continuation selects submit and reconciliation endpoints")
-      val submit = LifecycleSupervisorProtocol.requestEndpoint(configuration)
-      val lookup = LifecycleSupervisorProtocol.lookupEndpoint(configuration, "request-1")
-
-      Then("both remain within the launcher-owned loopback protocol")
-      submit.toString shouldBe "http://127.0.0.1:18014/v1/lifecycle-requests"
-      lookup.toString shouldBe "http://127.0.0.1:18014/v1/lifecycle-requests/request-1"
-    }
-
-    "retain a missing credential as a safe local rejection" in {
-      Given("a named but unavailable Control Center credential")
+    "retain a Launcher-owned authority failure as a safe local rejection" in {
+      Given("a lifecycle request whose Launcher authority cannot be reached")
       val request = LifecycleSupervisorRequest("request-1", "key-1", "textus-control-center", "start", "operator-1", Instant.parse("2026-07-22T00:00:05Z"))
 
-      When("the continuation cannot resolve the credential reference")
+      When("the bounded Launcher command returns an authority failure")
       val result = LifecycleSupervisorProtocol.unavailable(
         request,
-        "local-supervisor",
-        "supervisor-credential-unavailable",
+        "",
+        "supervisor-authority-unavailable",
         Instant.parse("2026-07-22T00:00:00Z")
       )
 
-      Then("it creates no process authority and has a safe terminal diagnostic")
+      Then("it carries no process locator and has a safe terminal diagnostic")
       result.state shouldBe "rejected"
-      result.diagnosticCode shouldBe Some("supervisor-credential-unavailable")
+      result.diagnosticCode shouldBe Some("supervisor-authority-unavailable")
       result.instanceId shouldBe empty
     }
 

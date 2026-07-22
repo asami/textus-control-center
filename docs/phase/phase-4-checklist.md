@@ -106,6 +106,27 @@ Status: IN_PROGRESS
 
 Status: IN_PROGRESS
 
+Planning decision `P4-LIFECYCLE-AUTHORITY-01` (Jul. 22, 2026): standalone
+authority is an automatically ensured local Launcher service, not an operator
+command. `cncf server` and `textus <artifact> server` remain the only public
+server-start interfaces. Control Center uses a bounded Launcher-owned command
+boundary to ensure/submit/lookup lifecycle work; it never reads the authority
+state, discovers a PID, or requires an operator to foreground a daemon.
+
+Planned implementation sequence:
+
+1. CNCF Launcher derives and retains canonical development launch profiles and
+   internally ensures its loopback authority without exposing `serve` as a
+   normal command.
+2. Control Center replaces direct supervisor HTTP configuration with the
+   bounded Launcher command adapter, preserving its durable request/audit
+   model and failure isolation.
+3. Textus Launcher writes compatible canonical launch/profile facts; neither
+   launcher assumes Control Center availability.
+4. Cross-launcher acceptance starts servers before Control Center, then proves
+   evidence reconciliation, lifecycle authority limits, and unchanged public
+   `cncf server` workflow.
+
 - [x] Prototype the launcher-private supervisor endpoint, explicit
   `~/.cncf/launcher/supervisor.yaml` development-directory profile resolution,
   durable request/result state, idempotency lookup, and executable
@@ -122,11 +143,11 @@ Status: IN_PROGRESS
 - [x] Implement the compatible Textus launcher adapter and executable
   specifications in `textus-launcher`.
 - [x] Validate request failure isolation and registration/heartbeat continuity.
-- [ ] Define a Launcher-managed Start/Stop/Restart boundary that does not require
+- [x] Define a Launcher-managed Start/Stop/Restart boundary that does not require
   users to run `cncf launcher supervisor serve`.
-- [ ] Keep `cncf server` current-directory recognition and `textus <artifact>
+- [x] Keep `cncf server` current-directory recognition and `textus <artifact>
   server` as the public canonical start interfaces.
-- [ ] Restrict Control Center lifecycle actions to explicit Launcher-managed
+- [x] Restrict Control Center lifecycle actions to explicit Launcher-managed
   authority; never discover or signal an arbitrary process.
 
 ## OC-06: Operating Panel and Documentation

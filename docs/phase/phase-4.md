@@ -97,9 +97,11 @@ its sources, and its runtime invocations.
 - D (IN PROGRESS): OC-04 - Implement the approved `cncf launcher evidence
   list --format json` safe list/detail projection and Control Center
   reconciliation.
-- E (PLANNED): OC-05 - Replace the foreground-supervisor lifecycle assumption
-  with a Launcher-managed lifecycle authority that preserves `cncf server` as
-  the public start interface.
+- E (IN PROGRESS): OC-05 - Replace the foreground-supervisor lifecycle
+  assumption with a Launcher-managed lifecycle authority that preserves
+  `cncf server` as the public start interface. The authority is ensured only
+  internally by canonical Launcher/Control Center flows; operators never run
+  `cncf launcher supervisor serve` as a prerequisite.
 - F (DONE): OC-06 - Generate and implement Control Center records,
   Operations, authorization, and projections.
 - G (IN PROGRESS): OC-07 - Revise the operating-panel Web UI and operator guide

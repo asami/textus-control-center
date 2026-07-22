@@ -397,12 +397,14 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       _records(operating).map(_.getString("artifactId")) should contain (Some("textus-evidence-spec"))
     }
 
-    "retain an idempotent rejected lifecycle request when no supervisor is configured" in {
-      Given("an auto-managed development component without a local supervisor")
+    "retain an idempotent lifecycle request when the bounded Launcher CLI is unavailable" in {
+      Given("an auto-managed development component with an unavailable Launcher lifecycle command")
       val root = Files.createTempDirectory("control-center-lifecycle-request")
       _write_car_descriptor(root, "textus-lifecycle-spec", "lifecycle-spec-component")
       val fixture = _fixture()
-      val component = _component(_catalog_configuration(root))
+      val component = _component(_lifecycle_configuration(root, Map(
+        "textus-control-center.launcher.lifecycle.command" -> "/usr/bin/false"
+      )))
       val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
       _execute(component, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
       val request = Request.ofService(
@@ -426,34 +428,39 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         operatorcontext,
         Request.ofService("LifecycleControl", "listLifecycleRequests", properties = List(Property("artifactId", "textus-lifecycle-spec", None)))
       ).toOption.getOrElse(fail("lifecycle request audit list failed")).asInstanceOf[OperationResponse.RecordResponse].record
+      val reconciled = _execute(
+        component,
+        operatorcontext,
+        Request.ofService("LifecycleControl", "getLifecycleRequest", properties = List(Property("requestId", first.getString("requestId").getOrElse(fail("request id is missing")), None)))
+      ).toOption.getOrElse(fail("lifecycle request reconciliation failed")).asInstanceOf[OperationResponse.RecordResponse].record
 
-      Then("the failed preflight is safe, retained, and does not create a duplicate request")
-      first.getString("requestState") shouldBe Some("rejected")
+      Then("the bounded CLI is queued, reconciled safely, and does not create a duplicate request")
+      first.getString("requestState") shouldBe Some("queued")
       first.getAny("deadlineAt") should not be empty
       first.getAny("acceptedAt") shouldBe empty
       first.getAny("launchProfileId") shouldBe empty
-      first.getString("diagnosticCode") shouldBe Some("supervisor-not-configured")
-      first.getString("diagnostic") shouldBe Some("supervisor-not-configured")
+      first.getAny("diagnosticCode") shouldBe empty
+      first.getAny("diagnostic") shouldBe empty
       second.getString("requestId") shouldBe first.getString("requestId")
       _records(audit).map(_.getString("requestId")) shouldBe Vector(first.getString("requestId"))
       _records(audit).head.getAny("idempotencyKey") shouldBe empty
       _records(audit).head.getAny("operatorSubjectId") shouldBe empty
+      reconciled.getString("requestState") shouldBe Some("rejected")
+      reconciled.getString("diagnosticCode") shouldBe Some("launcher-lifecycle-unavailable")
     }
 
-    "queue a configured lifecycle request while rejecting an incomplete supervisor declaration" in {
-      Given("an auto-managed development component with supervisor dispatch configuration")
+    "queue a Launcher lifecycle request while rejecting an invalid bounded command declaration" in {
+      Given("an auto-managed development component with Launcher lifecycle command configuration")
       val root = Files.createTempDirectory("control-center-lifecycle-supervisor")
       _write_car_descriptor(root, "textus-lifecycle-supervisor-spec", "lifecycle-supervisor-spec-component")
       val fixture = _fixture()
       val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
       val incompletecomponent = _component(_lifecycle_configuration(root, Map(
-        "textus-control-center.lifecycle.supervisor.id" -> "incomplete-local-supervisor"
+        "textus-control-center.launcher.lifecycle.command" -> "invalid command"
       )))
       val configuredcomponent = _component(_lifecycle_configuration(root, Map(
-        "textus-control-center.lifecycle.supervisor.id" -> "local-cncf-launcher",
-        "textus-control-center.lifecycle.supervisor.endpoint" -> "http://127.0.0.1:19400",
-        "textus-control-center.lifecycle.supervisor.token-env" -> "TEXTUS_LIFECYCLE_SUPERVISOR_TOKEN_MISSING_FOR_SPEC",
-        "textus-control-center.lifecycle.supervisor.timeout" -> "2s"
+        "textus-control-center.launcher.lifecycle.command" -> "/usr/bin/false",
+        "textus-control-center.launcher.lifecycle.timeout" -> "20s"
       )))
       val incompleteRequest = Request.ofService(
         "LifecycleControl",
@@ -472,7 +479,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         )
       )
 
-      When("the supervisor declaration is incomplete or is configured for post-commit dispatch")
+      When("the Launcher command declaration is invalid or is configured for post-commit dispatch")
       _execute(incompletecomponent, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
       _execute(configuredcomponent, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
       val incomplete = _execute(incompletecomponent, operatorcontext, incompleteRequest).toOption.getOrElse(fail("incomplete supervisor request failed")).asInstanceOf[OperationResponse.RecordResponse].record
@@ -483,15 +490,15 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         Request.ofService("LifecycleControl", "getLifecycleRequest", properties = List(Property("requestId", configured.getString("requestId").getOrElse(fail("configured request id is missing")), None)))
       ).toOption.getOrElse(fail("configured supervisor reconciliation failed")).asInstanceOf[OperationResponse.RecordResponse].record
 
-      Then("the incomplete declaration is rejected and the valid declaration retains a stable queued audit request")
+      Then("the invalid declaration is rejected and the valid declaration retains a stable queued audit request")
       incomplete.getString("requestState") shouldBe Some("rejected")
-      incomplete.getString("diagnosticCode") shouldBe Some("supervisor-protocol-unavailable")
+      incomplete.getString("diagnosticCode") shouldBe Some("launcher-lifecycle-command-invalid")
       incomplete.getAny("supervisorId") shouldBe empty
       configured.getString("requestState") shouldBe Some("queued")
       configured.getAny("diagnosticCode") shouldBe empty
-      configured.getString("supervisorId") shouldBe Some("local-cncf-launcher")
+      configured.getAny("supervisorId") shouldBe empty
       reconciled.getString("requestState") shouldBe Some("rejected")
-      reconciled.getString("diagnosticCode") shouldBe Some("supervisor-credential-unavailable")
+      reconciled.getString("diagnosticCode") shouldBe Some("launcher-lifecycle-unavailable")
     }
   }
 

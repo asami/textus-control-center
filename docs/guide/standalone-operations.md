@@ -33,12 +33,17 @@ Each request has an idempotency key and creates a durable, safe-to-project
 lifecycle audit record. Retrying the same component/action/key returns the
 same request record rather than creating a second action.
 
-When the local loopback supervisor is configured, the request is committed as
-`queued` and dispatched after commit. Its safe result retains the supervisor,
-instance correlation, outcome, timestamps, and diagnostic in the protected
-component detail view. An unavailable, malformed, or unauthenticated supervisor
-is retained as a safe rejected audit result; it does not imply that a server was
-stopped or started.
+The request is committed as `queued` and dispatched after commit through the
+bounded local Launcher CLI. Launcher internally ensures its local authority;
+the operator never starts `cncf launcher supervisor serve` as a prerequisite.
+Its safe result retains the supervisor, instance correlation, outcome,
+timestamps, and diagnostic in the protected component detail view. An
+unavailable Launcher command or authority is retained as a safe rejected audit
+result; it does not imply that a server was stopped or started.
+
+The bounded lifecycle timeout is `20s` by default and cannot be set below that
+value. It includes internal authority cold-start and request submission; it is
+not a process-health assertion.
 
 The panel is not a generic process manager. It cannot control a process that
 was not launched through the authorized supervisor, and it never searches for
