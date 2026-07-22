@@ -74,12 +74,12 @@ Status: IN_PROGRESS
   when the local supervisor is unavailable or unsupported.
 - [x] Dispatch accepted requests through the durable post-commit supervisor
   continuation; retain safe result, receiver identity, and instance correlation.
-- [ ] Implement complete administrative authorization and audit projections
+- [x] Implement complete administrative authorization and audit projections
   across accepted supervisor results.
 - [x] Implement generated command, automatic REST, and static Web
   read/write projections through the same Operations; supervisor-unavailable
   actions retain a safe rejected audit result.
-- [ ] Preserve all Phase 1–3 list, detail, source, and invocation contracts.
+- [x] Preserve all Phase 1–3 list, detail, source, and invocation contracts.
 
 ## OC-05: Launcher Implementations
 
@@ -111,7 +111,7 @@ Status: IN_PROGRESS
 - [x] Show management state, source, runtime state, active URL, last lifecycle
   result, and actions; development locators remain available only in protected
   detail projections.
-- [ ] Keep invocation history and private launch detail behind protected detail
+- [x] Keep invocation history and private launch detail behind protected detail
   views.
 - [x] Update the command/REST reference after selectors are generated.
 - [x] Publish the current standalone operator guide and phase evidence,
@@ -121,10 +121,10 @@ Status: IN_PROGRESS
 
 Status: PLANNED
 
-- [ ] Verify development discovery, exclusion, restore, and refresh behavior.
-- [ ] Verify first-use adoption for repository CARs.
-- [ ] Verify start, stop, restart, idempotent retry, timeout, and port-conflict
+- [x] Verify development discovery, exclusion, restore, and refresh behavior.
+- [x] Verify first-use adoption for repository CARs.
+- [x] Verify start, stop, restart, idempotent retry, timeout, and port-conflict
   behavior.
-- [ ] Verify Control Center and launcher restart recovery.
-- [ ] Run Control Center, CNCF launcher, Textus launcher, CAR packaging, and
+- [x] Verify Control Center and launcher restart recovery.
+- [x] Run Control Center, CNCF launcher, Textus launcher, CAR packaging, and
   static Web suites.

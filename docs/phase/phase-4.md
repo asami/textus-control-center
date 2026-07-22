@@ -2,10 +2,9 @@
 
 Stage Status:
 
-- Current status: IN_PROGRESS
-- Current step: Complete protected lifecycle-result audit projections and
-  preserve the Phase 1–3 list/detail contracts (OC-04/OC-06) before standalone
-  acceptance.
+- Current status: IN_REVIEW
+- Current step: Review the completed standalone acceptance evidence and close
+  Phase 4 only after the clean cross-repository review passes.
   Operating-target records, protected management Operations, rejected
   preflight audit records, retry-stable request identity, durable supervisor
   request state, supervisor-owned child-handle control, canonical
