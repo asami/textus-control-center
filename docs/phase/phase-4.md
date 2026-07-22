@@ -2,15 +2,10 @@
 
 Stage Status:
 
-- Current status: COMPLETE
-- Current step: Closed. The standalone acceptance evidence and clean
-  cross-repository validation passed on Jul. 22, 2026.
-  Operating-target records, protected management Operations, rejected
-  preflight audit records, retry-stable request identity, durable supervisor
-  request state, supervisor-owned child-handle control, canonical
-  development-directory execution, default-port preflight, and a locally
-  hosted/configured loopback supervisor daemon are covered by executable
-  specifications.
+- Current status: IN PROGRESS
+- Current step: Integrate launcher-shared local server evidence, then replace
+  the former foreground-supervisor prerequisite with the canonical
+  development-directory `cncf server` model.
 - Owner: Textus Control Center Phase 4
 - Update rule: Update this block and `phase-4-checklist.md` whenever a stable
   checklist state changes. Do not begin implementation before the lifecycle
@@ -23,9 +18,15 @@ status = in_progress
 
 Phase 4 turns the standalone Control Center home page into an operating panel
 for components, rather than only an inventory of individual launcher
-invocations. It provides a durable local operating-target record, derives
-runtime status from launcher registration, and requests local lifecycle actions
-from a launcher-owned supervisor.
+invocations. It provides a durable local operating-target record and derives
+runtime status from launcher registration plus launcher-owned local evidence.
+
+Both CNCF Launcher and Textus Launcher retain one common local server-evidence
+record under `~/.cncf/launcher/server-evidence.json` before they attempt any
+Control Center notification. The record therefore survives an unavailable or
+not-yet-installed Control Center. Control Center later obtains a safe
+projection through a Launcher interface and decides whether the evidence is a
+current or historical invocation.
 
 An operating target is not the same as a running instance. A target remains in
 the panel when stopped; only an explicit operator action removes it from
@@ -43,22 +44,30 @@ its sources, and its runtime invocations.
 - Persist an operator exclusion so a refresh does not re-add an explicitly
   removed development CAR.
 - Project operating target, source availability, current runtime status,
-  invocation history, lifecycle request state, and last result through command,
-  REST, and the static Web application.
+  invocation history, launcher evidence state, lifecycle request state, and
+  last result through command, REST, and the static Web application.
+- Keep `cncf server` (from the current development directory) and
+  `textus <artifact> server` as the public canonical start interfaces; they
+  must not require a separate `cncf launcher supervisor serve` command.
+- Define the versioned shared evidence schema, its safe projection, and
+  launcher-mediated reconciliation semantics for `launcherKind`, target,
+  execution mode, development directory, instance identity, and lifecycle
+  timestamps.
+- Reconcile launcher evidence at Control Center startup and on bounded refresh,
+  without reading `~/.cncf/launcher/` directly from Control Center.
 - Add Start, Stop, Restart, Remove from management, and Restore to management
   Operations.
-- Route lifecycle Operations to an authorized local launcher supervisor;
-  `textus-launcher` delegates to the same contract used by `cncf-launcher`.
-- Use declared default ports and an explicit safe launch profile; reject
-  port conflict, missing source, and unresolved-launch-profile cases before a
-  start request is accepted.
-- Add request identity, idempotency, timeout, structured result, and audit
-  semantics for every lifecycle operation.
+- Redefine lifecycle authority so a Control Center action can affect only a
+  Launcher-managed invocation. It must never infer ownership from a PID or make
+  the former foreground supervisor command a user-facing prerequisite.
 
 ## 3. Boundaries
 
 - Textus Control Center does not search the operating system for a process,
   infer PID ownership, or signal an arbitrary PID.
+- Textus Control Center does not read or write the shared evidence file
+  directly. The file is Launcher-owned; only a safe Launcher projection crosses
+  the boundary.
 - A lifecycle request does not replace launcher registration: the resulting
   server still reports registration, heartbeat, and normal termination through
   the existing protocol.
@@ -72,27 +81,29 @@ its sources, and its runtime invocations.
 ## 4. Contract Documents
 
 - `docs/design/operational-component-management.md`
+- `docs/design/launcher-registration.md`
 - `docs/spec/operational-launch-profile.md`
-- `docs/spec/launcher-lifecycle-control.md`
 - `docs/guide/standalone-operations.md`
 
 ## 5. Active Work Stack
 
 - A (DONE): OC-01 - Freeze operating-target identity, adoption, exclusion,
   and runtime-projection rules.
-- B (DONE): OC-02 - Freeze safe local launch-profile and default-port rules.
-- C (DONE): OC-03 - Freeze the launcher-supervisor lifecycle protocol and
-  cross-repository ownership.
-- D (DONE): OC-04 - Generate and implement Control Center records,
+- B (DONE): OC-02 - Preserve canonical target-first/current-directory launch
+  identity and safe source/default-port facts.
+- C (DONE): OC-03 - Persist shared CNCF/Textus Launcher server evidence before
+  Control Center notification, including start, last-seen, normal-stop, and
+  launcher-kind facts.
+- D (IN PROGRESS): OC-04 - Define and implement the safe Launcher evidence
+  list/detail projection and Control Center reconciliation.
+- E (PLANNED): OC-05 - Replace the foreground-supervisor lifecycle assumption
+  with a Launcher-managed lifecycle authority that preserves `cncf server` as
+  the public start interface.
+- F (DONE): OC-06 - Generate and implement Control Center records,
   Operations, authorization, and projections.
-- E (DONE): OC-05 - Complete the CNCF/Textus launcher supervisor
-  adapters and registration correlation. The CNCF launcher already owns
-  durable lifecycle state, only controls child handles created by its current
-  supervisor process, executes registered development directories through the
-  declared default port after loopback preflight, and hosts the authenticated
-  standalone supervisor through its private foreground daemon command.
-- F (DONE): OC-06 - Implement the operating-panel Web UI and operator guide.
-- G (DONE): OC-07 - Run standalone acceptance, failure-isolation, and
+- G (IN PROGRESS): OC-07 - Revise the operating-panel Web UI and operator guide
+  around launcher evidence and the canonical commands.
+- H (PLANNED): OC-08 - Run standalone acceptance, failure-isolation, and
   cross-repository executable specifications; close the phase.
 
 Detailed progress and acceptance evidence belong in `phase-4-checklist.md`.

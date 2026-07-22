@@ -274,8 +274,10 @@ Execution ledger:
 ### Phase 4: Standalone Operational Component Control
 
 Goal: make a machine-local Control Center the durable operating panel for
-managed components, including authorized local start, stop, and restart through
-an explicit launcher-owned supervisor contract.
+managed components. Canonical Launcher `server` invocations retain local
+evidence independently of Control Center availability, and the Control Center
+later reconciles a safe Launcher projection before it offers any lifecycle
+action.
 
 Phase 4 adds a persistent operational-component model between the CAR catalog
 and launcher invocation inventory. A development source automatically makes a
@@ -284,10 +286,17 @@ when it is first used through a launcher. Stopping an instance does not remove
 its operating target. An explicit exclusion record is required to remove it
 from the panel and must survive catalog refresh.
 
-The standalone lifecycle authority is owned by `cncf-launcher`; `textus-launcher`
-uses the same contract. Textus Control Center submits structured requests and
-projects their results, but never scans for or signals arbitrary PIDs. See
-`docs/phase/phase-4.md`.
+Both CNCF Launcher and Textus Launcher write the shared, Launcher-owned
+`~/.cncf/launcher/server-evidence.json` schema. The file records launch kind,
+identity, target, execution mode, and lifecycle timestamps before best-effort
+Control Center notification. Control Center does not read the file directly;
+it uses a future safe Launcher projection to reconcile current and historical
+evidence. `cncf server` remains the current-directory public start interface;
+`cncf launcher supervisor serve` is not a required user workflow.
+
+Lifecycle authority remains Launcher-owned. Textus Control Center submits
+structured requests and projects their results, but never scans for or signals
+arbitrary PIDs. See `docs/phase/phase-4.md`.
 
 ### Phase 5: Runtime Health and Observability Summary
 
@@ -304,8 +313,9 @@ long-term management API.
 Goal: operate registered Subsystems across hosts with explicit host identity,
 credential rotation, role policy, audit history, and connectivity status.
 
-The standalone launcher supervisor from Phase 4 is replaceable by a host agent
-without changing operational-component, lifecycle-request, or audit contracts.
+The standalone Launcher evidence and lifecycle boundary from Phase 4 is
+replaceable by a host agent without changing operational-component,
+lifecycle-request, or audit contracts.
 
 ### Phase 7: Operational Automation
 

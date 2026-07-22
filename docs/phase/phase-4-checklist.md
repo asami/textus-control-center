@@ -39,25 +39,32 @@ Acceptance evidence:
   available.
 - A dynamic or conflicting port is never guessed.
 
-## OC-03: Launcher Supervisor Lifecycle Protocol
+## OC-03: Shared Launcher Server Evidence
 
-Status: DONE
+Status: IN_PROGRESS
 
-- [x] Define Start, Stop, and Restart request/result schemas, request identity,
-  idempotency, timeout, and audit facts.
-- [x] Define CNCF launcher local-supervisor ownership and Textus launcher
-  delegation.
-- [x] Define registration correlation from a successful launch request to the
-  launcher-created instance identity.
-- [x] Define Control Center restart, launcher restart, and timeout recovery.
-- [x] Prohibit arbitrary PID discovery and signal delivery.
+- [x] Define one shared launcher-owned store at
+  `~/.cncf/launcher/server-evidence.json` with a versioned schema.
+- [x] Record start, last-seen, normal-stop, instance identity, target, execution
+  mode, runtime, and `launcherKind` from canonical CNCF and Textus server
+  invocations, independently of Control Center availability.
+- [x] Serialize CNCF/Textus Launcher updates through a common local lock so one
+  launcher cannot overwrite another launcher's evidence.
+- [ ] Define the safe Launcher list/detail projection; Control Center must not
+  read the shared file directly.
+- [ ] Define startup and bounded-refresh reconciliation from that projection to
+  Control Center's invocation and operational-component decisions.
+- [ ] Define retention, malformed-evidence, clock-skew, and concurrent-writer
+  recovery behavior.
 
 Acceptance evidence:
 
-- Retrying a request cannot create a second server instance.
-- Control Center loss cannot cause a launcher-owned server to stop.
+- `cncf server` and `textus <artifact> server` leave equivalent durable evidence
+  when Control Center is unavailable.
+- A later Control Center can distinguish current candidate evidence from normal
+  termination without direct local-file access.
 
-## OC-04: Control Center Model and Projections
+## OC-04: Control Center Evidence Reconciliation and Projections
 
 Status: IN_PROGRESS
 
@@ -80,12 +87,18 @@ Status: IN_PROGRESS
   read/write projections through the same Operations; supervisor-unavailable
   actions retain a safe rejected audit result.
 - [x] Preserve all Phase 1–3 list, detail, source, and invocation contracts.
+- [ ] Add protected Control Center Operations that obtain only the safe evidence
+  projection from Launcher.
+- [ ] Reconcile evidence with registration/heartbeat facts without allowing
+  evidence alone to claim process-control authority.
+- [ ] Project launcher kind, evidence freshness, and historical/current
+  decision reasons through detail, command, REST, and the static Web panel.
 
-## OC-05: Launcher Implementations
+## OC-05: Canonical Launcher Lifecycle Authority
 
 Status: IN_PROGRESS
 
-- [x] Implement the launcher-private supervisor endpoint, explicit
+- [x] Prototype the launcher-private supervisor endpoint, explicit
   `~/.cncf/launcher/supervisor.yaml` development-directory profile resolution,
   durable request/result state, idempotency lookup, and executable
   specifications in `cncf-launcher`.
@@ -94,13 +107,19 @@ Status: IN_PROGRESS
   ownership paths without PID discovery or arbitrary process signalling.
 - [x] Implement the canonical development-directory executor and default-port
   preflight in `cncf-launcher`, including fail-closed durable-state handling.
-- [x] Implement a locally hosted/configured loopback supervisor daemon in
+- [x] Prototype a locally hosted/configured loopback supervisor daemon in
   `cncf-launcher`, including strict private configuration, token-env lookup,
   foreground lifecycle, and safe startup failure handling.
 - [x] Implement registration/heartbeat correlation in `cncf-launcher`.
 - [x] Implement the compatible Textus launcher adapter and executable
   specifications in `textus-launcher`.
 - [x] Validate request failure isolation and registration/heartbeat continuity.
+- [ ] Define a Launcher-managed Start/Stop/Restart boundary that does not require
+  users to run `cncf launcher supervisor serve`.
+- [ ] Keep `cncf server` current-directory recognition and `textus <artifact>
+  server` as the public canonical start interfaces.
+- [ ] Restrict Control Center lifecycle actions to explicit Launcher-managed
+  authority; never discover or signal an arbitrary process.
 
 ## OC-06: Operating Panel and Documentation
 
@@ -115,7 +134,9 @@ Status: IN_PROGRESS
   views.
 - [x] Update the command/REST reference after selectors are generated.
 - [x] Publish the current standalone operator guide and phase evidence,
-  including the supervisor-integration boundary.
+  including the Launcher-evidence boundary.
+- [ ] Replace the supervisor prerequisite in panel guidance and show evidence
+  reconciliation status and decision reason.
 
 ## OC-07: Standalone Acceptance
 
@@ -128,3 +149,7 @@ Status: PLANNED
 - [x] Verify Control Center and launcher restart recovery.
 - [x] Run Control Center, CNCF launcher, Textus launcher, CAR packaging, and
   static Web suites.
+- [ ] Verify cross-launcher shared-evidence persistence, safe projection, and
+  Control Center reconciliation when the Control Center starts after servers.
+- [ ] Verify that normal `cncf server` remains sufficient for a development
+  directory and no user-facing foreground-supervisor command is required.
