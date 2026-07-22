@@ -94,8 +94,9 @@ its sources, and its runtime invocations.
 - C (DONE): OC-03 - Persist shared CNCF/Textus Launcher server evidence before
   Control Center notification, including start, last-seen, normal-stop, and
   launcher-kind facts.
-- D (IN PROGRESS): OC-04 - Define and implement the safe Launcher evidence
-  list/detail projection and Control Center reconciliation.
+- D (IN PROGRESS): OC-04 - Implement the approved `cncf launcher evidence
+  list --format json` safe list/detail projection and Control Center
+  reconciliation.
 - E (PLANNED): OC-05 - Replace the foreground-supervisor lifecycle assumption
   with a Launcher-managed lifecycle authority that preserves `cncf server` as
   the public start interface.

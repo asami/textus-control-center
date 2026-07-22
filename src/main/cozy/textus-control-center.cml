@@ -340,6 +340,89 @@ RestoreOperationalComponentResult
 
 # SERVICE
 
+## LauncherEvidence
+
+### DESCRIPTION
+
+Protected reconciliation of Launcher-owned shared server evidence. Evidence is
+an observation only and never grants process-control authority.
+
+### OPERATION
+
+#### refreshLauncherEvidence
+
+##### DESCRIPTION
+
+Obtains the bounded safe evidence projection from CNCF Launcher and reconciles
+the local evidence read model.
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+RefreshLauncherEvidence
+
+##### OUTPUT
+
+###### TYPE
+
+RefreshLauncherEvidenceResult
+
+### OPERATION
+
+#### listLauncherEvidence
+
+##### DESCRIPTION
+
+Lists the protected safe evidence projections retained by Control Center.
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ListLauncherEvidence
+
+##### OUTPUT
+
+###### TYPE
+
+ListLauncherEvidenceResult
+
+### OPERATION
+
+#### getLauncherEvidence
+
+##### DESCRIPTION
+
+Loads one protected local evidence detail, including its development directory
+when the Launcher supplied it.
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetLauncherEvidence
+
+##### OUTPUT
+
+###### TYPE
+
+GetLauncherEvidenceResult
+
+# SERVICE
+
 ## LifecycleControl
 
 ### DESCRIPTION
@@ -587,6 +670,28 @@ GetLifecycleRequestResult
 | supervisorId      | LifecycleSupervisorId   | ?            |                 |
 | instanceId        | SubsystemInstanceId     | ?            |                 |
 
+## LauncherEvidenceRecord
+
+### ATTRIBUTE
+
+| name                 | type                    | multiplicity | confidentiality |
+|----------------------|-------------------------|--------------|-----------------|
+| id                   | entityid                | 1            |                 |
+| instanceId           | SubsystemInstanceId     | 1            |                 |
+| launcherKind         | LauncherKind            | 1            |                 |
+| target               | SubsystemTarget         | 1            |                 |
+| artifactId           | ManagedCarArtifactId    | ?            |                 |
+| executionMode        | ExecutionMode           | 1            |                 |
+| developmentDirectory | DevelopmentDirectory    | ?            | internal        |
+| subsystemName        | SubsystemName           | ?            |                 |
+| subsystemVersion     | SubsystemVersion        | ?            |                 |
+| runtimeVersion       | RuntimeVersion          | 1            |                 |
+| startedAt            | instant                 | 1            |                 |
+| lastSeenAt           | instant                 | 1            |                 |
+| stoppedAt            | instant                 | ?            |                 |
+| evidenceDecision     | LauncherEvidenceDecision| 1            |                 |
+| observedAt           | instant                 | 1            |                 |
+
 # COMMAND
 
 ## RegisterSubsystem
@@ -698,6 +803,14 @@ GetLifecycleRequestResult
 |-----------|--------|--------------|
 | requestId | string | 1            |
 
+## RefreshLauncherEvidence
+
+### ATTRIBUTE
+
+| name   | type | multiplicity |
+|--------|------|--------------|
+| refresh | bool | ?            |
+
 # QUERY
 
 ## ListSubsystems
@@ -753,6 +866,24 @@ GetLifecycleRequestResult
 | name       | type   | multiplicity |
 |------------|--------|--------------|
 | artifactId | string | 1            |
+
+## ListLauncherEvidence
+
+### ATTRIBUTE
+
+| name   | type   | multiplicity |
+|--------|--------|--------------|
+| text   | string | ?            |
+| offset | int    | ?            |
+| limit  | int    | ?            |
+
+## GetLauncherEvidence
+
+### ATTRIBUTE
+
+| name       | type   | multiplicity |
+|------------|--------|--------------|
+| instanceId | string | 1            |
 
 ## ListLifecycleRequests
 
@@ -942,6 +1073,14 @@ GetLifecycleRequestResult
 |-------|--------|--------------|
 | value | string | 1            |
 
+## LauncherEvidenceDecision
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------|--------|--------------|
+| value | string | 1            |
+
 ## LifecycleRequestId
 
 ### ATTRIBUTE
@@ -1101,6 +1240,24 @@ OperationResult
 OperationResult
 
 ## RestartOperationalComponentResult
+
+### EXTENDS
+
+OperationResult
+
+## RefreshLauncherEvidenceResult
+
+### EXTENDS
+
+OperationResult
+
+## ListLauncherEvidenceResult
+
+### EXTENDS
+
+OperationResult
+
+## GetLauncherEvidenceResult
 
 ### EXTENDS
 

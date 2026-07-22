@@ -8,6 +8,9 @@ expose:
   textus-control-center.operational-management.get-operational-component: protected
   textus-control-center.operational-management.remove-operational-component: protected
   textus-control-center.operational-management.restore-operational-component: protected
+  textus-control-center.launcher-evidence.refresh-launcher-evidence: protected
+  textus-control-center.launcher-evidence.list-launcher-evidence: protected
+  textus-control-center.launcher-evidence.get-launcher-evidence: protected
   textus-control-center.lifecycle-control.start-operational-component: protected
   textus-control-center.lifecycle-control.stop-operational-component: protected
   textus-control-center.lifecycle-control.restart-operational-component: protected

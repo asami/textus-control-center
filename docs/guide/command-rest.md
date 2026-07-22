@@ -50,6 +50,18 @@ and `Restore` restores its source-derived management state.
 | Remove | `textus-control-center.operational-management.remove-operational-component` | `GET /rest/v1/textus-control-center/operational-management/remove-operational-component` |
 | Restore | `textus-control-center.operational-management.restore-operational-component` | `GET /rest/v1/textus-control-center/operational-management/restore-operational-component` |
 
+## Launcher Evidence
+
+These protected Operations invoke the bounded CNCF Launcher JSON projection;
+they do not access `~/.cncf/launcher/` directly. List output excludes the
+development directory. Detail is the local-operator path for that field.
+
+| Operation | Command selector | Automatic REST path |
+|---|---|---|
+| Refresh | `textus-control-center.launcher-evidence.refresh-launcher-evidence` | `GET /rest/v1/textus-control-center/launcher-evidence/refresh-launcher-evidence` |
+| List | `textus-control-center.launcher-evidence.list-launcher-evidence` | `GET /rest/v1/textus-control-center/launcher-evidence/list-launcher-evidence` |
+| Detail | `textus-control-center.launcher-evidence.get-launcher-evidence` | `GET /rest/v1/textus-control-center/launcher-evidence/get-launcher-evidence` |
+
 ## Lifecycle Requests
 
 Start, Stop, and Restart create idempotent lifecycle-request records. The same

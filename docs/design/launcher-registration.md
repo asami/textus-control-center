@@ -25,11 +25,28 @@ Control Center is reachable. The launcher retains ownership of the target
 process/JVM and continues server startup when Textus Control Center is
 unavailable.
 
-The Control Center does not read that local file directly. A future Launcher
-reconciliation interface will project its safe evidence to the Control Center,
-which can then decide whether the record represents a current or historical
-invocation. Thus the evidence remains available even if no Control Center was
-installed when `server` started.
+The Control Center does not read that local file directly. Reconciliation uses
+the CNCF Launcher one-shot JSON boundary:
+
+```text
+cncf launcher evidence list --format json
+```
+
+The command reads the Launcher-owned store and returns a versioned safe
+projection for records written by both CNCF Launcher and Textus Launcher. It is
+not a daemon, does not start a supervisor, and does not alter the canonical
+`cncf server` or `textus <artifact> server` startup experience. A later Control
+Center invokes this bounded command on refresh and decides whether a record is
+current or historical; thus evidence remains available even if no Control
+Center was installed when `server` started.
+
+The list projection includes identity, target/artifact, launcher kind,
+execution mode, subsystem/runtime versions, and lifecycle timestamps. It never
+includes tokens, command lines, environment values, process IDs, or arbitrary
+host state. The development directory is omitted from list rows and may be
+returned only by a protected evidence-detail projection for the local operator,
+because it is required for the requested detail view but is not generally safe
+to expose in a summary.
 
 The managed Subsystem remains the authority for its own runtime health,
 metrics, Jobs, configuration, and detailed diagnostics. Phase 1 exposes links

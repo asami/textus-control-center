@@ -43,6 +43,14 @@ Acceptance evidence:
 
 Status: IN_PROGRESS
 
+Decision `P4-EVIDENCE-PROJECTION-01` (Jul. 22, 2026): CNCF Launcher provides
+the common evidence read boundary through the one-shot
+`cncf launcher evidence list --format json` command. It reads the shared store
+for both launcher kinds. Control Center does not read `~/.cncf/launcher/`
+directly or require a foreground supervisor/service. The list omits the local
+development path; a separately protected detail projection may disclose that
+path to the local operator.
+
 - [x] Define one shared launcher-owned store at
   `~/.cncf/launcher/server-evidence.json` with a versioned schema.
 - [x] Record start, last-seen, normal-stop, instance identity, target, execution
@@ -50,9 +58,9 @@ Status: IN_PROGRESS
   invocations, independently of Control Center availability.
 - [x] Serialize CNCF/Textus Launcher updates through a common local lock so one
   launcher cannot overwrite another launcher's evidence.
-- [ ] Define the safe Launcher list/detail projection; Control Center must not
+- [x] Define and implement the safe Launcher list/detail projection; Control Center must not
   read the shared file directly.
-- [ ] Define startup and bounded-refresh reconciliation from that projection to
+- [x] Define and implement bounded-refresh reconciliation from that projection to
   Control Center's invocation and operational-component decisions.
 - [ ] Define retention, malformed-evidence, clock-skew, and concurrent-writer
   recovery behavior.
@@ -87,11 +95,11 @@ Status: IN_PROGRESS
   read/write projections through the same Operations; supervisor-unavailable
   actions retain a safe rejected audit result.
 - [x] Preserve all Phase 1–3 list, detail, source, and invocation contracts.
-- [ ] Add protected Control Center Operations that obtain only the safe evidence
+- [x] Add protected Control Center Operations that obtain only the safe evidence
   projection from Launcher.
-- [ ] Reconcile evidence with registration/heartbeat facts without allowing
+- [x] Reconcile evidence with registration/heartbeat facts without allowing
   evidence alone to claim process-control authority.
-- [ ] Project launcher kind, evidence freshness, and historical/current
+- [x] Project launcher kind, evidence freshness, and historical/current
   decision reasons through detail, command, REST, and the static Web panel.
 
 ## OC-05: Canonical Launcher Lifecycle Authority

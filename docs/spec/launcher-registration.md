@@ -204,3 +204,25 @@ The implementation must provide Given/When/Then executable specifications for:
 - command/REST/Web equivalence for list/detail;
 - Textus and canonical CNCF launcher registration, normal termination, and
   management-plane outage isolation.
+
+## 13. Shared Evidence Reconciliation
+
+Phase 4 adds a separate, Launcher-owned observation channel for a server that
+started while Control Center was unavailable. Control Center obtains it only by
+running the bounded one-shot command
+`cncf launcher evidence list --format json`; it does not read
+`~/.cncf/launcher/server-evidence.json` itself and does not require a
+supervisor service.
+
+The response schema is `cncf.launcher.evidence-projection.v1`. List entries
+contain identity, target/artifact, launcher kind, execution mode, safe version
+facts, and lifecycle timestamps. They omit the development directory. The
+protected detail command `cncf launcher evidence show <instance-id> --format
+json` may disclose that directory only in the local operator detail Operation.
+
+Control Center records evidence as one of `current-registered`,
+`current-evidence-only`, or `historical-stopped`. Evidence can retain an
+artifact-identified local CAR as an adopted operating target, but it never
+proves a process is healthy and never grants lifecycle/process-control
+authority. A malformed, unavailable, or timed-out command is a safe diagnostic
+and must not erase previously retained evidence or inventory state.

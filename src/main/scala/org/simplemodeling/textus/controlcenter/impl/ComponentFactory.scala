@@ -26,23 +26,29 @@ import org.simplemodeling.textus.controlcenter.entity.{RegisteredSubsystem as Re
 import org.simplemodeling.textus.controlcenter.entity.{ManagedCar as ManagedCarEntity, ManagedCarSource as ManagedCarSourceEntity}
 import org.simplemodeling.textus.controlcenter.entity.{OperationalComponent as OperationalComponentEntity}
 import org.simplemodeling.textus.controlcenter.entity.{LifecycleRequest as LifecycleRequestEntity}
+import org.simplemodeling.textus.controlcenter.entity.{LauncherEvidenceRecord as LauncherEvidenceRecordEntity}
 import org.simplemodeling.textus.controlcenter.entity.create.{RegisteredSubsystem as RegisteredSubsystemCreate}
 import org.simplemodeling.textus.controlcenter.entity.create.RegisteredSubsystem.given
 import org.simplemodeling.textus.controlcenter.entity.query.{RegisteredSubsystem as RegisteredSubsystemQuery}
 import org.simplemodeling.textus.controlcenter.entity.query.{ManagedCar as ManagedCarQuery, ManagedCarSource as ManagedCarSourceQuery}
 import org.simplemodeling.textus.controlcenter.entity.query.{OperationalComponent as OperationalComponentQuery}
 import org.simplemodeling.textus.controlcenter.entity.query.{LifecycleRequest as LifecycleRequestQuery}
+import org.simplemodeling.textus.controlcenter.entity.query.{LauncherEvidenceRecord as LauncherEvidenceRecordQuery}
 import org.simplemodeling.textus.controlcenter.entity.create.{ManagedCar as ManagedCarCreate, ManagedCarSource as ManagedCarSourceCreate}
 import org.simplemodeling.textus.controlcenter.entity.create.{OperationalComponent as OperationalComponentCreate}
 import org.simplemodeling.textus.controlcenter.entity.create.{LifecycleRequest as LifecycleRequestCreate}
+import org.simplemodeling.textus.controlcenter.entity.create.{LauncherEvidenceRecord as LauncherEvidenceRecordCreate}
+import org.simplemodeling.textus.controlcenter.entity.update.{LauncherEvidenceRecord as LauncherEvidenceRecordUpdate}
 import org.simplemodeling.textus.controlcenter.entity.update.{LifecycleRequest as LifecycleRequestUpdate, ManagedCar as ManagedCarUpdate, OperationalComponent as OperationalComponentUpdate}
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCar.given
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCarSource.given
 import org.simplemodeling.textus.controlcenter.entity.create.OperationalComponent.given
 import org.simplemodeling.textus.controlcenter.entity.create.LifecycleRequest.given
+import org.simplemodeling.textus.controlcenter.entity.create.LauncherEvidenceRecord.given
 import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCar as CatalogManagedCar, ManagedCarCatalog, ManagedCarSource as CatalogManagedCarSource, OperationalComponentManagement, OperationalManagementState, PublicRepositoryCatalog, RuntimeInstance, RuntimeInstanceStatus, StandaloneCatalogConfiguration, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
 import org.simplemodeling.textus.controlcenter.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
 import org.simplemodeling.textus.controlcenter.supervisor.{LifecycleSupervisorConfiguration, LifecycleSupervisorConfigurationError, LifecycleSupervisorProtocol, LifecycleSupervisorRequest, LifecycleSupervisorResult}
+import org.simplemodeling.textus.controlcenter.launcher.{LauncherEvidenceClient, LauncherEvidenceClientConfiguration, LauncherEvidenceEntry}
 
 final class ComponentFactory extends Component.BundleFactory {
   def primaryFactory: Component.PrimaryComponentFactory =
@@ -58,6 +64,7 @@ abstract class TextusControlCenterParticipantFactoryBase extends TextusControlCe
       TextusControlCenterComponent.SubsystemInventoryService
       , TextusControlCenterComponent.CarCatalogService
       , TextusControlCenterComponent.OperationalManagementService
+      , TextusControlCenterComponent.LauncherEvidenceService
       , TextusControlCenterComponent.LifecycleControlService
     )
 
@@ -73,6 +80,8 @@ abstract class TextusControlCenterParticipantFactoryBase extends TextusControlCe
     CarCatalogServiceFactoryImpl()
   override val OperationalManagement: TextusControlCenterComponent.OperationalManagementServiceFactory =
     OperationalManagementServiceFactoryImpl()
+  override val LauncherEvidence: TextusControlCenterComponent.LauncherEvidenceServiceFactory =
+    LauncherEvidenceServiceFactoryImpl()
   override val LifecycleControl: TextusControlCenterComponent.LifecycleControlServiceFactory =
     LifecycleControlServiceFactoryImpl()
   override val aggregate: TextusControlCenterComponent.AggregateServiceFactory =
@@ -775,6 +784,132 @@ final class OperationalManagementServiceFactoryImpl extends TextusControlCenterC
     protected final def operational_component_update(managementstate: String, now: Instant): Consequence[OperationalComponentUpdate] =
       new OperationalComponentUpdate.Builder().withManagementState(managementstate).withLastObservedAt(now).buildC()
     protected final def safe_projection(component: OperationalComponentEntity): Record = Record.dataAuto("artifactId" -> component.artifactId, "managementState" -> component.managementState, "firstManagedAt" -> component.firstManagedAt, "lastObservedAt" -> component.lastObservedAt)
+  }
+}
+
+final class LauncherEvidenceServiceFactoryImpl extends TextusControlCenterComponent.LauncherEvidenceServiceFactory {
+  import TextusControlCenterComponent.LauncherEvidenceService.*
+
+  override def createRefreshLauncherEvidenceActionCall(core: ActionCall.Core, action: RefreshLauncherEvidence): RefreshLauncherEvidenceActionCall =
+    RefreshLauncherEvidenceActionCallImpl(core, action)
+  override def createListLauncherEvidenceActionCall(core: ActionCall.Core, action: ListLauncherEvidence): ListLauncherEvidenceActionCall =
+    ListLauncherEvidenceActionCallImpl(core, action)
+  override def createGetLauncherEvidenceActionCall(core: ActionCall.Core, action: GetLauncherEvidence): GetLauncherEvidenceActionCall =
+    GetLauncherEvidenceActionCallImpl(core, action)
+
+  private final case class RefreshLauncherEvidenceActionCallImpl(core: ActionCall.Core, override val action: RefreshLauncherEvidence)
+      extends RefreshLauncherEvidenceActionCall with LauncherEvidenceActionSupport {
+    protected def build_Program: ExecUowM[OperationResponse] =
+      for {
+        _ <- exec_from(administrative_principal)
+        evidenceclient <- exec_from(launcher_evidence_client.fold(Consequence.operationInvalid, Consequence.success))
+        projection <- exec_from(evidenceclient.list().fold(Consequence.operationInvalid, Consequence.success))
+        existing <- find_all
+        registered <- find_registered_subsystems_all
+        now = core.executionContext.clock.instant()
+        records <- projection.entries.traverse(entry => retain(entry, existing, registered.filterNot(_.launcherState == "stopped").map(_.instanceId).toSet, now))
+      } yield OperationResponse(Record.dataAuto("data" -> records.map(safe_projection), "totalCount" -> records.size, "observedAt" -> now))
+  }
+
+  private final case class ListLauncherEvidenceActionCallImpl(core: ActionCall.Core, override val action: ListLauncherEvidence)
+      extends ListLauncherEvidenceActionCall with LauncherEvidenceActionSupport {
+    protected def build_Program: ExecUowM[OperationResponse] =
+      for {
+        _ <- exec_from(administrative_principal)
+        values <- find_all
+        text = action.record.getString("text").map(_.trim.toLowerCase).filter(_.nonEmpty)
+        offset = action.record.getInt("offset").getOrElse(0).max(0)
+        limit = action.record.getInt("limit").getOrElse(100).max(0)
+        records = latest(values).filter(record => text.forall(value => Vector(record.instanceId, record.launcherKind, record.target).exists(_.toLowerCase.contains(value))))
+        page = records.drop(offset).take(limit)
+      } yield OperationResponse(Record.dataAuto("data" -> page.map(safe_projection), "totalCount" -> records.size, "offset" -> offset, "limit" -> limit))
+  }
+
+  private final case class GetLauncherEvidenceActionCallImpl(core: ActionCall.Core, override val action: GetLauncherEvidence)
+      extends GetLauncherEvidenceActionCall with LauncherEvidenceActionSupport {
+    protected def build_Program: ExecUowM[OperationResponse] =
+      for {
+        _ <- exec_from(administrative_principal)
+        instanceid <- exec_from(required_string(action.record, "instanceId"))
+        values <- find_all
+        record <- exec_from(latest(values).find(_.instanceId == instanceid).toRight(instanceid).fold(Consequence.resourceNotFound, Consequence.success))
+        detail = launcher_evidence_client.toOption.flatMap(_.detail(instanceid).toOption)
+      } yield OperationResponse(Record.dataAuto(
+        "instanceId" -> record.instanceId,
+        "launcherKind" -> record.launcherKind,
+        "target" -> record.target,
+        "artifactId" -> record.artifactId,
+        "executionMode" -> record.executionMode,
+        "subsystemName" -> record.subsystemName,
+        "subsystemVersion" -> record.subsystemVersion,
+        "runtimeVersion" -> record.runtimeVersion,
+        "startedAt" -> record.startedAt,
+        "lastSeenAt" -> record.lastSeenAt,
+        "stoppedAt" -> record.stoppedAt,
+        "evidenceDecision" -> record.evidenceDecision,
+        "observedAt" -> record.observedAt,
+        "developmentDirectory" -> detail.flatMap(_.entry.developmentDirectory),
+        "detailDiagnostic" -> (if (detail.isDefined) None else Some("launcher-evidence-detail-unavailable"))
+      ))
+  }
+
+  private trait LauncherEvidenceActionSupport { self: ActionCall =>
+    protected final def administrative_principal: Consequence[Unit] = {
+      val subject = SecuritySubject.current(using executionContext)
+      val privileges = Vector(SecurityContext.Privilege.ApplicationContentManager, SecurityContext.Privilege.Operator, SecurityContext.Privilege.System, SecurityContext.Privilege.Internal)
+      if (subject.isAuthenticated && privileges.exists(privilege => subject.hasPrivilege(privilege.name) || subject.hasCapability(privilege.name) || subject.hasRole(privilege.name))) Consequence.unit
+      else Consequence.securityPermissionDenied("Launcher evidence requires administrative authorization.")
+    }
+    protected final def required_string(record: Record, name: String): Consequence[String] =
+      record.getString(name).map(_.trim).filter(_.nonEmpty).toRight(s"$name is required").fold(Consequence.operationInvalid, Consequence.success)
+    protected final def launcher_evidence_client: Either[String, LauncherEvidenceClient] = {
+      val props = Vector(LauncherEvidenceClientConfiguration.Command, LauncherEvidenceClientConfiguration.Timeout).flatMap(key => config_string(key).map(key -> _)).toMap
+      LauncherEvidenceClientConfiguration.fromProperties(props).map(LauncherEvidenceClient(_))
+    }
+    protected final def find_all: ExecUowM[Vector[LauncherEvidenceRecordEntity]] =
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "LauncherEvidenceRecord")); query = EntityQuery[LauncherEvidenceRecordEntity](LauncherEvidenceRecordQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[LauncherEvidenceRecordEntity](query) } yield result.data
+    protected final def find_registered_subsystems_all: ExecUowM[Vector[RegisteredSubsystemEntity]] =
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "RegisteredSubsystem")); query = EntityQuery[RegisteredSubsystemEntity](RegisteredSubsystemQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[RegisteredSubsystemEntity](query) } yield result.data
+    protected final def find_operational_components(artifactid: String): ExecUowM[Vector[OperationalComponentEntity]] =
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "OperationalComponent")); query = EntityQuery[OperationalComponentEntity](OperationalComponentQuery.collectionId, fields.rewrite(Query.fromRecord(Record.dataAuto("artifactId" -> artifactid))), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[OperationalComponentEntity](query) } yield result.data.filter(_.artifactId == artifactid)
+    protected final def latest(values: Vector[LauncherEvidenceRecordEntity]): Vector[LauncherEvidenceRecordEntity] =
+      values.groupBy(_.instanceId).valuesIterator.flatMap(_.sortBy(value => (value.observedAt, value.id.print)).lastOption).toVector.sortBy(value => (value.target, value.instanceId))
+    protected final def latest_operational_component(values: Vector[OperationalComponentEntity]): Option[OperationalComponentEntity] =
+      values.sortBy(value => (value.lastObservedAt, value.id.print)).lastOption
+    protected final def retain(entry: LauncherEvidenceEntry, existing: Vector[LauncherEvidenceRecordEntity], registeredids: Set[String], now: Instant): ExecUowM[LauncherEvidenceRecordEntity] = {
+      val decision = if (entry.stoppedAt.isDefined) "historical-stopped" else if (registeredids.contains(entry.instanceId)) "current-registered" else "current-evidence-only"
+      for {
+        record <- latest(existing).find(_.instanceId == entry.instanceId) match {
+          case Some(current) =>
+            for {
+              patch <- exec_from(new LauncherEvidenceRecordUpdate.Builder().withLauncherKind(entry.launcherKind).withTarget(entry.target).withArtifactId(entry.artifactId.fold(org.simplemodeling.model.directive.Update.setNull[String])(org.simplemodeling.model.directive.Update.set)).withExecutionMode(entry.executionMode).withSubsystemName(entry.subsystemName.fold(org.simplemodeling.model.directive.Update.setNull[String])(org.simplemodeling.model.directive.Update.set)).withSubsystemVersion(entry.subsystemVersion.fold(org.simplemodeling.model.directive.Update.setNull[String])(org.simplemodeling.model.directive.Update.set)).withRuntimeVersion(entry.runtimeVersion).withStartedAt(entry.startedAt).withLastSeenAt(entry.lastSeenAt).withStoppedAt(entry.stoppedAt.fold(org.simplemodeling.model.directive.Update.setNull[Instant])(org.simplemodeling.model.directive.Update.set)).withEvidenceDecision(decision).withObservedAt(now).buildC())
+              _ <- entity_update(current.id, patch)
+            } yield current.copy(launcherKind = entry.launcherKind, target = entry.target, artifactId = entry.artifactId, executionMode = entry.executionMode, subsystemName = entry.subsystemName, subsystemVersion = entry.subsystemVersion, runtimeVersion = entry.runtimeVersion, startedAt = entry.startedAt, lastSeenAt = entry.lastSeenAt, stoppedAt = entry.stoppedAt, evidenceDecision = decision, observedAt = now)
+          case None =>
+            entity_create(LauncherEvidenceRecordCreate(None, entry.instanceId, entry.launcherKind, entry.target, entry.artifactId, entry.executionMode, None, entry.subsystemName, entry.subsystemVersion, entry.runtimeVersion, entry.startedAt, entry.lastSeenAt, entry.stoppedAt, decision, now)).map { stored =>
+              LauncherEvidenceRecordEntity(stored.id, entry.instanceId, entry.launcherKind, entry.target, entry.artifactId, entry.executionMode, None, entry.subsystemName, entry.subsystemVersion, entry.runtimeVersion, entry.startedAt, entry.lastSeenAt, entry.stoppedAt, decision, now)
+            }
+        }
+        _ <- entry.artifactId match {
+          case Some(artifactid) if entry.stoppedAt.isEmpty => retain_adoption(artifactid, now)
+          case _ => exec_pure(())
+        }
+      } yield record
+    }
+    private def retain_adoption(artifactid: String, now: Instant): ExecUowM[Unit] =
+      for {
+        components <- find_operational_components(artifactid)
+        _ <- latest_operational_component(components) match {
+          case Some(_) => exec_pure(())
+          case None => entity_create(OperationalComponentCreate(None, artifactid, "adopted", now, now)).map(_ => ())
+        }
+      } yield ()
+    protected final def safe_projection(record: LauncherEvidenceRecordEntity): Record = Record.dataAuto(
+      "instanceId" -> record.instanceId, "launcherKind" -> record.launcherKind, "target" -> record.target, "artifactId" -> record.artifactId,
+      "executionMode" -> record.executionMode, "subsystemName" -> record.subsystemName, "subsystemVersion" -> record.subsystemVersion,
+      "runtimeVersion" -> record.runtimeVersion, "startedAt" -> record.startedAt, "lastSeenAt" -> record.lastSeenAt,
+      "stoppedAt" -> record.stoppedAt, "evidenceDecision" -> record.evidenceDecision, "observedAt" -> record.observedAt
+    )
   }
 }
 

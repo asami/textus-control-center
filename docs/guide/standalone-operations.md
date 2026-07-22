@@ -61,3 +61,10 @@ it is not a separate process-control channel.
   lifecycle facts. Its source evidence is retained by CNCF Launcher and Textus
   Launcher together under `~/.cncf/launcher/server-evidence.json`, even while
   Control Center is unavailable.
+
+On panel refresh, Control Center asks CNCF Launcher for the shared evidence
+projection. It does not open that file itself. If `cncf` is temporarily absent
+or the projection is unavailable, existing inventory and management rows stay
+usable; the panel does not make the supervisor command a prerequisite. The
+component detail view can show the development directory for a selected local
+evidence record, while summaries deliberately omit it.

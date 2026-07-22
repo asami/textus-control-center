@@ -359,6 +359,44 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       _records(listed).head.getString("managementState") shouldBe Some("adopted")
     }
 
+    "reconcile protected Launcher evidence without direct shared-file access" in {
+      Given("a configured one-shot CNCF Launcher evidence command")
+      val root = Files.createTempDirectory("control-center-launcher-evidence")
+      val command = root.resolve("cncf-evidence")
+      Files.writeString(command,
+        """#!/bin/sh
+          |if [ "$3" = "list" ]; then
+          |  echo '{"schema":"cncf.launcher.evidence-projection.v1","entries":[{"launcherKind":"textus","instanceId":"evidence-instance","target":"textus-evidence-spec","artifactId":"textus-evidence-spec","executionMode":"development","subsystemName":"Evidence Spec","subsystemVersion":"0.1.0-SNAPSHOT","runtimeVersion":"0.5.0-SNAPSHOT","startedAt":"2026-07-22T00:00:00Z","lastSeenAt":"2026-07-22T00:00:30Z","stoppedAt":null}]}'
+          |else
+          |  echo '{"schema":"cncf.launcher.evidence-projection.v1","entry":{"launcherKind":"textus","instanceId":"evidence-instance","target":"textus-evidence-spec","artifactId":"textus-evidence-spec","executionMode":"development","developmentDirectory":"/private/work/textus-evidence-spec","subsystemName":"Evidence Spec","subsystemVersion":"0.1.0-SNAPSHOT","runtimeVersion":"0.5.0-SNAPSHOT","startedAt":"2026-07-22T00:00:00Z","lastSeenAt":"2026-07-22T00:00:30Z","stoppedAt":null}}'
+          |fi
+          |""".stripMargin
+      )
+      command.toFile.setExecutable(true) shouldBe true
+      val fixture = _fixture()
+      val component = _component(_launcher_evidence_configuration(command))
+      val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
+
+      When("an operator refreshes, lists, and loads the evidence Operations")
+      val refreshed = _execute(component, operatorcontext, Request.ofService("LauncherEvidence", "refreshLauncherEvidence"))
+        .toOption.getOrElse(fail("evidence refresh failed")).asInstanceOf[OperationResponse.RecordResponse].record
+      _execute(component, operatorcontext, Request.ofService("LauncherEvidence", "refreshLauncherEvidence")).toOption should not be empty
+      val listed = _execute(component, operatorcontext, Request.ofService("LauncherEvidence", "listLauncherEvidence"))
+        .toOption.getOrElse(fail("evidence list failed")).asInstanceOf[OperationResponse.RecordResponse].record
+      val detail = _execute(component, operatorcontext, Request.ofService("LauncherEvidence", "getLauncherEvidence", properties = List(Property("instanceId", "evidence-instance", None))))
+        .toOption.getOrElse(fail("evidence detail failed")).asInstanceOf[OperationResponse.RecordResponse].record
+      val operating = _execute(component, operatorcontext, Request.ofService("OperationalManagement", "listOperationalComponents"))
+        .toOption.getOrElse(fail("operating target list failed")).asInstanceOf[OperationResponse.RecordResponse].record
+
+      Then("list output remains safe, repeat refresh does not add a duplicate, detail contains the local path, and current evidence adopts the component")
+      refreshed.getInt("totalCount") shouldBe Some(1)
+      _records(listed) should have size 1
+      _records(listed).head.getString("instanceId") shouldBe Some("evidence-instance")
+      _records(listed).head.getAny("developmentDirectory") shouldBe empty
+      detail.getString("developmentDirectory") shouldBe Some("/private/work/textus-evidence-spec")
+      _records(operating).map(_.getString("artifactId")) should contain (Some("textus-evidence-spec"))
+    }
+
     "retain an idempotent rejected lifecycle request when no supervisor is configured" in {
       Given("an auto-managed development component without a local supervisor")
       val root = Files.createTempDirectory("control-center-lifecycle-request")
@@ -582,6 +620,14 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
     ResolvedConfiguration(
       Configuration(Map(
         "textus-control-center.catalog.development.root" -> ConfigurationValue.StringValue(root.toString)
+      )),
+      ConfigurationTrace.empty
+    )
+
+  private def _launcher_evidence_configuration(command: Path): ResolvedConfiguration =
+    ResolvedConfiguration(
+      Configuration(Map(
+        "textus-control-center.launcher.evidence.command" -> ConfigurationValue.StringValue(command.toString)
       )),
       ConfigurationTrace.empty
     )

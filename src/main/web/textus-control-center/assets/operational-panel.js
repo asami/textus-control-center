@@ -5,6 +5,7 @@
   const lifecycleEndpoint = "/rest/v1/textus-control-center/lifecycle-control";
   const inventoryEndpoint = "/rest/v1/textus-control-center/subsystem-inventory";
   const catalogEndpoint = "/rest/v1/textus-control-center/car-catalog";
+  const evidenceEndpoint = "/rest/v1/textus-control-center/launcher-evidence";
   const elements = {
     refresh: document.getElementById("refresh"), loading: document.getElementById("operational-loading"), empty: document.getElementById("operational-empty"),
     error: document.getElementById("operational-error"), inventory: document.getElementById("operational-inventory"), rows: document.getElementById("operational-component-rows"),
@@ -13,6 +14,7 @@
   };
   let components = [];
   let invocations = [];
+  let evidence = [];
 
   function text(value) { return value === undefined || value === null || value === "" ? "—" : String(value); }
   function formatInstant(value) { const date = new Date(value); return !value || Number.isNaN(date.valueOf()) ? text(value) : date.toLocaleString(); }
@@ -21,6 +23,7 @@
   function showError(value) { clearState(); elements.error.textContent = value; elements.error.hidden = false; }
   function componentRecord(value) { return { artifactId: value.artifact_id, managementState: value.management_state, firstManagedAt: value.first_managed_at, lastObservedAt: value.last_observed_at }; }
   function invocationRecord(value) { return { artifactId: value.artifact_id, status: value.status, instanceId: value.instance_id, baseUrl: value.base_url }; }
+  function evidenceRecord(value) { return { artifactId: value.artifact_id, instanceId: value.instance_id, decision: value.evidence_decision, stoppedAt: value.stopped_at, launcherKind: value.launcher_kind, executionMode: value.execution_mode, lastSeenAt: value.last_seen_at }; }
   function catalogRecord(value) { return { componentName: value.component_name, sources: Array.isArray(value.sources) ? value.sources : [] }; }
   async function request(endpoint, path) {
     const response = await fetch(`${endpoint}/${path}`, { credentials: "same-origin" });
@@ -34,6 +37,9 @@
     if (values.includes("starting")) return "starting";
     if (values.includes("stale")) return "stale";
     if (values.includes("stopped")) return "stopped";
+    const observed = evidence.filter((value) => value.artifactId === component.artifactId && !value.stoppedAt).map((value) => String(value.decision || "").toLowerCase());
+    if (observed.includes("current-registered")) return "running";
+    if (observed.includes("current-evidence-only")) return "evidence-current";
     return "not-running";
   }
   function activeUrls(component) { return invocations.filter((value) => value.artifactId === component.artifactId && value.baseUrl && ["running", "starting"].includes(String(value.status || "").toLowerCase())).map((value) => value.baseUrl); }
@@ -64,12 +70,15 @@
   async function load() {
     clearState(); elements.loading.hidden = false;
     try {
-      const [managed, registered] = await Promise.all([
+      await request(evidenceEndpoint, "refresh-launcher-evidence?refresh=true").catch(() => null);
+      const [managed, registered, observed] = await Promise.all([
         request(managementEndpoint, "list-operational-components?offset=0&limit=100"),
-        request(inventoryEndpoint, "list-subsystems?offset=0&limit=100")
+        request(inventoryEndpoint, "list-subsystems?offset=0&limit=100"),
+        request(evidenceEndpoint, "list-launcher-evidence?offset=0&limit=100")
       ]);
       components = Array.isArray(managed.data) ? managed.data.map(componentRecord) : [];
       invocations = Array.isArray(registered.data) ? registered.data.map(invocationRecord) : [];
+      evidence = Array.isArray(observed.data) ? observed.data.map(evidenceRecord) : [];
       render();
     } catch (error) { showError(error.message || "The operational component panel could not be loaded."); }
   }
@@ -99,6 +108,9 @@
       [["Artifact ID", record.artifactId], ["Component", source.componentName], ["Management", record.managementState], ["Runtime", runtime(record)], ["Active URL", urls.join(", ")], ["First managed", formatInstant(record.firstManagedAt)], ["Last observed", formatInstant(record.lastObservedAt)]].forEach(([label, value]) => { const term = document.createElement("dt"); term.textContent = label; const definition = document.createElement("dd"); definition.textContent = text(value); elements.detailFields.append(term, definition); });
       if (!source.sources.length) { elements.sources.textContent = "No source facts are available."; }
       source.sources.forEach((value) => { const item = document.createElement("p"); item.className = "subtle"; item.textContent = [value.source_kind, value.source_id, value.refresh_state, value.recommended_version || value.latest_version, value.diagnostic, value.private_locator].filter(Boolean).join(" · "); elements.sources.append(item); });
+      const componentEvidence = evidence.filter((value) => value.artifactId === record.artifactId);
+      const detailedEvidence = await Promise.all(componentEvidence.map((value) => request(evidenceEndpoint, `get-launcher-evidence?instanceId=${encodeURIComponent(value.instanceId)}`).catch(() => value)));
+      detailedEvidence.forEach((value) => { const item = document.createElement("p"); item.className = "subtle"; item.textContent = ["Launcher evidence", value.launcher_kind || value.launcherKind, value.execution_mode || value.executionMode, value.evidence_decision || value.decision, value.development_directory, formatInstant(value.last_seen_at || value.lastSeenAt)].filter(Boolean).join(" · "); elements.sources.append(item); });
       const requests = Array.isArray(history.data) ? history.data : [];
       if (!requests.length) { elements.lifecycleHistory.textContent = latest ? `${text(latest.lifecycle_action)}: ${text(latest.request_state)}` : "No lifecycle requests have been recorded."; }
       requests.forEach((value) => {
