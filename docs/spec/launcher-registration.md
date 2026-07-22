@@ -226,3 +226,16 @@ artifact-identified local CAR as an adopted operating target, but it never
 proves a process is healthy and never grants lifecycle/process-control
 authority. A malformed, unavailable, or timed-out command is a safe diagnostic
 and must not erase previously retained evidence or inventory state.
+
+The shared Launcher store retains entries whose local `lastSeenAt` is within
+30 days and retains at most 512 entries. Writers append a changed entry to the
+local mutation order before applying the cap; that order, rather than a
+launcher-supplied timestamp, resolves retention under clock skew. A normally
+running launcher refreshes `lastSeenAt`, while an abandoned invocation ages out.
+On a malformed or wrong-schema store, the next writer preserves the original
+bytes in a sibling `server-evidence.recovery-<opaque-id>.json` file, using an
+atomic move when the filesystem supports it, before beginning a fresh versioned
+store. If that preservation move fails, the writer reports its normal sanitized
+local-evidence warning and does not overwrite the malformed source. Both
+Launchers take the same `server-evidence.lock` and use an atomic replacement,
+so independent updates serialize without losing a validly retained entry.

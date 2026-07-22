@@ -73,3 +73,9 @@ or the projection is unavailable, existing inventory and management rows stay
 usable; the panel does not make the supervisor command a prerequisite. The
 component detail view can show the development directory for a selected local
 evidence record, while summaries deliberately omit it.
+
+The local evidence file is bounded operational history: it retains fresh
+records for 30 days and at most 512 records. If a Launcher finds malformed
+content, it preserves the original as a local recovery copy before creating a
+new evidence file. This does not remove Control Center inventory already
+recorded from an earlier refresh.

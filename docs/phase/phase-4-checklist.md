@@ -62,8 +62,9 @@ path to the local operator.
   read the shared file directly.
 - [x] Define and implement bounded-refresh reconciliation from that projection to
   Control Center's invocation and operational-component decisions.
-- [ ] Define retention, malformed-evidence, clock-skew, and concurrent-writer
-  recovery behavior.
+- [x] Define and implement 30-day/512-entry retention, malformed-evidence
+  recovery copies, mutation-order clock-skew handling, and common-lock
+  concurrent-writer preservation.
 
 Acceptance evidence:
 

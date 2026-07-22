@@ -48,6 +48,17 @@ returned only by a protected evidence-detail projection for the local operator,
 because it is required for the requested detail view but is not generally safe
 to expose in a summary.
 
+Launcher evidence is bounded local history, not an audit archive. Each shared
+writer retains fresh entries for 30 days and caps the file at 512 entries.
+Mutation/append order is the local recency authority: timestamps remain useful
+facts but do not decide ordering across a clock adjustment. The common lock
+file serializes CNCF and Textus writers; each writer atomically replaces the
+JSON only after loading it. If it cannot decode the prior versioned snapshot,
+it first preserves the original bytes as a uniquely named sibling recovery
+file, then creates a fresh store. A failed preservation move leaves the source
+untouched and the canonical server invocation continues with its existing
+sanitized evidence-warning isolation.
+
 The managed Subsystem remains the authority for its own runtime health,
 metrics, Jobs, configuration, and detailed diagnostics. Phase 1 exposes links
 to its System Dashboard and System Admin pages rather than copying those read
