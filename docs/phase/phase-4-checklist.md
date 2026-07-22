@@ -147,6 +147,9 @@ Planned implementation sequence:
   users to run `cncf launcher supervisor serve`.
 - [x] Keep `cncf server` current-directory recognition and `textus <artifact>
   server` as the public canonical start interfaces.
+- [x] Derive the standalone development launch profile from retained shared
+  Launcher evidence written by canonical `cncf server`; a legacy
+  `supervisor.yaml` directory mapping is only a migration fallback.
 - [x] Restrict Control Center lifecycle actions to explicit Launcher-managed
   authority; never discover or signal an arbitrary process.
 
