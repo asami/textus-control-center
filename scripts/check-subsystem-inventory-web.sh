@@ -43,6 +43,11 @@ rg -F -- 'credentials: "same-origin"' "$script" >/dev/null
 rg -F -- 'function renderOverview()' "$script" >/dev/null
 rg -F -- 'function resetOverview()' "$script" >/dev/null
 rg -F -- 'const managementEndpoint = "/rest/v1/textus-control-center/operational-management"' "$operationalscript" >/dev/null
+rg -F -- 'id="operational-evidence-status"' "$page" >/dev/null
+rg -F -- 'function showEvidenceStatus(value, unavailable)' "$operationalscript" >/dev/null
+rg -F -- 'Launcher evidence reconciled at' "$operationalscript" >/dev/null
+rg -F -- 'Launcher evidence is temporarily unavailable.' "$operationalscript" >/dev/null
+rg -F -- 'lifecycle actions remain Launcher-authorized' "$operationalscript" >/dev/null
 rg -F -- 'const lifecycleEndpoint = "/rest/v1/textus-control-center/lifecycle-control"' "$operationalscript" >/dev/null
 rg -F -- 'const catalogEndpoint = "/rest/v1/textus-control-center/car-catalog"' "$operationalscript" >/dev/null
 rg -F -- 'list-operational-components?offset=0&limit=100' "$operationalscript" >/dev/null

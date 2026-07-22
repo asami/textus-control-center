@@ -2,17 +2,17 @@
 
 Stage Status:
 
-- Current status: IN PROGRESS
-- Current step: Integrate launcher-shared local server evidence, then replace
-  the former foreground-supervisor prerequisite with the canonical
-  development-directory `cncf server` model.
+- Current status: COMPLETE
+- Current step: Closed with canonical `cncf server` and `textus <artifact>
+  server` shared-evidence reconciliation, Launcher-owned lifecycle authority,
+  and the standalone operating panel.
 - Owner: Textus Control Center Phase 4
 - Update rule: Update this block and `phase-4-checklist.md` whenever a stable
   checklist state changes. Do not begin implementation before the lifecycle
   contracts are accepted by Textus Control Center, CNCF launcher, and Textus
   launcher.
 
-status = in_progress
+status = completed
 
 ## 1. Purpose
 
@@ -94,19 +94,18 @@ its sources, and its runtime invocations.
 - C (DONE): OC-03 - Persist shared CNCF/Textus Launcher server evidence before
   Control Center notification, including start, last-seen, normal-stop, and
   launcher-kind facts.
-- D (IN PROGRESS): OC-04 - Implement the approved `cncf launcher evidence
-  list --format json` safe list/detail projection and Control Center
-  reconciliation.
-- E (IN PROGRESS): OC-05 - Replace the foreground-supervisor lifecycle
+- D (DONE): OC-04 - Implement the approved `cncf launcher evidence list
+  --format json` safe list/detail projection and Control Center reconciliation.
+- E (DONE): OC-05 - Replace the foreground-supervisor lifecycle
   assumption with a Launcher-managed lifecycle authority that preserves
   `cncf server` as the public start interface. The authority is ensured only
   internally by canonical Launcher/Control Center flows; operators never run
   `cncf launcher supervisor serve` as a prerequisite.
 - F (DONE): OC-06 - Generate and implement Control Center records,
   Operations, authorization, and projections.
-- G (IN PROGRESS): OC-07 - Revise the operating-panel Web UI and operator guide
+- G (DONE): OC-07 - Revise the operating-panel Web UI and operator guide
   around launcher evidence and the canonical commands.
-- H (PLANNED): OC-08 - Run standalone acceptance, failure-isolation, and
+- H (DONE): OC-08 - Run standalone acceptance, failure-isolation, and
   cross-repository executable specifications; close the phase.
 
 Detailed progress and acceptance evidence belong in `phase-4-checklist.md`.

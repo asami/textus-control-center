@@ -8,7 +8,7 @@
   const evidenceEndpoint = "/rest/v1/textus-control-center/launcher-evidence";
   const elements = {
     refresh: document.getElementById("refresh"), loading: document.getElementById("operational-loading"), empty: document.getElementById("operational-empty"),
-    error: document.getElementById("operational-error"), inventory: document.getElementById("operational-inventory"), rows: document.getElementById("operational-component-rows"),
+    error: document.getElementById("operational-error"), inventory: document.getElementById("operational-inventory"), rows: document.getElementById("operational-component-rows"), evidenceStatus: document.getElementById("operational-evidence-status"),
     dialog: document.getElementById("operational-detail-dialog"), closeDetail: document.getElementById("close-operational-detail"), detailFields: document.getElementById("operational-detail-fields"),
     lifecycleHistory: document.getElementById("lifecycle-request-history"), sources: document.getElementById("operational-component-sources")
   };
@@ -21,6 +21,7 @@
   function message(body, status) { return body?.message || body?.error?.message || body?.conclusion?.message || `The operation failed (HTTP ${status}).`; }
   function clearState() { elements.loading.hidden = true; elements.empty.hidden = true; elements.error.hidden = true; elements.inventory.hidden = true; }
   function showError(value) { clearState(); elements.error.textContent = value; elements.error.hidden = false; }
+  function showEvidenceStatus(value, unavailable) { elements.evidenceStatus.textContent = value; elements.evidenceStatus.classList.toggle("unavailable", Boolean(unavailable)); }
   function componentRecord(value) { return { artifactId: value.artifact_id, managementState: value.management_state, firstManagedAt: value.first_managed_at, lastObservedAt: value.last_observed_at }; }
   function invocationRecord(value) { return { artifactId: value.artifact_id, status: value.status, instanceId: value.instance_id, baseUrl: value.base_url }; }
   function evidenceRecord(value) { return { artifactId: value.artifact_id, instanceId: value.instance_id, decision: value.evidence_decision, stoppedAt: value.stopped_at, launcherKind: value.launcher_kind, executionMode: value.execution_mode, lastSeenAt: value.last_seen_at }; }
@@ -70,7 +71,12 @@
   async function load() {
     clearState(); elements.loading.hidden = false;
     try {
-      await request(evidenceEndpoint, "refresh-launcher-evidence?refresh=true").catch(() => null);
+      try {
+        const refresh = await request(evidenceEndpoint, "refresh-launcher-evidence?refresh=true");
+        showEvidenceStatus(`Launcher evidence reconciled at ${formatInstant(refresh.observed_at || refresh.observedAt)}. Current evidence is observation only; lifecycle actions remain Launcher-authorized.`, false);
+      } catch (error) {
+        showEvidenceStatus("Launcher evidence is temporarily unavailable. Retained inventory and management rows remain usable; no lifecycle authority is inferred from unavailable evidence.", true);
+      }
       const [managed, registered, observed] = await Promise.all([
         request(managementEndpoint, "list-operational-components?offset=0&limit=100"),
         request(inventoryEndpoint, "list-subsystems?offset=0&limit=100"),

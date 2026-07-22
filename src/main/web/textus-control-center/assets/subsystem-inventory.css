@@ -41,6 +41,8 @@ h1, h2 { margin: 0; }
 .section-heading { margin-bottom: 1rem; }
 .section-heading h2 { font-size: 1.35rem; }
 .section-heading p { margin: .35rem 0 0; color: #536174; }
+.operational-evidence-status { font-size: .88rem; }
+.operational-evidence-status.unavailable { color: #9a3412; font-weight: 650; }
 .toolbar { display: grid; gap: .4rem; max-width: 36rem; margin-bottom: 1rem; }
 .toolbar label { font-weight: 650; }
 input { width: 100%; min-height: 2.6rem; border: 1px solid #aeb9ca; border-radius: .35rem; padding: .55rem .7rem; font: inherit; }

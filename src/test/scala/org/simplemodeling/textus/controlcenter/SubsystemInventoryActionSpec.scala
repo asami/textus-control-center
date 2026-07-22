@@ -359,42 +359,61 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       _records(listed).head.getString("managementState") shouldBe Some("adopted")
     }
 
-    "reconcile protected Launcher evidence without direct shared-file access" in {
-      Given("a configured one-shot CNCF Launcher evidence command")
+    "reconcile Launcher evidence retained before Control Center startup without direct shared-file access" in {
+      Given("a bounded CNCF Launcher command whose evidence was retained before Control Center startup")
       val root = Files.createTempDirectory("control-center-launcher-evidence")
-      val command = root.resolve("cncf-evidence")
-      Files.writeString(command,
-        """#!/bin/sh
+      val externalcommand = sys.env.get("TEXTUS_CONTROL_CENTER_PHASE4_EVIDENCE_COMMAND").map(java.nio.file.Path.of(_))
+      val command = externalcommand.getOrElse(root.resolve("cncf-evidence"))
+      if (externalcommand.isEmpty)
+        Files.writeString(command,
+          """#!/bin/sh
           |if [ "$3" = "list" ]; then
-          |  echo '{"schema":"cncf.launcher.evidence-projection.v1","entries":[{"launcherKind":"textus","instanceId":"evidence-instance","target":"textus-evidence-spec","artifactId":"textus-evidence-spec","executionMode":"development","subsystemName":"Evidence Spec","subsystemVersion":"0.1.0-SNAPSHOT","runtimeVersion":"0.5.0-SNAPSHOT","startedAt":"2026-07-22T00:00:00Z","lastSeenAt":"2026-07-22T00:00:30Z","stoppedAt":null}]}'
+          |  echo '{"schema":"cncf.launcher.evidence-projection.v1","entries":[{"launcherKind":"cncf","instanceId":"cncf-current-instance","target":"cncf-evidence-spec","artifactId":"cncf-evidence-spec","executionMode":"development","subsystemName":"CNCF Evidence Spec","subsystemVersion":"0.1.0-SNAPSHOT","runtimeVersion":"0.5.0-SNAPSHOT","startedAt":"2026-07-22T00:00:00Z","lastSeenAt":"2026-07-22T00:00:30Z","stoppedAt":null},{"launcherKind":"textus","instanceId":"textus-stopped-instance","target":"textus-evidence-spec","artifactId":"textus-evidence-spec","executionMode":"artifact","subsystemName":"Textus Evidence Spec","subsystemVersion":"0.1.0-SNAPSHOT","runtimeVersion":"0.5.0-SNAPSHOT","startedAt":"2026-07-22T00:00:00Z","lastSeenAt":"2026-07-22T00:00:30Z","stoppedAt":"2026-07-22T00:01:00Z"}]}'
+          |elif [ "$4" = "cncf-current-instance" ]; then
+          |  echo '{"schema":"cncf.launcher.evidence-projection.v1","entry":{"launcherKind":"cncf","instanceId":"cncf-current-instance","target":"cncf-evidence-spec","artifactId":"cncf-evidence-spec","executionMode":"development","developmentDirectory":"/private/work/cncf-evidence-spec","subsystemName":"CNCF Evidence Spec","subsystemVersion":"0.1.0-SNAPSHOT","runtimeVersion":"0.5.0-SNAPSHOT","startedAt":"2026-07-22T00:00:00Z","lastSeenAt":"2026-07-22T00:00:30Z","stoppedAt":null}}'
           |else
-          |  echo '{"schema":"cncf.launcher.evidence-projection.v1","entry":{"launcherKind":"textus","instanceId":"evidence-instance","target":"textus-evidence-spec","artifactId":"textus-evidence-spec","executionMode":"development","developmentDirectory":"/private/work/textus-evidence-spec","subsystemName":"Evidence Spec","subsystemVersion":"0.1.0-SNAPSHOT","runtimeVersion":"0.5.0-SNAPSHOT","startedAt":"2026-07-22T00:00:00Z","lastSeenAt":"2026-07-22T00:00:30Z","stoppedAt":null}}'
+          |  echo '{"schema":"cncf.launcher.evidence-projection.v1","entry":{"launcherKind":"textus","instanceId":"textus-stopped-instance","target":"textus-evidence-spec","artifactId":"textus-evidence-spec","executionMode":"artifact","developmentDirectory":null,"subsystemName":"Textus Evidence Spec","subsystemVersion":"0.1.0-SNAPSHOT","runtimeVersion":"0.5.0-SNAPSHOT","startedAt":"2026-07-22T00:00:00Z","lastSeenAt":"2026-07-22T00:00:30Z","stoppedAt":"2026-07-22T00:01:00Z"}}'
           |fi
           |""".stripMargin
-      )
-      command.toFile.setExecutable(true) shouldBe true
+        )
+      if (externalcommand.isEmpty)
+        command.toFile.setExecutable(true) shouldBe true
       val fixture = _fixture()
-      val component = _component(_launcher_evidence_configuration(command))
+      val component = _component(_launcher_evidence_configuration(command, externalcommand.map(_ => "30s")))
       val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
 
-      When("an operator refreshes, lists, and loads the evidence Operations")
-      val refreshed = _execute(component, operatorcontext, Request.ofService("LauncherEvidence", "refreshLauncherEvidence"))
-        .toOption.getOrElse(fail("evidence refresh failed")).asInstanceOf[OperationResponse.RecordResponse].record
+      When("the later-started Control Center refreshes, lists, and loads the evidence Operations")
+      val refreshresult = _execute(component, operatorcontext, Request.ofService("LauncherEvidence", "refreshLauncherEvidence"))
+      val refreshed = refreshresult.toOption.getOrElse(fail(s"evidence refresh failed: $refreshresult")).asInstanceOf[OperationResponse.RecordResponse].record
       _execute(component, operatorcontext, Request.ofService("LauncherEvidence", "refreshLauncherEvidence")).toOption should not be empty
       val listed = _execute(component, operatorcontext, Request.ofService("LauncherEvidence", "listLauncherEvidence"))
         .toOption.getOrElse(fail("evidence list failed")).asInstanceOf[OperationResponse.RecordResponse].record
-      val detail = _execute(component, operatorcontext, Request.ofService("LauncherEvidence", "getLauncherEvidence", properties = List(Property("instanceId", "evidence-instance", None))))
+      val detailid = externalcommand.fold("cncf-current-instance") { _ =>
+        _records(listed).find(_.getString("launcherKind").contains("cncf")).flatMap(_.getString("instanceId")).getOrElse(fail("external CNCF evidence was not retained"))
+      }
+      val detail = _execute(component, operatorcontext, Request.ofService("LauncherEvidence", "getLauncherEvidence", properties = List(Property("instanceId", detailid, None))))
         .toOption.getOrElse(fail("evidence detail failed")).asInstanceOf[OperationResponse.RecordResponse].record
       val operating = _execute(component, operatorcontext, Request.ofService("OperationalManagement", "listOperationalComponents"))
         .toOption.getOrElse(fail("operating target list failed")).asInstanceOf[OperationResponse.RecordResponse].record
 
-      Then("list output remains safe, repeat refresh does not add a duplicate, detail contains the local path, and current evidence adopts the component")
-      refreshed.getInt("totalCount") shouldBe Some(1)
-      _records(listed) should have size 1
-      _records(listed).head.getString("instanceId") shouldBe Some("evidence-instance")
-      _records(listed).head.getAny("developmentDirectory") shouldBe empty
-      detail.getString("developmentDirectory") shouldBe Some("/private/work/textus-evidence-spec")
-      _records(operating).map(_.getString("artifactId")) should contain (Some("textus-evidence-spec"))
+      Then("safe rows preserve both launcher kinds and derive their retained decisions without direct shared-file access")
+      _records(listed).map(_.getString("launcherKind")) should contain allOf (Some("cncf"), Some("textus"))
+      _records(listed).forall(_.getAny("developmentDirectory").isEmpty) shouldBe true
+      externalcommand match {
+        case Some(_) =>
+          refreshed.getInt("totalCount") shouldBe Some(2)
+          _records(listed) should have size 2
+          _records(listed).map(_.getString("evidenceDecision")) should contain allOf (Some("current-evidence-only"), Some("historical-stopped"))
+          detail.getString("developmentDirectory").map(_.nonEmpty) shouldBe Some(true)
+          _records(operating).map(_.getString("artifactId")) should contain (Some("textus-control-center"))
+        case None =>
+          refreshed.getInt("totalCount") shouldBe Some(2)
+          _records(listed) should have size 2
+          _records(listed).map(_.getString("evidenceDecision")) should contain allOf (Some("current-evidence-only"), Some("historical-stopped"))
+          detail.getString("developmentDirectory") shouldBe Some("/private/work/cncf-evidence-spec")
+          _records(operating).map(_.getString("artifactId")) should contain (Some("cncf-evidence-spec"))
+          _records(operating).map(_.getString("artifactId")) should not contain Some("textus-evidence-spec")
+      }
     }
 
     "retain an idempotent lifecycle request when the bounded Launcher CLI is unavailable" in {
@@ -631,11 +650,12 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       ConfigurationTrace.empty
     )
 
-  private def _launcher_evidence_configuration(command: Path): ResolvedConfiguration =
+  private def _launcher_evidence_configuration(command: Path, timeout: Option[String] = None): ResolvedConfiguration =
     ResolvedConfiguration(
-      Configuration(Map(
-        "textus-control-center.launcher.evidence.command" -> ConfigurationValue.StringValue(command.toString)
-      )),
+      Configuration(
+        Map("textus-control-center.launcher.evidence.command" -> ConfigurationValue.StringValue(command.toString)) ++
+          timeout.map(value => "textus-control-center.launcher.evidence.timeout" -> ConfigurationValue.StringValue(value))
+      ),
       ConfigurationTrace.empty
     )
 

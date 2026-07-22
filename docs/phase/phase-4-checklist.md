@@ -41,7 +41,7 @@ Acceptance evidence:
 
 ## OC-03: Shared Launcher Server Evidence
 
-Status: IN_PROGRESS
+Status: DONE
 
 Decision `P4-EVIDENCE-PROJECTION-01` (Jul. 22, 2026): CNCF Launcher provides
 the common evidence read boundary through the one-shot
@@ -75,7 +75,7 @@ Acceptance evidence:
 
 ## OC-04: Control Center Evidence Reconciliation and Projections
 
-Status: IN_PROGRESS
+Status: DONE
 
 - [x] Add the executable management-state decision model for automatic
   management, repository adoption, retained source loss, and exclusion
@@ -105,7 +105,7 @@ Status: IN_PROGRESS
 
 ## OC-05: Canonical Launcher Lifecycle Authority
 
-Status: IN_PROGRESS
+Status: DONE
 
 Planning decision `P4-LIFECYCLE-AUTHORITY-01` (Jul. 22, 2026): standalone
 authority is an automatically ensured local Launcher service, not an operator
@@ -156,7 +156,7 @@ Planned implementation sequence:
 
 ## OC-06: Operating Panel and Documentation
 
-Status: IN_PROGRESS
+Status: DONE
 
 - [x] Replace the top-page invocation-first layout with an
   operational-component-first panel backed by protected Operations.
@@ -168,12 +168,12 @@ Status: IN_PROGRESS
 - [x] Update the command/REST reference after selectors are generated.
 - [x] Publish the current standalone operator guide and phase evidence,
   including the Launcher-evidence boundary.
-- [ ] Replace the supervisor prerequisite in panel guidance and show evidence
+- [x] Replace the supervisor prerequisite in panel guidance and show evidence
   reconciliation status and decision reason.
 
 ## OC-07: Standalone Acceptance
 
-Status: PLANNED
+Status: DONE
 
 - [x] Verify development discovery, exclusion, restore, and refresh behavior.
 - [x] Verify first-use adoption for repository CARs.
@@ -182,7 +182,7 @@ Status: PLANNED
 - [x] Verify Control Center and launcher restart recovery.
 - [x] Run Control Center, CNCF launcher, Textus launcher, CAR packaging, and
   static Web suites.
-- [ ] Verify cross-launcher shared-evidence persistence, safe projection, and
+- [x] Verify cross-launcher shared-evidence persistence, safe projection, and
   Control Center reconciliation when the Control Center starts after servers.
-- [ ] Verify that normal `cncf server` remains sufficient for a development
+- [x] Verify that normal `cncf server` remains sufficient for a development
   directory and no user-facing foreground-supervisor command is required.

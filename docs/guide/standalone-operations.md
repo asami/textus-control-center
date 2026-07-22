@@ -74,6 +74,16 @@ usable; the panel does not make the supervisor command a prerequisite. The
 component detail view can show the development directory for a selected local
 evidence record, while summaries deliberately omit it.
 
+The operational panel reports whether its latest evidence reconciliation
+succeeded and its observation time. A temporary unavailability is shown as a
+safe diagnostic: it does not clear retained rows, assert that a server stopped,
+or grant any lifecycle authority. Evidence detail states the reconciliation
+decision explicitly: `current-registered` means matching registration facts
+exist, `current-evidence-only` means a server was observed before Control
+Center was available, and `historical-stopped` records normal termination.
+All three are observations; Start, Stop, and Restart remain bounded
+Launcher-authorized operations.
+
 The local evidence file is bounded operational history: it retains fresh
 records for 30 days and at most 512 records. If a Launcher finds malformed
 content, it preserves the original as a local recovery copy before creating a

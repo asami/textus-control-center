@@ -298,6 +298,12 @@ Lifecycle authority remains Launcher-owned. Textus Control Center submits
 structured requests and projects their results, but never scans for or signals
 arbitrary PIDs. See `docs/phase/phase-4.md`.
 
+Closure (Jul. 22, 2026): Phase 4 is complete. Its black-box acceptance starts
+both canonical Launcher server forms before Control Center, then reconciles one
+current and one normally stopped shared-evidence record through the bounded
+Launcher projection. The isolated state-home option belongs only to that test;
+ordinary operator commands remain `cncf server` and `textus <artifact> server`.
+
 ### Phase 5: Runtime Health and Observability Summary
 
 Goal: enrich operating components and their registered instances with bounded
