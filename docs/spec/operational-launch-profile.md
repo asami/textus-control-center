@@ -5,8 +5,8 @@ scope = Phase 4 safe standalone launch-profile resolution
 
 ## 1. Purpose
 
-An operational launch profile is the resolved, safe input that allows a local
-launcher supervisor to start one selected deployment of an
+An operational launch profile is the resolved, safe input that allows
+`textus-supervisor` to start one selected deployment of an
 `OperationalComponent`. It is not an arbitrary shell command and it must not
 contain credentials or unrestricted environment data.
 
@@ -14,9 +14,9 @@ contain credentials or unrestricted environment data.
 
 | Variant | Required locator | Start authority |
 | --- | --- | --- |
-| `development-directory` | validated configured development directory and `project.yaml` | canonical `cncf <directory> server` execution |
-| `local-car` | validated local CAR archive identity and catalog metadata | canonical local CAR launcher execution |
-| `public-car` | explicitly subscribed artifact with a resolved local usable archive | canonical local CAR launcher execution |
+| `development-directory` | validated configured development directory and `project.yaml` | `textus-supervisor` invokes the canonical CNCF development profile |
+| `local-car` | validated local CAR archive identity and catalog metadata | `textus-supervisor` invokes the canonical local-CAR profile |
+| `public-car` | explicitly subscribed artifact with a resolved local usable archive | `textus-supervisor` invokes the canonical local-CAR profile |
 
 Public repository metadata alone is not executable. It must resolve to a local
 archive through an explicit later installation path before the profile becomes
@@ -29,7 +29,7 @@ CAR descriptor. The standalone initial profile permits one selected default
 port per operational component. It does not guess a dynamic port or reuse a
 port currently owned by another active profile.
 
-Before accepting Start or Restart, the supervisor validates source presence,
+Before accepting Start or Restart, `textus-supervisor` validates source presence,
 descriptor validity, runtime compatibility, dependency resolution, and port
 availability. Failure returns a stable structured code and changes neither the
 operating target nor existing instances.
@@ -44,5 +44,6 @@ administrative detail only. Secrets are never accepted as profile fields.
 ## 5. Future Extension
 
 A later multi-host profile adds an explicit host/supervisor identity and a
-deployment identity. It must not reinterpret a standalone profile as a remote
-execution request.
+deployment identity. It uses the same command/result protocol as standalone
+embedding and must not reinterpret a standalone profile as a remote execution
+request.

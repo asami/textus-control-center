@@ -1,13 +1,13 @@
 # Phase 4 Standalone Acceptance Evidence
 
-status = accepted
-scope = Textus Control Center Phase 4
+status = superseded-by-phase-4-reopen
+scope = Textus Control Center Phase 4 transition evidence
 
-This document records the executable closure evidence gathered on Jul. 22,
-2026. The canonical launcher commands retain shared evidence before Control
-Center availability; the later Control Center reconciles it only through the
-safe Launcher projection, without a user-facing foreground supervisor
-prerequisite.
+This document records transition-baseline evidence gathered on Jul. 22, 2026.
+It is not closure evidence for reopened Phase 4: the launcher-private lifecycle
+authority is being replaced by `textus-supervisor`. The preserved result is the
+canonical Launchers' common evidence behavior before Control Center
+availability, without a user-facing foreground supervisor prerequisite.
 
 | Acceptance condition | Evidence |
 | --- | --- |
@@ -22,7 +22,6 @@ prerequisite.
 | Shared launcher evidence | `scripts/check-phase-4-cross-launcher-acceptance.sh` is the black-box acceptance harness: it starts canonical `cncf server` and `textus <artifact> server` in one explicit isolated Launcher state home, reads their shared evidence only through `cncf launcher evidence list --format json`, and then invokes `SubsystemInventoryActionSpec` with that actual bounded command after the servers are running. It requires one current and one stopped record so Control Center proves both `current-evidence-only` and `historical-stopped` reconciliation without direct shared-file access. `--launcher-home` is test-only isolation; normal operation keeps the ordinary canonical commands. |
 
 The resulting CAR at the time was
-`target/textus-control-center-0.1.0-SNAPSHOT.car`. The standalone model keeps
-the Control Center as the protected operating panel and Launcher as the local
-evidence and lifecycle authority; neither test nor implementation grants
-arbitrary PID authority.
+`target/textus-control-center-0.1.0-SNAPSHOT.car`. The former Launcher-owned
+lifecycle authority remains historical baseline only; reopened acceptance must
+prove `textus-supervisor` ownership in embedded and externally placed modes.

@@ -60,10 +60,17 @@ solely because a CAR source is missing or because no server has started.
 ## Lifecycle Boundary
 
 Control Center creates a lifecycle request for the selected operational
-component. A launcher-owned supervisor validates and owns the resulting child
-server; it returns a structured result and normal launcher registration then
-updates the runtime projection. Control Center does not use process discovery
-or direct PID signalling.
+component. `textus-supervisor` validates the request and owns the resulting
+child server; it returns a structured result and launcher evidence then updates
+the runtime projection. Standalone Control Center embeds this supervisor. A
+future distributed deployment places the same supervisor behind the identical
+authenticated command/result boundary. Control Center does not use process
+discovery or direct PID signalling.
+
+Launchers persist common evidence before any notification attempt. Their
+notification is bounded and best effort: Control Center or `textus-supervisor`
+unavailability cannot prevent `cncf server` or `textus <artifact> server` from
+starting. The earlier launcher-private supervisor is transitional only.
 
 For initial standalone operation, one operational component selects one local
 default-port deployment. Supporting several independently placed instances of

@@ -66,7 +66,7 @@ development directory. Detail is the local-operator path for that field.
 
 Start, Stop, and Restart create idempotent lifecycle-request records. The same
 `artifactId`, action, and `idempotencyKey` returns the original request. Until a
-Launcher lifecycle authority is unavailable, these actions eventually retain a
+`textus-supervisor` lifecycle authority is unavailable, these actions eventually retain a
 safe `rejected` request; they do not start or stop an operating-system process.
 
 | Operation | Command selector | Automatic REST path |

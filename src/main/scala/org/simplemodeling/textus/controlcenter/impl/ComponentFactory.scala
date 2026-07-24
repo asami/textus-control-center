@@ -1,5 +1,5 @@
 /*
- * @version Jul. 22, 2026
+ * @version Jul. 24, 2026
  */
 package org.simplemodeling.textus.controlcenter.impl
 
@@ -891,12 +891,12 @@ final class LauncherEvidenceServiceFactoryImpl extends TextusControlCenterCompon
             }
         }
         _ <- entry.artifactId match {
-          case Some(artifactid) if entry.stoppedAt.isEmpty => retain_adoption(artifactid, now)
+          case Some(artifactid) if entry.stoppedAt.isEmpty => _retain_adoption(artifactid, now)
           case _ => exec_pure(())
         }
       } yield record
     }
-    private def retain_adoption(artifactid: String, now: Instant): ExecUowM[Unit] =
+    private def _retain_adoption(artifactid: String, now: Instant): ExecUowM[Unit] =
       for {
         components <- find_operational_components(artifactid)
         _ <- latest_operational_component(components) match {

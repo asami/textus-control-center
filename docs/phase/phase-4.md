@@ -2,17 +2,17 @@
 
 Stage Status:
 
-- Current status: COMPLETE
-- Current step: Closed with canonical `cncf server` and `textus <artifact>
-  server` shared-evidence reconciliation, Launcher-owned lifecycle authority,
-  and the standalone operating panel.
+- Current status: REOPENED
+- Current step: Replace the provisional Launcher-owned lifecycle authority
+  with `textus-supervisor`, embedded by Control Center for standalone
+  operation and deployable separately by a later distributed control plane.
 - Owner: Textus Control Center Phase 4
 - Update rule: Update this block and `phase-4-checklist.md` whenever a stable
   checklist state changes. Do not begin implementation before the lifecycle
   contracts are accepted by Textus Control Center, CNCF launcher, and Textus
   launcher.
 
-status = completed
+status = reopened
 
 ## 1. Purpose
 
@@ -57,9 +57,12 @@ its sources, and its runtime invocations.
   without reading `~/.cncf/launcher/` directly from Control Center.
 - Add Start, Stop, Restart, Remove from management, and Restore to management
   Operations.
-- Redefine lifecycle authority so a Control Center action can affect only a
-  Launcher-managed invocation. It must never infer ownership from a PID or make
-  the former foreground supervisor command a user-facing prerequisite.
+- Define `textus-supervisor` as the lifecycle authority. In standalone mode it
+  runs inside the local Control Center deployment; a later Compose/Kubernetes
+  deployment uses the same supervisor contract as a separately placed service.
+- Keep both Launchers responsible for durable common evidence and bounded
+  supervisor notification only. They neither host lifecycle authority nor make
+  Control Center availability a server-start prerequisite.
 
 ## 3. Boundaries
 
@@ -77,6 +80,9 @@ its sources, and its runtime invocations.
   control are later work.
 - The phase does not add detailed health/metric aggregation, remote repository
   mutation, publication, or multi-user source providers.
+- The existing launcher-private `LifecycleSupervisor` is a transition baseline,
+  not the accepted Phase 4 authority. It must be removed or reduced to a
+  compatibility adapter before the reopened phase can close.
 
 ## 4. Contract Documents
 
@@ -87,25 +93,23 @@ its sources, and its runtime invocations.
 
 ## 5. Active Work Stack
 
-- A (DONE): OC-01 - Freeze operating-target identity, adoption, exclusion,
+- A (RETAINED): OC-01 - Freeze operating-target identity, adoption, exclusion,
   and runtime-projection rules.
-- B (DONE): OC-02 - Preserve canonical target-first/current-directory launch
+- B (RETAINED): OC-02 - Preserve canonical target-first/current-directory launch
   identity and safe source/default-port facts.
-- C (DONE): OC-03 - Persist shared CNCF/Textus Launcher server evidence before
+- C (RETAINED): OC-03 - Persist shared CNCF/Textus Launcher server evidence before
   Control Center notification, including start, last-seen, normal-stop, and
   launcher-kind facts.
-- D (DONE): OC-04 - Implement the approved `cncf launcher evidence list
+- D (RETAINED): OC-04 - Implement the approved `cncf launcher evidence list
   --format json` safe list/detail projection and Control Center reconciliation.
-- E (DONE): OC-05 - Replace the foreground-supervisor lifecycle
-  assumption with a Launcher-managed lifecycle authority that preserves
-  `cncf server` as the public start interface. The authority is ensured only
-  internally by canonical Launcher/Control Center flows; operators never run
-  `cncf launcher supervisor serve` as a prerequisite.
-- F (DONE): OC-06 - Generate and implement Control Center records,
+- E (REOPENED): OC-05 - Replace the provisional launcher-private supervisor
+  with `textus-supervisor`, while preserving `cncf server` and
+  `textus <artifact> server` as public start interfaces.
+- F (REVALIDATE): OC-06 - Rebind Control Center records,
   Operations, authorization, and projections.
-- G (DONE): OC-07 - Revise the operating-panel Web UI and operator guide
-  around launcher evidence and the canonical commands.
-- H (DONE): OC-08 - Run standalone acceptance, failure-isolation, and
-  cross-repository executable specifications; close the phase.
+- G (REVALIDATE): OC-07 - Revise the operating-panel Web UI and operator guide
+  around `textus-supervisor`, launcher evidence, and the canonical commands.
+- H (REOPENED): OC-08 - Run standalone and future-placement acceptance after
+  the new authority replaces the provisional one.
 
 Detailed progress and acceptance evidence belong in `phase-4-checklist.md`.

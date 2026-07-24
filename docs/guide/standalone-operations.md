@@ -1,6 +1,6 @@
 # Standalone Operations Guide
 
-status = implemented
+status = reopened
 scope = Phase 4 operator workflow
 
 This guide describes the Control Center portion of the Phase 4 operating-panel
@@ -33,17 +33,17 @@ Each request has an idempotency key and creates a durable, safe-to-project
 lifecycle audit record. Retrying the same component/action/key returns the
 same request record rather than creating a second action.
 
-The request is committed as `queued` and dispatched after commit through the
-bounded local Launcher CLI. Launcher internally ensures its local authority;
-the operator never starts `cncf launcher supervisor serve` as a prerequisite.
-Its safe result retains the supervisor, instance correlation, outcome,
-timestamps, and diagnostic in the protected component detail view. An
-unavailable Launcher command or authority is retained as a safe rejected audit
-result; it does not imply that a server was stopped or started.
+The request is committed as `queued` and dispatched after commit to the local
+embedded `textus-supervisor`. The operator never starts
+`cncf launcher supervisor serve` as a prerequisite. Its safe result retains the
+supervisor, instance correlation, outcome, timestamps, and diagnostic in the
+protected component detail view. An unavailable supervisor is retained as a
+safe rejected audit result; it does not imply that a server was stopped or
+started.
 
 The bounded lifecycle timeout is `20s` by default and cannot be set below that
-value. It includes internal authority cold-start and request submission; it is
-not a process-health assertion.
+value. It includes supervisor readiness and request submission; it is not a
+process-health assertion.
 
 The panel is not a generic process manager. It cannot control a process that
 was not launched through the authorized supervisor, and it never searches for
@@ -82,7 +82,7 @@ decision explicitly: `current-registered` means matching registration facts
 exist, `current-evidence-only` means a server was observed before Control
 Center was available, and `historical-stopped` records normal termination.
 All three are observations; Start, Stop, and Restart remain bounded
-Launcher-authorized operations.
+`textus-supervisor`-authorized operations.
 
 The local evidence file is bounded operational history: it retains fresh
 records for 30 days and at most 512 records. If a Launcher finds malformed

@@ -1,7 +1,13 @@
-status = accepted-for-implementation
-scope = Phase 4 Control Center to launcher-owned local lifecycle authority
+status = superseded-by-phase-4-reopen
+scope = Phase 4 launcher-private lifecycle transition baseline
 
-# Launcher Lifecycle Control Specification
+# Provisional Launcher Lifecycle Control Specification
+
+This contract describes the former launcher-private authority. Reopened Phase 4
+replaces it with `textus-supervisor` as the lifecycle owner. Standalone Control
+Center embeds that component; future distributed placement reuses its command/
+result protocol. The remaining content is retained only to bound compatibility
+migration and must not be used for new lifecycle implementation.
 
 ## 1. Authority Boundary
 

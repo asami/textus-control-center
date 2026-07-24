@@ -105,28 +105,25 @@ Status: DONE
 
 ## OC-05: Canonical Launcher Lifecycle Authority
 
-Status: DONE
+Status: REOPENED
 
-Planning decision `P4-LIFECYCLE-AUTHORITY-01` (Jul. 22, 2026): standalone
-authority is an automatically ensured local Launcher service, not an operator
-command. `cncf server` and `textus <artifact> server` remain the only public
-server-start interfaces. Control Center uses a bounded Launcher-owned command
-boundary to ensure/submit/lookup lifecycle work; it never reads the authority
-state, discovers a PID, or requires an operator to foreground a daemon.
+Decision `P4-TEXTUS-SUPERVISOR-01` (Jul. 24, 2026): `textus-supervisor` is the
+lifecycle authority. Standalone Control Center embeds its local deployment;
+future Compose/Kubernetes operation deploys the same contract independently.
+`cncf server` and `textus <artifact> server` remain the only public
+server-start interfaces. Launchers record common evidence and may notify the
+supervisor, but they do not host lifecycle authority.
 
 Planned implementation sequence:
 
-1. CNCF Launcher derives and retains canonical development launch profiles and
-   internally ensures its loopback authority without exposing `serve` as a
-   normal command.
-2. Control Center replaces direct supervisor HTTP configuration with the
-   bounded Launcher command adapter, preserving its durable request/audit
-   model and failure isolation.
-3. Textus Launcher writes compatible canonical launch/profile facts; neither
-   launcher assumes Control Center availability.
-4. Cross-launcher acceptance starts servers before Control Center, then proves
-   evidence reconciliation, lifecycle authority limits, and unchanged public
-   `cncf server` workflow.
+1. Define the supervisor command/result protocol and explicit standalone versus
+   distributed placement boundary.
+2. Move durable lifecycle request, ownership, and execution responsibility to
+   `textus-supervisor`; Control Center becomes its protected management client.
+3. Reduce both Launchers to common-evidence persistence and bounded notification
+   that never blocks a canonical server start.
+4. Prove standalone embedding and an external supervisor placement through the
+   same acceptance surface.
 
 - [x] Prototype the launcher-private supervisor endpoint, explicit
   `~/.cncf/launcher/supervisor.yaml` development-directory profile resolution,
@@ -153,10 +150,18 @@ Planned implementation sequence:
   `supervisor.yaml` directory mapping is only a migration fallback.
 - [x] Restrict Control Center lifecycle actions to explicit Launcher-managed
   authority; never discover or signal an arbitrary process.
+- [ ] Define the `textus-supervisor` component identity, command/result
+  protocol, ownership persistence, and standalone embedding contract.
+- [ ] Replace launcher-private authority hosting and `supervisor.yaml` as the
+  normal lifecycle authority path.
+- [ ] Make CNCF Launcher and Textus Launcher write common evidence and issue
+  best-effort supervisor notification without lifecycle ownership.
+- [ ] Revalidate lifecycle requests, panel actions, restart recovery, and the
+  unchanged canonical launcher commands against embedded and external placement.
 
 ## OC-06: Operating Panel and Documentation
 
-Status: DONE
+Status: REVALIDATE
 
 - [x] Replace the top-page invocation-first layout with an
   operational-component-first panel backed by protected Operations.
@@ -173,7 +178,7 @@ Status: DONE
 
 ## OC-07: Standalone Acceptance
 
-Status: DONE
+Status: REOPENED
 
 - [x] Verify development discovery, exclusion, restore, and refresh behavior.
 - [x] Verify first-use adoption for repository CARs.
@@ -186,3 +191,5 @@ Status: DONE
   Control Center reconciliation when the Control Center starts after servers.
 - [x] Verify that normal `cncf server` remains sufficient for a development
   directory and no user-facing foreground-supervisor command is required.
+- [ ] Verify the same lifecycle behavior with Control Center's embedded
+  `textus-supervisor` and with an externally placed supervisor contract.

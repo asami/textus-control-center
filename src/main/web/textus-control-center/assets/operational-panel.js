@@ -8,7 +8,7 @@
   const evidenceEndpoint = "/rest/v1/textus-control-center/launcher-evidence";
   const elements = {
     refresh: document.getElementById("refresh"), loading: document.getElementById("operational-loading"), empty: document.getElementById("operational-empty"),
-    error: document.getElementById("operational-error"), inventory: document.getElementById("operational-inventory"), rows: document.getElementById("operational-component-rows"), evidenceStatus: document.getElementById("operational-evidence-status"),
+    error: document.getElementById("operational-error"), inventory: document.getElementById("operational-inventory"), rows: document.getElementById("operational-component-rows"), catalogStatus: document.getElementById("operational-catalog-status"), evidenceStatus: document.getElementById("operational-evidence-status"),
     dialog: document.getElementById("operational-detail-dialog"), closeDetail: document.getElementById("close-operational-detail"), detailFields: document.getElementById("operational-detail-fields"),
     lifecycleHistory: document.getElementById("lifecycle-request-history"), sources: document.getElementById("operational-component-sources")
   };
@@ -21,6 +21,7 @@
   function message(body, status) { return body?.message || body?.error?.message || body?.conclusion?.message || `The operation failed (HTTP ${status}).`; }
   function clearState() { elements.loading.hidden = true; elements.empty.hidden = true; elements.error.hidden = true; elements.inventory.hidden = true; }
   function showError(value) { clearState(); elements.error.textContent = value; elements.error.hidden = false; }
+  function showCatalogStatus(value, unavailable) { elements.catalogStatus.textContent = value; elements.catalogStatus.classList.toggle("unavailable", Boolean(unavailable)); }
   function showEvidenceStatus(value, unavailable) { elements.evidenceStatus.textContent = value; elements.evidenceStatus.classList.toggle("unavailable", Boolean(unavailable)); }
   function componentRecord(value) { return { artifactId: value.artifact_id, managementState: value.management_state, firstManagedAt: value.first_managed_at, lastObservedAt: value.last_observed_at }; }
   function invocationRecord(value) { return { artifactId: value.artifact_id, status: value.status, instanceId: value.instance_id, baseUrl: value.base_url }; }
@@ -44,6 +45,14 @@
     return "not-running";
   }
   function activeUrls(component) { return invocations.filter((value) => value.artifactId === component.artifactId && value.baseUrl && ["running", "starting"].includes(String(value.status || "").toLowerCase())).map((value) => value.baseUrl); }
+  function appLink(component) {
+    const urls = activeUrls(component);
+    const value = document.createElement(urls.length ? "a" : "button");
+    value.className = "button secondary operational-action"; value.textContent = "Open app";
+    if (urls.length) { value.href = urls[0]; value.target = "_blank"; value.rel = "noopener"; }
+    else { value.type = "button"; value.disabled = true; value.title = "The component has no active application URL."; }
+    return value;
+  }
   function button(label, action, component) {
     const value = document.createElement("button");
     value.type = "button"; value.className = "button secondary operational-action"; value.textContent = label;
@@ -61,7 +70,7 @@
       const managementCell = document.createElement("td"); const management = document.createElement("span"); management.className = "execution-mark execution-development"; management.textContent = text(component.managementState); managementCell.append(management);
       const observedCell = document.createElement("td"); observedCell.textContent = formatInstant(component.lastObservedAt);
       const actionsCell = document.createElement("td"); actionsCell.className = "operational-actions";
-      [button("Start", "start", component), button("Stop", "stop", component), button("Restart", "restart", component)].forEach((value) => actionsCell.append(value));
+      [button("Start", "start", component), button("Stop", "stop", component), button("Restart", "restart", component), appLink(component)].forEach((value) => actionsCell.append(value));
       const remove = document.createElement("button"); remove.type = "button"; remove.className = "button secondary operational-action"; remove.textContent = "Remove";
       remove.addEventListener("click", (event) => { event.stopPropagation(); removeComponent(component, remove); }); actionsCell.append(remove);
       [runtimeCell, componentCell, managementCell, observedCell, actionsCell].forEach((cell) => row.append(cell)); elements.rows.append(row);
@@ -71,6 +80,12 @@
   async function load() {
     clearState(); elements.loading.hidden = false;
     try {
+      try {
+        await request(catalogEndpoint, "refresh-car-catalog");
+        showCatalogStatus("Registered development sources were refreshed before operational components loaded.", false);
+      } catch (error) {
+        showCatalogStatus("Registered development source refresh is temporarily unavailable. Retained operational components remain usable.", true);
+      }
       try {
         const refresh = await request(evidenceEndpoint, "refresh-launcher-evidence?refresh=true");
         showEvidenceStatus(`Launcher evidence reconciled at ${formatInstant(refresh.observed_at || refresh.observedAt)}. Current evidence is observation only; lifecycle actions remain Launcher-authorized.`, false);
@@ -92,7 +107,11 @@
     control.disabled = true;
     try {
       const key = `${action}-${component.artifactId}-${Date.now()}`;
-      const result = await request(lifecycleEndpoint, `${action}-operational-component?artifactId=${encodeURIComponent(component.artifactId)}&idempotencyKey=${encodeURIComponent(key)}`);
+      let result = await request(lifecycleEndpoint, `${action}-operational-component?artifactId=${encodeURIComponent(component.artifactId)}&idempotencyKey=${encodeURIComponent(key)}`);
+      if (result.request_state === "queued" && result.request_id) {
+        result = await request(lifecycleEndpoint, `get-lifecycle-request?requestId=${encodeURIComponent(result.request_id)}`);
+      }
+      await load();
       await loadDetail(component, result);
     } catch (error) { showError(error.message || "The lifecycle request could not be recorded."); }
     finally { control.disabled = false; }
@@ -112,7 +131,8 @@
       ]);
       const record = componentRecord(detail); const source = catalog ? catalogRecord(catalog) : { componentName: null, sources: [] }; const urls = activeUrls(record); elements.detailFields.replaceChildren(); elements.sources.replaceChildren(); elements.lifecycleHistory.replaceChildren();
       [["Artifact ID", record.artifactId], ["Component", source.componentName], ["Management", record.managementState], ["Runtime", runtime(record)], ["Active URL", urls.join(", ")], ["First managed", formatInstant(record.firstManagedAt)], ["Last observed", formatInstant(record.lastObservedAt)]].forEach(([label, value]) => { const term = document.createElement("dt"); term.textContent = label; const definition = document.createElement("dd"); definition.textContent = text(value); elements.detailFields.append(term, definition); });
-      if (!source.sources.length) { elements.sources.textContent = "No source facts are available."; }
+      if (urls.length) { const open = document.createElement("a"); open.className = "button secondary operational-action"; open.textContent = "Open app"; open.href = urls[0]; open.target = "_blank"; open.rel = "noopener"; elements.sources.append(open); }
+      if (!source.sources.length) { const empty = document.createElement("p"); empty.textContent = "No source facts are available."; elements.sources.append(empty); }
       source.sources.forEach((value) => { const item = document.createElement("p"); item.className = "subtle"; item.textContent = [value.source_kind, value.source_id, value.refresh_state, value.recommended_version || value.latest_version, value.diagnostic, value.private_locator].filter(Boolean).join(" · "); elements.sources.append(item); });
       const componentEvidence = evidence.filter((value) => value.artifactId === record.artifactId);
       const detailedEvidence = await Promise.all(componentEvidence.map((value) => request(evidenceEndpoint, `get-launcher-evidence?instanceId=${encodeURIComponent(value.instanceId)}`).catch(() => value)));

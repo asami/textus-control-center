@@ -146,6 +146,17 @@ credential. An absent token disables the built-in machine authentication match.
 
 ## Authority and Security
 
+### Phase 4 Reopened Supervisor Boundary
+
+For Phase 4 reopening, launcher registration remains an observation channel,
+not a lifecycle authority. Both Launchers first persist the common evidence
+record below `~/.cncf/launcher/`; a bounded notification to
+`textus-supervisor` or Control Center is best effort and cannot block canonical
+server startup. `textus-supervisor` owns lifecycle request, child ownership,
+and result persistence. Standalone Control Center embeds it, while a later
+distributed deployment uses the same authenticated protocol from a separately
+placed supervisor.
+
 Registration mutation is machine-facing and uses a credential distinct from
 human browser administration. Textus Control Center must authenticate the launcher
 before it accepts register, heartbeat, or deregister requests. Human list and
