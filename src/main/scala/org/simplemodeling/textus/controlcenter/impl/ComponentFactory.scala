@@ -1,13 +1,15 @@
 /*
- * @version Jul. 24, 2026
+ * @version Jul. 27, 2026
  */
 package org.simplemodeling.textus.controlcenter.impl
 
+import java.net.{URI, URL}
 import java.time.{Duration, Instant}
-import java.util.UUID
+import scala.util.control.NonFatal
 
 import cats.syntax.all.*
 import org.goldenport.Consequence
+import org.goldenport.datatype.I18nLabel
 import org.goldenport.cncf.action.ActionCall
 import org.goldenport.cncf.component.{Component, ComponentCreate, ComponentId}
 import org.goldenport.cncf.directive.Query
@@ -21,33 +23,35 @@ import org.goldenport.cncf.unitofwork.ExecUowM
 import org.goldenport.protocol.{Property, Request}
 import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
+import org.goldenport.schema.XString
 import org.simplemodeling.textus.controlcenter.TextusControlCenterComponent
+import org.simplemodeling.textus.controlcenter.launcher.LauncherEvidenceSnapshotCodec
 import org.simplemodeling.textus.controlcenter.entity.{RegisteredSubsystem as RegisteredSubsystemEntity}
 import org.simplemodeling.textus.controlcenter.entity.{ManagedCar as ManagedCarEntity, ManagedCarSource as ManagedCarSourceEntity}
 import org.simplemodeling.textus.controlcenter.entity.{OperationalComponent as OperationalComponentEntity}
 import org.simplemodeling.textus.controlcenter.entity.{LifecycleRequest as LifecycleRequestEntity}
-import org.simplemodeling.textus.controlcenter.entity.{LauncherEvidenceRecord as LauncherEvidenceRecordEntity}
+import org.simplemodeling.textus.controlcenter.entity.{LauncherEvidenceSnapshot as LauncherEvidenceSnapshotEntity}
 import org.simplemodeling.textus.controlcenter.entity.create.{RegisteredSubsystem as RegisteredSubsystemCreate}
 import org.simplemodeling.textus.controlcenter.entity.create.RegisteredSubsystem.given
 import org.simplemodeling.textus.controlcenter.entity.query.{RegisteredSubsystem as RegisteredSubsystemQuery}
 import org.simplemodeling.textus.controlcenter.entity.query.{ManagedCar as ManagedCarQuery, ManagedCarSource as ManagedCarSourceQuery}
 import org.simplemodeling.textus.controlcenter.entity.query.{OperationalComponent as OperationalComponentQuery}
 import org.simplemodeling.textus.controlcenter.entity.query.{LifecycleRequest as LifecycleRequestQuery}
-import org.simplemodeling.textus.controlcenter.entity.query.{LauncherEvidenceRecord as LauncherEvidenceRecordQuery}
+import org.simplemodeling.textus.controlcenter.entity.query.{LauncherEvidenceSnapshot as LauncherEvidenceSnapshotQuery}
 import org.simplemodeling.textus.controlcenter.entity.create.{ManagedCar as ManagedCarCreate, ManagedCarSource as ManagedCarSourceCreate}
 import org.simplemodeling.textus.controlcenter.entity.create.{OperationalComponent as OperationalComponentCreate}
 import org.simplemodeling.textus.controlcenter.entity.create.{LifecycleRequest as LifecycleRequestCreate}
-import org.simplemodeling.textus.controlcenter.entity.create.{LauncherEvidenceRecord as LauncherEvidenceRecordCreate}
-import org.simplemodeling.textus.controlcenter.entity.update.{LauncherEvidenceRecord as LauncherEvidenceRecordUpdate}
+import org.simplemodeling.textus.controlcenter.entity.create.{LauncherEvidenceSnapshot as LauncherEvidenceSnapshotCreate}
+import org.simplemodeling.textus.controlcenter.entity.update.{LauncherEvidenceSnapshot as LauncherEvidenceSnapshotUpdate}
 import org.simplemodeling.textus.controlcenter.entity.update.{LifecycleRequest as LifecycleRequestUpdate, ManagedCar as ManagedCarUpdate, OperationalComponent as OperationalComponentUpdate}
+import org.simplemodeling.textus.controlcenter.datatype.{DevelopmentDirectory as DevelopmentDirectoryValue, ExecutionMode as ExecutionModeValue, LauncherEvidenceDecision as LauncherEvidenceDecisionValue, LauncherEvidenceSnapshotPayload as LauncherEvidenceSnapshotPayloadValue, LauncherKind as LauncherKindValue, LauncherState as LauncherStateValue, LifecycleAction as LifecycleActionValue, LifecycleDiagnostic as LifecycleDiagnosticValue, LifecycleDiagnosticCode as LifecycleDiagnosticCodeValue, LifecycleIdempotencyKey as LifecycleIdempotencyKeyValue, LifecycleLaunchProfileId as LifecycleLaunchProfileIdValue, LifecycleRequestId as LifecycleRequestIdValue, LifecycleRequestState as LifecycleRequestStateValue, LifecycleSupervisorId as LifecycleSupervisorIdValue, ManagedCarArtifactId as ManagedCarArtifactIdValue, ManagedCarComponentName as ManagedCarComponentNameValue, ManagedCarDiagnostic as ManagedCarDiagnosticValue, ManagedCarPrivateLocator as ManagedCarPrivateLocatorValue, ManagedCarRefreshState as ManagedCarRefreshStateValue, ManagedCarSourceId as ManagedCarSourceIdValue, ManagedCarSourceKind as ManagedCarSourceKindValue, ManagedCarVersion as ManagedCarVersionValue, OperationalManagementState as OperationalManagementStateValue, OperatorSubjectId as OperatorSubjectIdValue, RegistrationPrincipalId as RegistrationPrincipalIdValue, RuntimeVersion as RuntimeVersionValue, SubsystemInstanceId as SubsystemInstanceIdValue, SubsystemName as SubsystemNameValue, SubsystemTarget as SubsystemTargetValue, SubsystemVersion as SubsystemVersionValue}
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCar.given
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCarSource.given
 import org.simplemodeling.textus.controlcenter.entity.create.OperationalComponent.given
 import org.simplemodeling.textus.controlcenter.entity.create.LifecycleRequest.given
-import org.simplemodeling.textus.controlcenter.entity.create.LauncherEvidenceRecord.given
 import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCar as CatalogManagedCar, ManagedCarCatalog, ManagedCarSource as CatalogManagedCarSource, OperationalComponentManagement, OperationalManagementState, PublicRepositoryCatalog, RuntimeInstance, RuntimeInstanceStatus, StandaloneCatalogConfiguration, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
 import org.simplemodeling.textus.controlcenter.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
-import org.simplemodeling.textus.controlcenter.supervisor.{LifecycleSupervisorProtocol, LifecycleSupervisorRequest, LifecycleSupervisorResult}
+import org.simplemodeling.textus.controlcenter.supervisor.{EmbeddedTextusSupervisor, LauncherLifecycleTransitionExecutor, LifecycleSupervisorProtocol, LifecycleSupervisorRequest, LifecycleSupervisorResult, TextusSupervisor}
 import org.simplemodeling.textus.controlcenter.launcher.{LauncherEvidenceClient, LauncherEvidenceClientConfiguration, LauncherEvidenceEntry, LauncherLifecycleClient, LauncherLifecycleClientConfiguration}
 
 final class ComponentFactory extends Component.BundleFactory {
@@ -181,7 +185,7 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
         now = core.executionContext.clock.instant()
         next <- exec_from(SubsystemRegistry.register(current.map(to_registry), input, principal, now).fold(registry_error, Consequence.success))
         stored <- persist(next)
-        _ <- ensure_adopted_operational_component(stored.artifactId, now)
+        _ <- ensure_adopted_operational_component(stored.artifactId.map(_.value), now)
       } yield OperationResponse(safe_projection(to_registry(stored), now))
   }
 
@@ -326,7 +330,7 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
           visibilityScope = Some(EntityVisibilityScope.Public)
         )
         result <- entity_search_internal[RegisteredSubsystemEntity](query)
-      } yield result.data.filter(_.instanceId == instanceid)
+    } yield result.data.filter(_.instanceId.value == instanceid)
 
     protected final def find_registered_all: ExecUowM[Vector[RegisteredSubsystemEntity]] =
       for {
@@ -354,66 +358,80 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
     protected final def to_registry(source: RegisteredSubsystemEntity): RegistrySubsystem =
       RegistrySubsystem(
         source.protocolVersion,
-        source.instanceId,
-        source.launcherKind,
-        source.target,
-        source.artifactId,
-        source.executionMode,
-        source.developmentDirectory,
-        source.subsystemName,
-        source.subsystemVersion,
-        source.runtimeVersion,
-        source.baseUrl,
-        source.hostLabel,
+        source.instanceId.value,
+        source.launcherKind.value,
+        source.target.value,
+        source.artifactId.map(_.value),
+        source.executionMode.map(_.value),
+        source.developmentDirectory.map(_.value),
+        source.subsystemName.map(_.value),
+        source.subsystemVersion.map(_.value),
+        source.runtimeVersion.map(_.value),
+        source.baseUrl.toExternalForm,
+        source.hostLabel.toI18nString.displayMessage,
         source.startedAt,
         source.lastSeenAt,
-        source.launcherState,
-        source.registrationPrincipalId
+        source.launcherState.value,
+        source.registrationPrincipalId.value
       )
 
     protected final def to_create(
       source: RegistrySubsystem
-    ): RegisteredSubsystemCreate =
-      RegisteredSubsystemCreate(
-        None,
-        source.instanceId,
-        source.protocolVersion,
-        source.launcherKind,
-        source.target,
-        source.artifactId,
-        source.executionMode,
-        source.developmentDirectory,
-        source.subsystemName,
-        source.subsystemVersion,
-        source.runtimeVersion,
-        source.baseUrl,
-        source.hostLabel,
-        source.startedAt,
-        source.lastSeenAt,
-        source.launcherState,
-        source.registrationPrincipalId
-      )
+    ): Consequence[RegisteredSubsystemCreate] =
+      base_url(source.baseUrl).map { baseurl =>
+        RegisteredSubsystemCreate(
+          None,
+          SubsystemInstanceIdValue(source.instanceId),
+          source.protocolVersion,
+          LauncherKindValue(source.launcherKind),
+          SubsystemTargetValue(source.target),
+          source.artifactId.map(ManagedCarArtifactIdValue.apply),
+          source.executionMode.map(ExecutionModeValue.apply),
+          source.developmentDirectory.map(DevelopmentDirectoryValue.apply),
+          source.subsystemName.map(SubsystemNameValue.apply),
+          source.subsystemVersion.map(SubsystemVersionValue.apply),
+          source.runtimeVersion.map(RuntimeVersionValue.apply),
+          baseurl,
+          I18nLabel(source.hostLabel),
+          source.startedAt,
+          source.lastSeenAt,
+          LauncherStateValue(source.launcherState),
+          RegistrationPrincipalIdValue(source.registrationPrincipalId)
+        )
+      }
 
     protected final def persist(source: RegistrySubsystem): ExecUowM[RegisteredSubsystemEntity] =
-      entity_create(to_create(source)).map(result => RegisteredSubsystemEntity(
+      for {
+        create <- exec_from(to_create(source))
+        result <- entity_create(create)
+      } yield RegisteredSubsystemEntity(
         result.id,
-        source.instanceId,
+        SubsystemInstanceIdValue(source.instanceId),
         source.protocolVersion,
-        source.launcherKind,
-        source.target,
-        source.artifactId,
-        source.executionMode,
-        source.developmentDirectory,
-        source.subsystemName,
-        source.subsystemVersion,
-        source.runtimeVersion,
-        source.baseUrl,
-        source.hostLabel,
+        LauncherKindValue(source.launcherKind),
+        SubsystemTargetValue(source.target),
+        source.artifactId.map(ManagedCarArtifactIdValue.apply),
+        source.executionMode.map(ExecutionModeValue.apply),
+        source.developmentDirectory.map(DevelopmentDirectoryValue.apply),
+        source.subsystemName.map(SubsystemNameValue.apply),
+        source.subsystemVersion.map(SubsystemVersionValue.apply),
+        source.runtimeVersion.map(RuntimeVersionValue.apply),
+        create.baseUrl,
+        create.hostLabel,
         source.startedAt,
         source.lastSeenAt,
-        source.launcherState,
-        source.registrationPrincipalId
-      ))
+        LauncherStateValue(source.launcherState),
+        RegistrationPrincipalIdValue(source.registrationPrincipalId)
+      )
+
+    protected final def base_url(value: String): Consequence[URL] =
+      try {
+        val uri = URI.create(value)
+        if (Set("http", "https").contains(Option(uri.getScheme).map(_.toLowerCase).orNull) && Option(uri.getHost).exists(_.nonEmpty)) Consequence.success(uri.toURL)
+        else Consequence.valueInvalid(s"baseUrl is invalid: $value", XString)
+      } catch {
+        case NonFatal(_) => Consequence.valueInvalid(s"baseUrl is invalid: $value", XString)
+      }
 
     protected final def ensure_adopted_operational_component(artifactid: Option[String], now: Instant): ExecUowM[Unit] =
       artifactid match {
@@ -422,7 +440,7 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
             existing <- find_operational_components(value)
             _ <- latest_operational_component(existing) match {
               case Some(_) => exec_from(Consequence.unit)
-              case None => entity_create(OperationalComponentCreate(None, value, "adopted", now, now)).map(_ => ())
+        case None => entity_create(OperationalComponentCreate(None, ManagedCarArtifactIdValue(value), OperationalManagementStateValue("adopted"), now, now)).map(_ => ())
             }
           } yield ()
         case None => exec_from(Consequence.unit)
@@ -438,7 +456,7 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
           visibilityScope = Some(EntityVisibilityScope.Admin)
         )
         result <- entity_search_internal[OperationalComponentEntity](query)
-      } yield result.data.filter(_.artifactId == artifactid)
+  } yield result.data.filter(_.artifactId.value == artifactid)
 
     protected final def latest_operational_component(sources: Vector[OperationalComponentEntity]): Option[OperationalComponentEntity] =
       sources.sortBy(source => (source.lastObservedAt, source.id.print)).lastOption
@@ -555,11 +573,11 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
         _ <- exec_from(administrative_principal)
         artifactid <- exec_from(required_string(action.record, "artifactId"))
         cars <- find_managed_cars_all
-        car <- exec_from(latest_cars(cars).find(_.artifactId == artifactid).toRight(RegistryError.Missing(artifactid)).fold(registry_error, Consequence.success))
+        car <- exec_from(latest_cars(cars).find(_.artifactId.value == artifactid).toRight(RegistryError.Missing(artifactid)).fold(registry_error, Consequence.success))
         sources <- find_managed_sources_all
         registered <- find_registered_subsystems_all
         now = core.executionContext.clock.instant()
-      } yield OperationResponse(safe_car_projection(car, latest_sources(sources).filter(_.artifactId == artifactid), true, runtime_summary(car, latest_cars(cars), registered, now)))
+    } yield OperationResponse(safe_car_projection(car, latest_sources(sources).filter(_.artifactId.value == artifactid), true, runtime_summary(car, latest_cars(cars), registered, now)))
   }
 
   private trait CatalogActionSupport { self: ActionCall =>
@@ -607,77 +625,77 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
         retained = retain_source_facts(source, existingsources)
         recommended = retained.availableVersions.headOption
         latest = retained.availableVersions.lastOption
-        stored <- entity_create(ManagedCarSourceCreate(None, retained.artifactId, retained.sourceId, retained.sourceKind.mark, retained.refreshState.toString.toLowerCase, retained.componentName, recommended, latest, retained.snapshotAt, retained.diagnostic, retained.privateLocator))
-      } yield ManagedCarSourceEntity(stored.id, retained.artifactId, retained.sourceId, retained.sourceKind.mark, retained.refreshState.toString.toLowerCase, retained.componentName, recommended, latest, retained.snapshotAt, retained.diagnostic, retained.privateLocator)
+        stored <- entity_create(ManagedCarSourceCreate(None, ManagedCarArtifactIdValue(retained.artifactId), ManagedCarSourceIdValue(retained.sourceId), ManagedCarSourceKindValue(retained.sourceKind.mark), ManagedCarRefreshStateValue(retained.refreshState.toString.toLowerCase), retained.componentName.map(ManagedCarComponentNameValue.apply), recommended.map(ManagedCarVersionValue.apply), latest.map(ManagedCarVersionValue.apply), retained.snapshotAt, retained.diagnostic.map(ManagedCarDiagnosticValue.apply), retained.privateLocator.map(ManagedCarPrivateLocatorValue.apply)))
+      } yield ManagedCarSourceEntity(stored.id, ManagedCarArtifactIdValue(retained.artifactId), ManagedCarSourceIdValue(retained.sourceId), ManagedCarSourceKindValue(retained.sourceKind.mark), ManagedCarRefreshStateValue(retained.refreshState.toString.toLowerCase), retained.componentName.map(ManagedCarComponentNameValue.apply), recommended.map(ManagedCarVersionValue.apply), latest.map(ManagedCarVersionValue.apply), retained.snapshotAt, retained.diagnostic.map(ManagedCarDiagnosticValue.apply), retained.privateLocator.map(ManagedCarPrivateLocatorValue.apply))
     protected final def ensure_managed_car(source: CatalogManagedCarSource, existing: Vector[ManagedCarEntity], now: Instant): ExecUowM[Unit] =
-      existing.find(_.artifactId == source.artifactId) match {
+      existing.find(_.artifactId.value == source.artifactId) match {
         case Some(car) =>
           for {
-            patch <- exec_from(managed_car_update(source.componentName.orElse(car.componentName), now))
+            patch <- exec_from(managed_car_update(source.componentName.orElse(car.componentName.map(_.value)), now))
             _ <- entity_update(car.id, patch)
           } yield ()
-        case None => entity_create(ManagedCarCreate(None, source.artifactId, source.componentName, now, now)).map(_ => ())
+        case None => entity_create(ManagedCarCreate(None, ManagedCarArtifactIdValue(source.artifactId), source.componentName.map(ManagedCarComponentNameValue.apply), now, now)).map(_ => ())
       }
     protected final def ensure_auto_managed_operational_component(source: CatalogManagedCarSource, now: Instant): ExecUowM[Unit] =
       if (source.sourceKind == org.simplemodeling.textus.controlcenter.catalog.ManagedCarSourceKind.Development) {
         for {
           existing <- find_operational_components(source.artifactId)
           _ <- latest_operational_component(existing) match {
-            case Some(component) if component.managementState == "excluded" => exec_from(Consequence.unit)
+            case Some(component) if component.managementState.value == "excluded" => exec_from(Consequence.unit)
             case Some(component) =>
               for {
                 patch <- exec_from(operational_component_update("auto-managed", now))
                 _ <- entity_update(component.id, patch)
               } yield ()
-            case None => entity_create(OperationalComponentCreate(None, source.artifactId, "auto-managed", now, now)).map(_ => ())
+            case None => entity_create(OperationalComponentCreate(None, ManagedCarArtifactIdValue(source.artifactId), OperationalManagementStateValue("auto-managed"), now, now)).map(_ => ())
           }
         } yield ()
       } else {
         exec_from(Consequence.unit)
       }
     protected final def find_operational_components(artifactid: String): ExecUowM[Vector[OperationalComponentEntity]] =
-      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "OperationalComponent")); query = EntityQuery[OperationalComponentEntity](OperationalComponentQuery.collectionId, fields.rewrite(Query.fromRecord(Record.dataAuto("artifactId" -> artifactid))), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[OperationalComponentEntity](query) } yield result.data.filter(_.artifactId == artifactid)
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "OperationalComponent")); query = EntityQuery[OperationalComponentEntity](OperationalComponentQuery.collectionId, fields.rewrite(Query.fromRecord(Record.dataAuto("artifactId" -> artifactid))), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[OperationalComponentEntity](query) } yield result.data.filter(_.artifactId.value == artifactid)
     protected final def latest_operational_component(sources: Vector[OperationalComponentEntity]): Option[OperationalComponentEntity] =
       sources.sortBy(source => (source.lastObservedAt, source.id.print)).lastOption
     protected final def managed_car_update(componentname: Option[String], now: Instant): Consequence[ManagedCarUpdate] =
       componentname match {
-        case Some(value) => new ManagedCarUpdate.Builder().withComponentName(value).withLastObservedAt(now).buildC()
+        case Some(value) => new ManagedCarUpdate.Builder().withComponentName(ManagedCarComponentNameValue(value)).withLastObservedAt(now).buildC()
         case None => new ManagedCarUpdate.Builder().withLastObservedAt(now).buildC()
       }
     protected final def operational_component_update(managementstate: String, now: Instant): Consequence[OperationalComponentUpdate] =
-      new OperationalComponentUpdate.Builder().withManagementState(managementstate).withLastObservedAt(now).buildC()
+      new OperationalComponentUpdate.Builder().withManagementState(OperationalManagementStateValue(managementstate)).withLastObservedAt(now).buildC()
     protected final def retain_source_facts(source: CatalogManagedCarSource, existing: Vector[ManagedCarSourceEntity]): CatalogManagedCarSource =
       if (source.refreshState == org.simplemodeling.textus.controlcenter.catalog.ManagedCarRefreshState.Available) source
-      else latest_sources(existing).find(current => current.artifactId == source.artifactId && current.sourceId == source.sourceId) match {
+      else latest_sources(existing).find(current => current.artifactId.value == source.artifactId && current.sourceId.value == source.sourceId) match {
         case Some(current) => source.copy(
-          componentName = source.componentName.orElse(current.componentName),
-          availableVersions = if (source.availableVersions.nonEmpty) source.availableVersions else Vector(current.recommendedVersion, current.latestVersion).flatten.distinct
+          componentName = source.componentName.orElse(current.componentName.map(_.value)),
+          availableVersions = if (source.availableVersions.nonEmpty) source.availableVersions else Vector(current.recommendedVersion, current.latestVersion).flatten.map(_.value).distinct
         )
         case None => source
       }
     protected final def latest_cars(sources: Vector[ManagedCarEntity]): Vector[ManagedCarEntity] =
-      sources.groupBy(_.artifactId).valuesIterator.flatMap(_.sortBy(source => (source.lastObservedAt, source.id.print)).lastOption).toVector.sortBy(_.artifactId)
+      sources.groupBy(_.artifactId.value).valuesIterator.flatMap(_.sortBy(source => (source.lastObservedAt, source.id.print)).lastOption).toVector.sortBy(_.artifactId.value)
     protected final def latest_sources(sources: Vector[ManagedCarSourceEntity]): Vector[ManagedCarSourceEntity] =
-      sources.groupBy(source => (source.artifactId, source.sourceId)).valuesIterator.flatMap(_.sortBy(source => (source.snapshotAt, source.id.print)).lastOption).toVector.sortBy(source => (source.artifactId, source.sourceKind, source.sourceId))
+      sources.groupBy(source => (source.artifactId.value, source.sourceId.value)).valuesIterator.flatMap(_.sortBy(source => (source.snapshotAt, source.id.print)).lastOption).toVector.sortBy(source => (source.artifactId.value, source.sourceKind.value, source.sourceId.value))
     protected final def latest_registered_subsystems(sources: Vector[RegisteredSubsystemEntity]): Vector[RegisteredSubsystemEntity] =
-      sources.groupBy(_.instanceId).valuesIterator.flatMap(_.sortBy(source => (source.lastSeenAt, source.id.print)).lastOption).toVector.sortBy(_.instanceId)
+      sources.groupBy(_.instanceId.value).valuesIterator.flatMap(_.sortBy(source => (source.lastSeenAt, source.id.print)).lastOption).toVector.sortBy(_.instanceId.value)
     protected final def runtime_summary(car: ManagedCarEntity, cars: Vector[ManagedCarEntity], registered: Vector[RegisteredSubsystemEntity], now: Instant) = {
-      val catalogcars = cars.map(source => CatalogManagedCar(source.artifactId, source.componentName, source.componentName.toSet, Vector.empty, Vector.empty))
+      val catalogcars = cars.map(source => CatalogManagedCar(source.artifactId.value, source.componentName.map(_.value), source.componentName.map(_.value).toSet, Vector.empty, Vector.empty))
       val instances = latest_registered_subsystems(registered).map { source =>
-        val registry = RegistrySubsystem(source.protocolVersion, source.instanceId, source.launcherKind, source.target, source.artifactId, source.executionMode, source.developmentDirectory, source.subsystemName, source.subsystemVersion, source.runtimeVersion, source.baseUrl, source.hostLabel, source.startedAt, source.lastSeenAt, source.launcherState, source.registrationPrincipalId)
+        val registry = RegistrySubsystem(source.protocolVersion, source.instanceId.value, source.launcherKind.value, source.target.value, source.artifactId.map(_.value), source.executionMode.map(_.value), source.developmentDirectory.map(_.value), source.subsystemName.map(_.value), source.subsystemVersion.map(_.value), source.runtimeVersion.map(_.value), source.baseUrl.toExternalForm, source.hostLabel.toI18nString.displayMessage, source.startedAt, source.lastSeenAt, source.launcherState.value, source.registrationPrincipalId.value)
         val status = SubsystemRegistry.projection(registry, now, Duration.ofSeconds(90)).toOption.map(_.status) match {
           case Some(SubsystemRegistry.running) => RuntimeInstanceStatus.Running
           case Some(SubsystemRegistry.starting) => RuntimeInstanceStatus.Starting
           case Some(SubsystemRegistry.stale) => RuntimeInstanceStatus.Stale
           case _ => RuntimeInstanceStatus.Stopped
         }
-        RuntimeInstance(source.instanceId, source.artifactId, source.target, source.subsystemName, status)
+        RuntimeInstance(source.instanceId.value, source.artifactId.map(_.value), source.target.value, source.subsystemName.map(_.value), status)
       }
-      ManagedCarCatalog.runtimeSummary(car.artifactId, instances, ManagedCarCatalog.linkRuntimeInstances(catalogcars, instances))
+      ManagedCarCatalog.runtimeSummary(car.artifactId.value, instances, ManagedCarCatalog.linkRuntimeInstances(catalogcars, instances))
     }
     protected final def safe_car_projection(car: ManagedCarEntity, sources: Vector[ManagedCarSourceEntity], detail: Boolean, runtime: org.simplemodeling.textus.controlcenter.catalog.ManagedCarRuntimeSummary): Record =
-      Record.dataAuto("artifactId" -> car.artifactId, "componentName" -> car.componentName, "createdAt" -> car.firstObservedAt, "updatedAt" -> car.lastObservedAt, "runtimeState" -> (runtime.state match { case org.simplemodeling.textus.controlcenter.catalog.ManagedCarRuntimeState.NotRunning => "not-running"; case state => state.toString.toLowerCase }), "activeInstanceIds" -> runtime.activeInstanceIds, "staleInstanceIds" -> runtime.staleInstanceIds, "sources" -> sources.map(source => Record.dataAuto("sourceId" -> source.sourceId, "sourceKind" -> source.sourceKind, "refreshState" -> source.refreshState, "componentName" -> source.componentName, "recommendedVersion" -> source.recommendedVersion, "latestVersion" -> source.latestVersion, "snapshotAt" -> source.snapshotAt, "diagnostic" -> source.diagnostic, "privateLocator" -> (if (detail) source.privateLocator else None))))
-    protected final def matches_text(car: ManagedCarEntity, text: String): Boolean = Vector(car.artifactId).concat(car.componentName.toVector).exists(_.toLowerCase.contains(text))
+      Record.dataAuto("artifactId" -> car.artifactId.value, "componentName" -> car.componentName.map(_.value), "createdAt" -> car.firstObservedAt, "updatedAt" -> car.lastObservedAt, "runtimeState" -> (runtime.state match { case org.simplemodeling.textus.controlcenter.catalog.ManagedCarRuntimeState.NotRunning => "not-running"; case state => state.toString.toLowerCase }), "activeInstanceIds" -> runtime.activeInstanceIds, "staleInstanceIds" -> runtime.staleInstanceIds, "sources" -> sources.map(source => Record.dataAuto("sourceId" -> source.sourceId.value, "sourceKind" -> source.sourceKind.value, "refreshState" -> source.refreshState.value, "componentName" -> source.componentName.map(_.value), "recommendedVersion" -> source.recommendedVersion.map(_.value), "latestVersion" -> source.latestVersion.map(_.value), "snapshotAt" -> source.snapshotAt, "diagnostic" -> source.diagnostic.map(_.value), "privateLocator" -> (if (detail) source.privateLocator.map(_.value) else None))))
+    protected final def matches_text(car: ManagedCarEntity, text: String): Boolean = Vector(car.artifactId.value).concat(car.componentName.map(_.value).toVector).exists(_.toLowerCase.contains(text))
   }
 }
 
@@ -706,7 +724,7 @@ final class OperationalManagementServiceFactoryImpl extends TextusControlCenterC
         text = action.record.getString("text").map(_.trim.toLowerCase).filter(_.nonEmpty)
         offset = action.record.getInt("offset").getOrElse(0).max(0)
         limit = action.record.getInt("limit").getOrElse(100).max(0)
-        filtered = latest_operational_components(components).filter(component => component.managementState != "excluded" && text.forall(value => component.artifactId.toLowerCase.contains(value)))
+        filtered = latest_operational_components(components).filter(component => component.managementState.value != "excluded" && text.forall(value => component.artifactId.value.toLowerCase.contains(value)))
         page = filtered.drop(offset).take(limit)
       } yield OperationResponse(Record.dataAuto("data" -> page.map(safe_projection), "totalCount" -> filtered.size, "offset" -> offset, "limit" -> limit))
   }
@@ -733,7 +751,7 @@ final class OperationalManagementServiceFactoryImpl extends TextusControlCenterC
         now = core.executionContext.clock.instant()
         patch <- exec_from(operational_component_update("excluded", now))
         _ <- entity_update(component.id, patch)
-        stored = component.copy(managementState = "excluded", lastObservedAt = now)
+        stored = component.copy(managementState = OperationalManagementStateValue("excluded"), lastObservedAt = now)
       } yield OperationResponse(safe_projection(stored))
   }
 
@@ -747,13 +765,13 @@ final class OperationalManagementServiceFactoryImpl extends TextusControlCenterC
         component <- exec_from(latest_operational_component(components).toRight(RegistryError.Missing(artifactid)).fold(registry_error, Consequence.success))
         sources <- find_managed_sources_all
         registered <- find_registered_subsystems_all
-        developmentavailable = latest_managed_sources(sources).exists(source => source.artifactId == artifactid && source.sourceKind == "DEV" && source.refreshState == "available")
-        accepteduse = registered.exists(_.artifactId.contains(artifactid))
+        developmentavailable = latest_managed_sources(sources).exists(source => source.artifactId.value == artifactid && source.sourceKind.value == "DEV" && source.refreshState.value == "available")
+        accepteduse = registered.exists(_.artifactId.exists(_.value == artifactid))
         state <- exec_from(OperationalComponentManagement.reconcile(Some(OperationalManagementState.Excluded), developmentavailable, accepteduse, exclusionrecordexists = false).toRight("No development source or accepted launcher use evidence exists.").fold(Consequence.operationInvalid, Consequence.success))
         now = core.executionContext.clock.instant()
         patch <- exec_from(operational_component_update(state.mark, now))
         _ <- entity_update(component.id, patch)
-        stored = component.copy(managementState = state.mark, lastObservedAt = now)
+        stored = component.copy(managementState = OperationalManagementStateValue(state.mark), lastObservedAt = now)
       } yield OperationResponse(safe_projection(stored))
   }
 
@@ -771,7 +789,7 @@ final class OperationalManagementServiceFactoryImpl extends TextusControlCenterC
       case _ => Consequence.operationInvalid(error.message)
     }
     protected final def find_operational_components(artifactid: String): ExecUowM[Vector[OperationalComponentEntity]] =
-      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "OperationalComponent")); query = EntityQuery[OperationalComponentEntity](OperationalComponentQuery.collectionId, fields.rewrite(Query.fromRecord(Record.dataAuto("artifactId" -> artifactid))), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[OperationalComponentEntity](query) } yield result.data.filter(_.artifactId == artifactid)
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "OperationalComponent")); query = EntityQuery[OperationalComponentEntity](OperationalComponentQuery.collectionId, fields.rewrite(Query.fromRecord(Record.dataAuto("artifactId" -> artifactid))), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[OperationalComponentEntity](query) } yield result.data.filter(_.artifactId.value == artifactid)
     protected final def find_operational_components_all: ExecUowM[Vector[OperationalComponentEntity]] =
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "OperationalComponent")); query = EntityQuery[OperationalComponentEntity](OperationalComponentQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[OperationalComponentEntity](query) } yield result.data
     protected final def find_managed_sources_all: ExecUowM[Vector[ManagedCarSourceEntity]] =
@@ -779,11 +797,11 @@ final class OperationalManagementServiceFactoryImpl extends TextusControlCenterC
     protected final def find_registered_subsystems_all: ExecUowM[Vector[RegisteredSubsystemEntity]] =
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "RegisteredSubsystem")); query = EntityQuery[RegisteredSubsystemEntity](RegisteredSubsystemQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[RegisteredSubsystemEntity](query) } yield result.data
     protected final def latest_operational_component(sources: Vector[OperationalComponentEntity]): Option[OperationalComponentEntity] = sources.sortBy(source => (source.lastObservedAt, source.id.print)).lastOption
-    protected final def latest_operational_components(sources: Vector[OperationalComponentEntity]): Vector[OperationalComponentEntity] = sources.groupBy(_.artifactId).valuesIterator.flatMap(latest_operational_component).toVector.sortBy(_.artifactId)
+    protected final def latest_operational_components(sources: Vector[OperationalComponentEntity]): Vector[OperationalComponentEntity] = sources.groupBy(_.artifactId.value).valuesIterator.flatMap(latest_operational_component).toVector.sortBy(_.artifactId.value)
     protected final def latest_managed_sources(sources: Vector[ManagedCarSourceEntity]): Vector[ManagedCarSourceEntity] = sources.groupBy(source => (source.artifactId, source.sourceId)).valuesIterator.flatMap(source => source.sortBy(value => (value.snapshotAt, value.id.print)).lastOption).toVector
     protected final def operational_component_update(managementstate: String, now: Instant): Consequence[OperationalComponentUpdate] =
-      new OperationalComponentUpdate.Builder().withManagementState(managementstate).withLastObservedAt(now).buildC()
-    protected final def safe_projection(component: OperationalComponentEntity): Record = Record.dataAuto("artifactId" -> component.artifactId, "managementState" -> component.managementState, "firstManagedAt" -> component.firstManagedAt, "lastObservedAt" -> component.lastObservedAt)
+      new OperationalComponentUpdate.Builder().withManagementState(OperationalManagementStateValue(managementstate)).withLastObservedAt(now).buildC()
+    protected final def safe_projection(component: OperationalComponentEntity): Record = Record.dataAuto("artifactId" -> component.artifactId.value, "managementState" -> component.managementState.value, "firstManagedAt" -> component.firstManagedAt, "lastObservedAt" -> component.lastObservedAt)
   }
 }
 
@@ -807,8 +825,9 @@ final class LauncherEvidenceServiceFactoryImpl extends TextusControlCenterCompon
         existing <- find_all
         registered <- find_registered_subsystems_all
         now = core.executionContext.clock.instant()
-        records <- projection.entries.traverse(entry => retain(entry, existing, registered.filterNot(_.launcherState == "stopped").map(_.instanceId).toSet, now))
-      } yield OperationResponse(Record.dataAuto("data" -> records.map(safe_projection), "totalCount" -> records.size, "observedAt" -> now))
+        records <- projection.entries.traverse(entry => retain(entry, existing, registered.filterNot(_.launcherState.value == "stopped").map(_.instanceId.value).toSet, now))
+        snapshots <- exec_from(records.traverse(snapshot_payload))
+      } yield OperationResponse(Record.dataAuto("data" -> snapshots.map(safe_projection), "totalCount" -> snapshots.size, "observedAt" -> now))
   }
 
   private final case class ListLauncherEvidenceActionCallImpl(core: ActionCall.Core, override val action: ListLauncherEvidence)
@@ -820,7 +839,10 @@ final class LauncherEvidenceServiceFactoryImpl extends TextusControlCenterCompon
         text = action.record.getString("text").map(_.trim.toLowerCase).filter(_.nonEmpty)
         offset = action.record.getInt("offset").getOrElse(0).max(0)
         limit = action.record.getInt("limit").getOrElse(100).max(0)
-        records = latest(values).filter(record => text.forall(value => Vector(record.instanceId, record.launcherKind, record.target).exists(_.toLowerCase.contains(value))))
+        snapshots <- exec_from(latest(values).traverse(snapshot_payload))
+        records = snapshots.filter { record =>
+          text.forall(value => Vector(record.launcherKind, record.target, record.instanceId).exists(_.toLowerCase.contains(value)))
+        }
         page = records.drop(offset).take(limit)
       } yield OperationResponse(Record.dataAuto("data" -> page.map(safe_projection), "totalCount" -> records.size, "offset" -> offset, "limit" -> limit))
   }
@@ -832,24 +854,25 @@ final class LauncherEvidenceServiceFactoryImpl extends TextusControlCenterCompon
         _ <- exec_from(administrative_principal)
         instanceid <- exec_from(required_string(action.record, "instanceId"))
         values <- find_all
-        record <- exec_from(latest(values).find(_.instanceId == instanceid).toRight(instanceid).fold(Consequence.resourceNotFound, Consequence.success))
+        record <- exec_from(latest(values).find(_.instanceId.value == instanceid).toRight(instanceid).fold(Consequence.resourceNotFound, Consequence.success))
+        snapshot <- exec_from(snapshot_payload(record))
         detail = launcher_evidence_client.toOption.flatMap(_.detail(instanceid).toOption)
       } yield OperationResponse(Record.dataAuto(
-        "instanceId" -> record.instanceId,
-        "launcherKind" -> record.launcherKind,
-        "target" -> record.target,
-        "artifactId" -> record.artifactId,
-        "executionMode" -> record.executionMode,
-        "subsystemName" -> record.subsystemName,
-        "subsystemVersion" -> record.subsystemVersion,
-        "runtimeVersion" -> record.runtimeVersion,
-        "startedAt" -> record.startedAt,
-        "lastSeenAt" -> record.lastSeenAt,
-        "stoppedAt" -> record.stoppedAt,
-        "evidenceDecision" -> record.evidenceDecision,
+        "instanceId" -> snapshot.instanceId,
+        "launcherKind" -> snapshot.launcherKind,
+        "target" -> snapshot.target,
+        "artifactId" -> snapshot.artifactId.orNull,
+        "executionMode" -> snapshot.executionMode,
+        "subsystemName" -> snapshot.subsystemName.orNull,
+        "subsystemVersion" -> snapshot.subsystemVersion.orNull,
+        "runtimeVersion" -> snapshot.runtimeVersion,
+        "startedAt" -> snapshot.startedAt,
+        "lastSeenAt" -> snapshot.lastSeenAt,
+        "stoppedAt" -> snapshot.stoppedAt.orNull,
+        "evidenceDecision" -> snapshot.evidenceDecision,
         "observedAt" -> record.observedAt,
-        "developmentDirectory" -> detail.flatMap(_.entry.developmentDirectory),
-        "detailDiagnostic" -> (if (detail.isDefined) None else Some("launcher-evidence-detail-unavailable"))
+        "developmentDirectory" -> detail.flatMap(_.entry.developmentDirectory).orNull,
+        "detailDiagnostic" -> (if (detail.isDefined) None else Some("launcher-evidence-detail-unavailable")).orNull
       ))
   }
 
@@ -866,28 +889,29 @@ final class LauncherEvidenceServiceFactoryImpl extends TextusControlCenterCompon
       val props = Vector(LauncherEvidenceClientConfiguration.Command, LauncherEvidenceClientConfiguration.Timeout).flatMap(key => config_string(key).map(key -> _)).toMap
       LauncherEvidenceClientConfiguration.fromProperties(props).map(LauncherEvidenceClient(_))
     }
-    protected final def find_all: ExecUowM[Vector[LauncherEvidenceRecordEntity]] =
-      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "LauncherEvidenceRecord")); query = EntityQuery[LauncherEvidenceRecordEntity](LauncherEvidenceRecordQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[LauncherEvidenceRecordEntity](query) } yield result.data
+    protected final def find_all: ExecUowM[Vector[LauncherEvidenceSnapshotEntity]] =
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "LauncherEvidenceSnapshot")); query = EntityQuery[LauncherEvidenceSnapshotEntity](LauncherEvidenceSnapshotQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[LauncherEvidenceSnapshotEntity](query) } yield result.data
     protected final def find_registered_subsystems_all: ExecUowM[Vector[RegisteredSubsystemEntity]] =
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "RegisteredSubsystem")); query = EntityQuery[RegisteredSubsystemEntity](RegisteredSubsystemQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[RegisteredSubsystemEntity](query) } yield result.data
     protected final def find_operational_components(artifactid: String): ExecUowM[Vector[OperationalComponentEntity]] =
-      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "OperationalComponent")); query = EntityQuery[OperationalComponentEntity](OperationalComponentQuery.collectionId, fields.rewrite(Query.fromRecord(Record.dataAuto("artifactId" -> artifactid))), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[OperationalComponentEntity](query) } yield result.data.filter(_.artifactId == artifactid)
-    protected final def latest(values: Vector[LauncherEvidenceRecordEntity]): Vector[LauncherEvidenceRecordEntity] =
-      values.groupBy(_.instanceId).valuesIterator.flatMap(_.sortBy(value => (value.observedAt, value.id.print)).lastOption).toVector.sortBy(value => (value.target, value.instanceId))
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "OperationalComponent")); query = EntityQuery[OperationalComponentEntity](OperationalComponentQuery.collectionId, fields.rewrite(Query.fromRecord(Record.dataAuto("artifactId" -> artifactid))), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[OperationalComponentEntity](query) } yield result.data.filter(_.artifactId.value == artifactid)
+    protected final def latest(values: Vector[LauncherEvidenceSnapshotEntity]): Vector[LauncherEvidenceSnapshotEntity] =
+      values.groupBy(_.instanceId.value).valuesIterator.flatMap(_.sortBy(value => (value.observedAt, value.id.print)).lastOption).toVector.sortBy(_.instanceId.value)
     protected final def latest_operational_component(values: Vector[OperationalComponentEntity]): Option[OperationalComponentEntity] =
       values.sortBy(value => (value.lastObservedAt, value.id.print)).lastOption
-    protected final def retain(entry: LauncherEvidenceEntry, existing: Vector[LauncherEvidenceRecordEntity], registeredids: Set[String], now: Instant): ExecUowM[LauncherEvidenceRecordEntity] = {
+    protected final def retain(entry: LauncherEvidenceEntry, existing: Vector[LauncherEvidenceSnapshotEntity], registeredids: Set[String], now: Instant): ExecUowM[LauncherEvidenceSnapshotEntity] = {
       val decision = if (entry.stoppedAt.isDefined) "historical-stopped" else if (registeredids.contains(entry.instanceId)) "current-registered" else "current-evidence-only"
+      val snapshot = snapshot_payload(entry, decision, now)
       for {
-        record <- latest(existing).find(_.instanceId == entry.instanceId) match {
+        record <- latest(existing).find(_.instanceId.value == entry.instanceId) match {
           case Some(current) =>
             for {
-              patch <- exec_from(new LauncherEvidenceRecordUpdate.Builder().withLauncherKind(entry.launcherKind).withTarget(entry.target).withArtifactId(entry.artifactId.fold(org.simplemodeling.model.directive.Update.setNull[String])(org.simplemodeling.model.directive.Update.set)).withExecutionMode(entry.executionMode).withSubsystemName(entry.subsystemName.fold(org.simplemodeling.model.directive.Update.setNull[String])(org.simplemodeling.model.directive.Update.set)).withSubsystemVersion(entry.subsystemVersion.fold(org.simplemodeling.model.directive.Update.setNull[String])(org.simplemodeling.model.directive.Update.set)).withRuntimeVersion(entry.runtimeVersion).withStartedAt(entry.startedAt).withLastSeenAt(entry.lastSeenAt).withStoppedAt(entry.stoppedAt.fold(org.simplemodeling.model.directive.Update.setNull[Instant])(org.simplemodeling.model.directive.Update.set)).withEvidenceDecision(decision).withObservedAt(now).buildC())
+              patch <- exec_from(new LauncherEvidenceSnapshotUpdate.Builder().withSnapshotPayload(LauncherEvidenceSnapshotPayloadValue(snapshot)).withObservedAt(now).buildC())
               _ <- entity_update(current.id, patch)
-            } yield current.copy(launcherKind = entry.launcherKind, target = entry.target, artifactId = entry.artifactId, executionMode = entry.executionMode, subsystemName = entry.subsystemName, subsystemVersion = entry.subsystemVersion, runtimeVersion = entry.runtimeVersion, startedAt = entry.startedAt, lastSeenAt = entry.lastSeenAt, stoppedAt = entry.stoppedAt, evidenceDecision = decision, observedAt = now)
+            } yield current.copy(snapshotPayload = LauncherEvidenceSnapshotPayloadValue(snapshot), observedAt = now)
           case None =>
-            entity_create(LauncherEvidenceRecordCreate(None, entry.instanceId, entry.launcherKind, entry.target, entry.artifactId, entry.executionMode, None, entry.subsystemName, entry.subsystemVersion, entry.runtimeVersion, entry.startedAt, entry.lastSeenAt, entry.stoppedAt, decision, now)).map { stored =>
-              LauncherEvidenceRecordEntity(stored.id, entry.instanceId, entry.launcherKind, entry.target, entry.artifactId, entry.executionMode, None, entry.subsystemName, entry.subsystemVersion, entry.runtimeVersion, entry.startedAt, entry.lastSeenAt, entry.stoppedAt, decision, now)
+            entity_create(LauncherEvidenceSnapshotCreate(None, SubsystemInstanceIdValue(entry.instanceId), LauncherEvidenceSnapshotPayloadValue(snapshot), now)).map { stored =>
+              LauncherEvidenceSnapshotEntity(stored.id, SubsystemInstanceIdValue(entry.instanceId), LauncherEvidenceSnapshotPayloadValue(snapshot), now)
             }
         }
         _ <- entry.artifactId match {
@@ -901,14 +925,18 @@ final class LauncherEvidenceServiceFactoryImpl extends TextusControlCenterCompon
         components <- find_operational_components(artifactid)
         _ <- latest_operational_component(components) match {
           case Some(_) => exec_pure(())
-          case None => entity_create(OperationalComponentCreate(None, artifactid, "adopted", now, now)).map(_ => ())
+          case None => entity_create(OperationalComponentCreate(None, ManagedCarArtifactIdValue(artifactid), OperationalManagementStateValue("adopted"), now, now)).map(_ => ())
         }
       } yield ()
-    protected final def safe_projection(record: LauncherEvidenceRecordEntity): Record = Record.dataAuto(
-      "instanceId" -> record.instanceId, "launcherKind" -> record.launcherKind, "target" -> record.target, "artifactId" -> record.artifactId,
-      "executionMode" -> record.executionMode, "subsystemName" -> record.subsystemName, "subsystemVersion" -> record.subsystemVersion,
+    protected final def snapshot_payload(entry: LauncherEvidenceEntry, decision: String, observedat: Instant): String =
+      LauncherEvidenceSnapshotCodec.encode(entry, decision, observedat)
+    protected final def snapshot_payload(record: LauncherEvidenceSnapshotEntity): Consequence[LauncherEvidenceSnapshotCodec.Snapshot] =
+      LauncherEvidenceSnapshotCodec.decode(record.snapshotPayload.value)
+    protected final def safe_projection(record: LauncherEvidenceSnapshotCodec.Snapshot): Record = Record.dataAuto(
+      "instanceId" -> record.instanceId, "launcherKind" -> record.launcherKind, "target" -> record.target, "artifactId" -> record.artifactId.orNull,
+      "executionMode" -> record.executionMode, "subsystemName" -> record.subsystemName.orNull, "subsystemVersion" -> record.subsystemVersion.orNull,
       "runtimeVersion" -> record.runtimeVersion, "startedAt" -> record.startedAt, "lastSeenAt" -> record.lastSeenAt,
-      "stoppedAt" -> record.stoppedAt, "evidenceDecision" -> record.evidenceDecision, "observedAt" -> record.observedAt
+      "stoppedAt" -> record.stoppedAt.orNull, "evidenceDecision" -> record.evidenceDecision, "observedAt" -> record.observedAt
     )
   }
 }
@@ -951,7 +979,7 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         _ <- exec_from(administrative_principal)
         requestid <- exec_from(required_string(action.record, "requestId"))
         requests <- find_lifecycle_requests_all
-        request <- exec_from(requests.find(_.requestId == requestid).toRight(requestid).fold(Consequence.resourceNotFound, Consequence.success))
+        request <- exec_from(requests.find(_.requestId.value == requestid).toRight(requestid).fold(Consequence.resourceNotFound, Consequence.success))
         result <- dispatch_lifecycle_request(request)
       } yield OperationResponse(safe_projection(result))
   }
@@ -981,8 +1009,8 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         _ <- exec_from(administrative_principal)
         requestid <- exec_from(required_string(action.record, "requestId"))
         requests <- find_lifecycle_requests_all
-        request <- exec_from(requests.find(_.requestId == requestid).toRight(requestid).fold(Consequence.resourceNotFound, Consequence.success))
-        reconciled <- if (request.requestState == "queued") reconcile_lifecycle_request(request) else exec_pure(request)
+        request <- exec_from(requests.find(_.requestId.value == requestid).toRight(requestid).fold(Consequence.resourceNotFound, Consequence.success))
+        reconciled <- if (request.requestState.value == "queued") reconcile_lifecycle_request(request) else exec_pure(request)
       } yield OperationResponse(safe_projection(reconciled))
   }
 
@@ -993,7 +1021,7 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         artifactid <- exec_from(required_string(record, "artifactId"))
         idempotencykey <- exec_from(required_string(record, "idempotencyKey"))
         requests <- find_lifecycle_requests(artifactid)
-        response <- requests.find(value => value.lifecycleAction == actionname && value.idempotencyKey == idempotencykey) match {
+        response <- requests.find(value => value.lifecycleAction.value == actionname && value.idempotencyKey.value == idempotencykey) match {
           case Some(existing) => exec_pure(OperationResponse(safe_projection(existing)))
           case None => _create_lifecycle_request(artifactid, actionname, idempotencykey)
         }
@@ -1006,66 +1034,66 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         now = core.executionContext.clock.instant()
         launcherconfiguration = launcher_lifecycle_configuration
         deadlineat = now.plus(launcherconfiguration.toOption.map(_.timeout).getOrElse(Duration.ofSeconds(5)))
-        queued = component.managementState != "excluded" && launcherconfiguration.isRight
+        queued = component.managementState.value != "excluded" && launcherconfiguration.isRight
         state = if (queued) "queued" else "rejected"
         diagnostic = if (queued) None else Some(lifecycle_diagnostic(component, launcherconfiguration))
         completedat = if (queued) None else Some(now)
-        requestid = UUID.randomUUID().toString
+        requestid = core.executionContext.idGeneration.opaqueId("lifecycle-request")
         stored <- entity_create(LifecycleRequestCreate(
           None,
-          requestid,
-          artifactid,
-          actionname,
-          state,
-          idempotencykey,
+          LifecycleRequestIdValue(requestid),
+          ManagedCarArtifactIdValue(artifactid),
+          LifecycleActionValue(actionname),
+          LifecycleRequestStateValue(state),
+          LifecycleIdempotencyKeyValue(idempotencykey),
           now,
           deadlineat,
           None,
           completedat,
           None,
-          diagnostic,
-          diagnostic,
-          executionContext.security.principal.id.value,
+          diagnostic.map(LifecycleDiagnosticCodeValue.apply),
+          diagnostic.map(LifecycleDiagnosticValue.apply),
+          OperatorSubjectIdValue(executionContext.security.principal.id.value),
           None,
           None
         ))
         request = LifecycleRequestEntity(
           stored.id,
-          requestid,
-          artifactid,
-          actionname,
-          state,
-          idempotencykey,
+          LifecycleRequestIdValue(requestid),
+          ManagedCarArtifactIdValue(artifactid),
+          LifecycleActionValue(actionname),
+          LifecycleRequestStateValue(state),
+          LifecycleIdempotencyKeyValue(idempotencykey),
           now,
           deadlineat,
           None,
           completedat,
           None,
-          diagnostic,
-          diagnostic,
-          executionContext.security.principal.id.value,
+          diagnostic.map(LifecycleDiagnosticCodeValue.apply),
+          diagnostic.map(LifecycleDiagnosticValue.apply),
+          OperatorSubjectIdValue(executionContext.security.principal.id.value),
           None,
           None
         )
-        _ <- if (queued) exec_from(stage_lifecycle_dispatch_event(request.requestId)) else exec_pure(())
+        _ <- if (queued) exec_from(stage_lifecycle_dispatch_event(request.requestId.value)) else exec_pure(())
       } yield OperationResponse(safe_projection(request))
 
     protected final def dispatch_lifecycle_request(request: LifecycleRequestEntity): ExecUowM[LifecycleRequestEntity] =
-      if (request.requestState != "queued") exec_pure(request)
+      if (request.requestState.value != "queued") exec_pure(request)
       else {
         val now = core.executionContext.clock.instant()
         val launcherconfiguration = launcher_lifecycle_configuration
         val protocolrequest = LifecycleSupervisorRequest(
-          request.requestId,
-          request.idempotencyKey,
-          request.artifactId,
-          request.lifecycleAction,
-          request.operatorSubjectId,
+          request.requestId.value,
+          request.idempotencyKey.value,
+          request.artifactId.value,
+          request.lifecycleAction.value,
+          request.operatorSubjectId.value,
           request.deadlineAt
         )
         val result = launcherconfiguration match {
-          case Right(configuration) => submit_lifecycle_request(configuration, protocolrequest, now)
-          case Left(code) => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.getOrElse(""), code, now)
+          case Right(configuration) => textus_supervisor(configuration).submit(protocolrequest, now)
+          case Left(code) => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.map(_.value).getOrElse(""), code, now)
         }
         for {
           patch <- exec_from(lifecycle_request_update(result))
@@ -1074,50 +1102,43 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
       }
 
     protected final def reconcile_lifecycle_request(request: LifecycleRequestEntity): ExecUowM[LifecycleRequestEntity] =
-      if (request.requestState != "queued") exec_pure(request)
+      if (request.requestState.value != "queued") exec_pure(request)
       else {
         val now = core.executionContext.clock.instant()
         val launcherconfiguration = launcher_lifecycle_configuration
-        val protocolrequest = LifecycleSupervisorRequest(request.requestId, request.idempotencyKey, request.artifactId, request.lifecycleAction, request.operatorSubjectId, request.deadlineAt)
+        val protocolrequest = LifecycleSupervisorRequest(request.requestId.value, request.idempotencyKey.value, request.artifactId.value, request.lifecycleAction.value, request.operatorSubjectId.value, request.deadlineAt)
         val result = launcherconfiguration match {
-          case Right(configuration) => lookup_lifecycle_request(configuration, protocolrequest).getOrElse(submit_lifecycle_request(configuration, protocolrequest, now))
-          case Left(code) => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.getOrElse(""), code, now)
+          case Right(configuration) =>
+            val supervisor = textus_supervisor(configuration)
+            supervisor.lookup(protocolrequest.requestId).getOrElse(supervisor.submit(protocolrequest, now))
+          case Left(code) => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.map(_.value).getOrElse(""), code, now)
         }
         for { patch <- exec_from(lifecycle_request_update(result)); _ <- entity_update(request.id, patch) } yield lifecycle_request_entity(request, result)
       }
 
-    protected final def submit_lifecycle_request(
-      configuration: LauncherLifecycleClientConfiguration,
-      request: LifecycleSupervisorRequest,
-      now: Instant
-    ): LifecycleSupervisorResult =
-      LauncherLifecycleClient(configuration).submit(request).getOrElse(
-        LifecycleSupervisorProtocol.unavailable(request, "", "launcher-lifecycle-unavailable", now)
-      )
-
-    protected final def lookup_lifecycle_request(configuration: LauncherLifecycleClientConfiguration, request: LifecycleSupervisorRequest): Option[LifecycleSupervisorResult] =
-      LauncherLifecycleClient(configuration).lookup(request.requestId)
+    protected final def textus_supervisor(configuration: LauncherLifecycleClientConfiguration): TextusSupervisor =
+      new EmbeddedTextusSupervisor(new LauncherLifecycleTransitionExecutor(LauncherLifecycleClient(configuration)))
 
     protected final def lifecycle_request_update(result: LifecycleSupervisorResult): Consequence[LifecycleRequestUpdate] =
       new LifecycleRequestUpdate.Builder()
-        .withRequestState(result.state)
+        .withRequestState(LifecycleRequestStateValue(result.state))
         .withAcceptedAt(result.acceptedAt.orNull)
         .withCompletedAt(result.completedAt.orNull)
-        .withDiagnosticCode(result.diagnosticCode.orNull)
-        .withDiagnostic(result.diagnostic.orNull)
-        .withSupervisorId(result.supervisorId)
-        .withInstanceId(result.instanceId.orNull)
+        .withDiagnosticCode(result.diagnosticCode.map(LifecycleDiagnosticCodeValue.apply).orNull)
+        .withDiagnostic(result.diagnostic.map(LifecycleDiagnosticValue.apply).orNull)
+        .withSupervisorId(LifecycleSupervisorIdValue(result.supervisorId))
+        .withInstanceId(result.instanceId.map(SubsystemInstanceIdValue.apply).orNull)
         .buildC()
 
     protected final def lifecycle_request_entity(request: LifecycleRequestEntity, result: LifecycleSupervisorResult): LifecycleRequestEntity =
       request.copy(
-        requestState = result.state,
+        requestState = LifecycleRequestStateValue(result.state),
         acceptedAt = result.acceptedAt,
         completedAt = result.completedAt,
-        diagnosticCode = result.diagnosticCode,
-        diagnostic = result.diagnostic,
-        supervisorId = Some(result.supervisorId).filter(_.nonEmpty),
-        instanceId = result.instanceId
+        diagnosticCode = result.diagnosticCode.map(LifecycleDiagnosticCodeValue.apply),
+        diagnostic = result.diagnostic.map(LifecycleDiagnosticValue.apply),
+        supervisorId = Some(result.supervisorId).filter(_.nonEmpty).map(LifecycleSupervisorIdValue.apply),
+        instanceId = result.instanceId.map(SubsystemInstanceIdValue.apply)
       )
 
     protected final def stage_lifecycle_dispatch_event(requestid: String): Consequence[Unit] = {
@@ -1159,15 +1180,15 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
     protected final def required_string(record: Record, name: String): Consequence[String] =
       record.getString(name).map(_.trim).filter(_.nonEmpty).toRight(s"$name is required").fold(Consequence.operationInvalid, Consequence.success)
     protected final def find_operational_components(artifactid: String): ExecUowM[Vector[OperationalComponentEntity]] =
-      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "OperationalComponent")); query = EntityQuery[OperationalComponentEntity](OperationalComponentQuery.collectionId, fields.rewrite(Query.fromRecord(Record.dataAuto("artifactId" -> artifactid))), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[OperationalComponentEntity](query) } yield result.data.filter(_.artifactId == artifactid)
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "OperationalComponent")); query = EntityQuery[OperationalComponentEntity](OperationalComponentQuery.collectionId, fields.rewrite(Query.fromRecord(Record.dataAuto("artifactId" -> artifactid))), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[OperationalComponentEntity](query) } yield result.data.filter(_.artifactId.value == artifactid)
     protected final def find_lifecycle_requests(artifactid: String): ExecUowM[Vector[LifecycleRequestEntity]] =
-      for { values <- find_lifecycle_requests_all } yield values.filter(_.artifactId == artifactid)
+      for { values <- find_lifecycle_requests_all } yield values.filter(_.artifactId.value == artifactid)
     protected final def find_lifecycle_requests_all: ExecUowM[Vector[LifecycleRequestEntity]] =
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "LifecycleRequest")); query = EntityQuery[LifecycleRequestEntity](LifecycleRequestQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[LifecycleRequestEntity](query) } yield result.data
     protected final def latest_operational_component(values: Vector[OperationalComponentEntity]): Option[OperationalComponentEntity] =
       values.sortBy(value => (value.lastObservedAt, value.id.print)).lastOption
     protected final def lifecycle_diagnostic(component: OperationalComponentEntity, launcherconfiguration: Either[String, LauncherLifecycleClientConfiguration]): String =
-      if (component.managementState == "excluded") "component-not-managed"
+      if (component.managementState.value == "excluded") "component-not-managed"
       else launcherconfiguration.fold(identity, _ => "launcher-lifecycle-unavailable")
     protected final def launcher_lifecycle_configuration: Either[String, LauncherLifecycleClientConfiguration] =
       LauncherLifecycleClientConfiguration.fromProperties(
@@ -1177,19 +1198,19 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         ).flatMap(key => config_string(key).map(key -> _)).toMap
       )
     protected final def safe_projection(request: LifecycleRequestEntity): Record = Record.dataAuto(
-      "requestId" -> request.requestId,
-      "artifactId" -> request.artifactId,
-      "lifecycleAction" -> request.lifecycleAction,
-      "requestState" -> request.requestState,
+      "requestId" -> request.requestId.value,
+      "artifactId" -> request.artifactId.value,
+      "lifecycleAction" -> request.lifecycleAction.value,
+      "requestState" -> request.requestState.value,
       "requestedAt" -> request.requestedAt,
       "deadlineAt" -> request.deadlineAt,
       "acceptedAt" -> request.acceptedAt,
       "completedAt" -> request.completedAt,
-      "launchProfileId" -> request.launchProfileId,
-      "diagnosticCode" -> request.diagnosticCode,
-      "diagnostic" -> request.diagnostic,
-      "supervisorId" -> request.supervisorId,
-      "instanceId" -> request.instanceId
+      "launchProfileId" -> request.launchProfileId.map(_.value),
+      "diagnosticCode" -> request.diagnosticCode.map(_.value),
+      "diagnostic" -> request.diagnostic.map(_.value),
+      "supervisorId" -> request.supervisorId.map(_.value),
+      "instanceId" -> request.instanceId.map(_.value)
     )
   }
 }

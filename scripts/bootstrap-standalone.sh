@@ -2,7 +2,7 @@
 set -euo pipefail
 
 cncf_home="${HOME:?HOME is required}/.cncf"
-port="18013"
+port="18000"
 host_label="local"
 rotate="false"
 

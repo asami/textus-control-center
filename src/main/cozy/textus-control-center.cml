@@ -427,7 +427,10 @@ GetLauncherEvidenceResult
 
 ### DESCRIPTION
 
-Administrative lifecycle requests for managed operational components. The local Launcher lifecycle authority owns process execution; Control Center invokes only its bounded CLI.
+Administrative lifecycle requests for managed operational components. The
+embedded `textus-supervisor-standalone` owns the Control Center lifecycle
+projection. During this transition slice, it delegates process execution through
+the bounded local Launcher CLI.
 
 ### OPERATION
 
@@ -435,7 +438,8 @@ Administrative lifecycle requests for managed operational components. The local 
 
 ##### DESCRIPTION
 
-Requests a start through the local Launcher lifecycle authority.
+Requests a start through the embedded Textus supervisor. Its transition
+executor uses the bounded local Launcher CLI.
 
 ##### TYPE
 
@@ -459,7 +463,8 @@ StartOperationalComponentResult
 
 ##### DESCRIPTION
 
-Requests a stop through the local Launcher lifecycle authority.
+Requests a stop through the embedded Textus supervisor. Its transition
+executor uses the bounded local Launcher CLI.
 
 ##### TYPE
 
@@ -483,7 +488,8 @@ StopOperationalComponentResult
 
 ##### DESCRIPTION
 
-Requests a restart through the local Launcher lifecycle authority.
+Requests a restart through the embedded Textus supervisor. Its transition
+executor uses the bounded local Launcher CLI.
 
 ##### TYPE
 
@@ -507,9 +513,10 @@ RestartOperationalComponentResult
 
 ##### DESCRIPTION
 
-Delivers one already-persisted lifecycle request through the bounded local
-Launcher CLI. This is an internal post-commit continuation and is not a
-browser-facing lifecycle command.
+Delivers one already-persisted lifecycle request to the embedded Textus
+supervisor. Its transition executor uses the bounded local Launcher CLI. This
+is an internal post-commit continuation and is not a browser-facing lifecycle
+command.
 
 ##### TYPE
 
@@ -598,8 +605,8 @@ GetLifecycleRequestResult
 | subsystemName           | SubsystemName           | ?            |                 |
 | subsystemVersion        | SubsystemVersion        | ?            |                 |
 | runtimeVersion          | RuntimeVersion          | ?            |                 |
-| baseUrl                 | SubsystemBaseUrl        | 1            |                 |
-| hostLabel               | HostLabel               | 1            |                 |
+| baseUrl                 | url                     | 1            |                 |
+| hostLabel               | label                   | 1            |                 |
 | startedAt               | instant                 | 1            |                 |
 | lastSeenAt              | instant                 | 1            |                 |
 | launcherState           | LauncherState           | 1            |                 |
@@ -691,6 +698,17 @@ GetLifecycleRequestResult
 | stoppedAt            | instant                 | ?            |                 |
 | evidenceDecision     | LauncherEvidenceDecision| 1            |                 |
 | observedAt           | instant                 | 1            |                 |
+
+## LauncherEvidenceSnapshot
+
+### ATTRIBUTE
+
+| name            | type     | multiplicity | confidentiality |
+|-----------------|----------|--------------|-----------------|
+| id              | entityid | 1            |                 |
+| instanceId      | SubsystemInstanceId             | 1            |                 |
+| snapshotPayload | LauncherEvidenceSnapshotPayload | 1            | internal        |
+| observedAt      | instant  | 1            |                 |
 
 # COMMAND
 
@@ -969,15 +987,7 @@ GetLifecycleRequestResult
 |-------|--------|--------------|
 | value | string | 1            |
 
-## SubsystemBaseUrl
-
-### ATTRIBUTE
-
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
-
-## HostLabel
+## LauncherEvidenceSnapshotPayload
 
 ### ATTRIBUTE
 

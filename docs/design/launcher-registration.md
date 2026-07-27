@@ -64,6 +64,18 @@ metrics, Jobs, configuration, and detailed diagnostics. Phase 1 exposes links
 to its System Dashboard and System Admin pages rather than copying those read
 models into Textus Control Center.
 
+### Control Center Evidence Snapshot Boundary
+
+Control Center persists the Launcher evidence read model as a primitive
+datastore snapshot: an instance key, a compact versioned JSON payload of the
+Launcher protocol facts, and its observation instant. The service converts the
+payload into its operational projection only at the application boundary. This
+isolates the durable Control Center read model from generated field-codec
+compatibility while preserving the external Launcher evidence protocol and its
+safe list/detail contract.
+The development directory is intentionally not persisted in this snapshot; a
+detail operation obtains it only from the current Launcher evidence command.
+
 ## Invocation Lifecycle
 
 For a managed server invocation, the launcher performs the following sequence:

@@ -152,6 +152,8 @@ Planned implementation sequence:
   authority; never discover or signal an arbitrary process.
 - [ ] Define the `textus-supervisor` component identity, command/result
   protocol, ownership persistence, and standalone embedding contract.
+- [x] Add the embedded `textus-supervisor-standalone` authority projection and
+  preserve the former launcher lifecycle path only as a transition executor.
 - [ ] Replace launcher-private authority hosting and `supervisor.yaml` as the
   normal lifecycle authority path.
 - [ ] Make CNCF Launcher and Textus Launcher write common evidence and issue

@@ -1,5 +1,5 @@
 /*
- * @version Jul. 22, 2026
+ * @version Jul. 27, 2026
  */
 package org.simplemodeling.textus.controlcenter
 
@@ -103,6 +103,29 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       Then("the instance is retained as stopped")
       heartbeated.getString("status") shouldBe Some("running")
       stopped.getString("status") shouldBe Some("stopped")
+    }
+
+    "reject registration with an invalid subsystem base URL" in {
+      Given("an authenticated launcher registration containing a malformed base URL")
+      val fixture = _fixture()
+      val component = _component()
+      val context = fixture.launcherContextFor(SecurityContext.Privilege.Internal)
+      val startedat = Instant.parse("2026-07-18T00:00:00Z")
+
+      When("the launcher registers the subsystem")
+      val result = _execute(
+        component,
+        context,
+        _registration_request(
+          "registerSubsystem",
+          startedat,
+          baseurl = "not-a-subsystem-url"
+        )
+      )
+
+      Then("registration fails with the base URL validation evidence")
+      result.toOption shouldBe empty
+      result.toString should include ("baseUrl must be an absolute HTTP URL")
     }
 
     "reject administrative reads from a non-operator principal" in {
@@ -416,8 +439,8 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       }
     }
 
-    "retain an idempotent lifecycle request when the bounded Launcher CLI is unavailable" in {
-      Given("an auto-managed development component with an unavailable Launcher lifecycle command")
+    "retain an idempotent lifecycle request when the transition executor command fails" in {
+      Given("an auto-managed development component with a failing transition executor command")
       val root = Files.createTempDirectory("control-center-lifecycle-request")
       _write_car_descriptor(root, "textus-lifecycle-spec", "lifecycle-spec-component")
       val fixture = _fixture()
@@ -453,7 +476,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         Request.ofService("LifecycleControl", "getLifecycleRequest", properties = List(Property("requestId", first.getString("requestId").getOrElse(fail("request id is missing")), None)))
       ).toOption.getOrElse(fail("lifecycle request reconciliation failed")).asInstanceOf[OperationResponse.RecordResponse].record
 
-      Then("the bounded CLI is queued, reconciled safely, and does not create a duplicate request")
+      Then("the transition execution is queued, reconciled safely, and does not create a duplicate request")
       first.getString("requestState") shouldBe Some("queued")
       first.getAny("deadlineAt") should not be empty
       first.getAny("acceptedAt") shouldBe empty
@@ -465,7 +488,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       _records(audit).head.getAny("idempotencyKey") shouldBe empty
       _records(audit).head.getAny("operatorSubjectId") shouldBe empty
       reconciled.getString("requestState") shouldBe Some("rejected")
-      reconciled.getString("diagnosticCode") shouldBe Some("launcher-lifecycle-unavailable")
+      reconciled.getString("diagnosticCode") shouldBe Some("launcher-lifecycle-command-failed")
     }
 
     "queue a Launcher lifecycle request while rejecting an invalid bounded command declaration" in {
@@ -517,7 +540,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       configured.getAny("diagnosticCode") shouldBe empty
       configured.getAny("supervisorId") shouldBe empty
       reconciled.getString("requestState") shouldBe Some("rejected")
-      reconciled.getString("diagnosticCode") shouldBe Some("launcher-lifecycle-unavailable")
+      reconciled.getString("diagnosticCode") shouldBe Some("launcher-lifecycle-command-failed")
     }
   }
 
@@ -598,7 +621,12 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       case other => Consequence.operationInvalid("request", s"request did not resolve to action: $other")
     }
 
-  private def _registration_request(operation: String, startedat: Instant, artifactid: Option[String] = None): Request =
+  private def _registration_request(
+    operation: String,
+    startedat: Instant,
+    artifactid: Option[String] = None,
+    baseurl: String = "http://127.0.0.1:8080"
+  ): Request =
     Request.ofService(
       "SubsystemInventory",
       operation,
@@ -612,7 +640,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         Property("subsystemName", "TextusControlCenter", None),
         Property("subsystemVersion", "v010snapshot", None),
         Property("runtimeVersion", "v050", None),
-        Property("baseUrl", "http://127.0.0.1:8080", None),
+        Property("baseUrl", baseurl, None),
         Property("hostLabel", "actionspec", None),
         Property("startedAt", startedat, None),
         Property("launcherState", if (operation == "registerSubsystem") "starting" else "running", None)

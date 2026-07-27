@@ -1,5 +1,6 @@
 /*
- * @version Jul. 22, 2026
+ *  version Jul. 24, 2026
+ * @version Jul. 27, 2026
  */
 package org.simplemodeling.textus.controlcenter.supervisor
 
@@ -32,11 +33,11 @@ final class LifecycleSupervisorProtocolSpec extends AnyWordSpec with Matchers wi
       body should not include "token"
     }
 
-    "retain a Launcher-owned authority failure as a safe local rejection" in {
-      Given("a lifecycle request whose Launcher authority cannot be reached")
+    "retain a transition executor failure as a safe Textus supervisor rejection" in {
+      Given("a lifecycle request whose transition executor cannot be reached")
       val request = LifecycleSupervisorRequest("request-1", "key-1", "textus-control-center", "start", "operator-1", Instant.parse("2026-07-22T00:00:05Z"))
 
-      When("the bounded Launcher command returns an authority failure")
+      When("the embedded Textus supervisor receives an authority failure")
       val result = LifecycleSupervisorProtocol.unavailable(
         request,
         "",

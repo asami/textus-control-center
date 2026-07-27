@@ -22,7 +22,9 @@ not the authoritative catalog.
 
 ## 2. Numbering Policy
 
-- Official CAR ports start at `18000` and increase by development order.
+- Textus Control Center is the official CAR anchor at `18000` (`base + 0`).
+- Other official CAR ports start at `18001` and retain the established
+  development order among those artifacts.
 - Official SAR ports start at `28000` and increase independently by development
   order.
 - Additional instances use the CNCF-managed dynamic range beginning at `38000`.
@@ -39,20 +41,20 @@ is used.
 
 | Port | Kind | Artifact | Development start |
 | ---: | --- | --- | --- |
-| 18000 | CAR | `textus-user-account` | 2026-03-22 |
-| 18001 | CAR | `textus-ai-runtime` | 2026-04-05 |
-| 18002 | CAR | `textus-aws` | 2026-04-28 |
-| 18003 | CAR | `textus-blog` | 2026-04-29 |
-| 18004 | CAR | `textus-user-notification` | 2026-05-07 |
-| 18005 | CAR | `textus-semantic-integration-engine` | 2026-05-15 |
-| 18006 | CAR | `textus-knowledge-editor` | 2026-05-21 |
-| 18007 | CAR | `textus-sanpomap` | 2026-06-29 |
-| 18008 | CAR | `textus-georesolver` | 2026-07-01 |
-| 18009 | CAR | `textus-toolchain-runner` | 2026-07-02 |
-| 18010 | CAR | `textus-art-scene` | 2026-07-06 |
-| 18011 | CAR | `textus-scraper` | 2026-07-11 |
-| 18012 | CAR | `textus-cbd-support` | 2026-07-14 |
-| 18013 | CAR | `textus-control-center` | 2026-07-18 |
+| 18000 | CAR | `textus-control-center` | 2026-07-18 |
+| 18001 | CAR | `textus-user-account` | 2026-03-22 |
+| 18002 | CAR | `textus-ai-runtime` | 2026-04-05 |
+| 18003 | CAR | `textus-aws` | 2026-04-28 |
+| 18004 | CAR | `textus-blog` | 2026-04-29 |
+| 18005 | CAR | `textus-user-notification` | 2026-05-07 |
+| 18006 | CAR | `textus-semantic-integration-engine` | 2026-05-15 |
+| 18007 | CAR | `textus-knowledge-editor` | 2026-05-21 |
+| 18008 | CAR | `textus-sanpomap` | 2026-06-29 |
+| 18009 | CAR | `textus-georesolver` | 2026-07-01 |
+| 18010 | CAR | `textus-toolchain-runner` | 2026-07-02 |
+| 18011 | CAR | `textus-art-scene` | 2026-07-06 |
+| 18012 | CAR | `textus-scraper` | 2026-07-11 |
+| 18013 | CAR | `textus-cbd-support` | 2026-07-14 |
 | 28000 | SAR | `textus-identity` | 2026-03-26 |
 
 `nict-knowledgehub` is not a Textus official CAR and has no assignment in this

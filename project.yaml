@@ -10,13 +10,13 @@ project:
     displayName: "Textus Control Center"
     version: "0.1.0-SNAPSHOT"
     config:
-      textus.server.default-port: "18013"
+      textus.server.default-port: "18000"
 
 build:
   scalaVersion: "3.3.8"
   dependencies:
     compile:
-      - "org.goldenport::goldenport-cncf:0.5.1-SNAPSHOT"
+      - "org.goldenport::goldenport-cncf:0.5.1"
     test:
       - "org.scalatest::scalatest:3.2.19"
       - "org.scalacheck::scalacheck:1.17.1"
@@ -37,7 +37,7 @@ packaging:
         excluded: []
         tested:
           - "0.5.0"
-          - "0.5.1-SNAPSHOT"
+          - "0.5.1"
 
 warehouse:
   repository_artifacts:
