@@ -1,5 +1,5 @@
 /*
- * @version Jul. 27, 2026
+ * @version Jul. 28, 2026
  */
 package org.simplemodeling.textus.controlcenter
 
@@ -126,6 +126,26 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       Then("registration fails with the base URL validation evidence")
       result.toOption shouldBe empty
       result.toString should include ("baseUrl must be an absolute HTTP URL")
+    }
+
+    "list a registration with omitted optional metadata" in {
+      Given("a launcher registration that supplies only the required protocol fields")
+      val fixture = _fixture()
+      val component = _component()
+      val launchercontext = fixture.launcherContextFor(SecurityContext.Privilege.Internal)
+      val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
+      val startedat = Instant.parse("2026-07-28T00:00:00Z")
+
+      When("the launcher registers and an operator lists the instance")
+      _execute(component, launchercontext, _registration_request("registerSubsystem", startedat, includeoptional = false)).toOption should not be empty
+      val listed = _execute(component, operatorcontext, Request.ofService("SubsystemInventory", "listSubsystems"))
+        .toOption.getOrElse(fail("list with omitted optional metadata failed"))
+        .asInstanceOf[OperationResponse.RecordResponse].record
+
+      Then("the safe projection preserves the instance and represents omitted metadata without a serialization failure")
+      _records(listed).map(_.getString("instanceId")) shouldBe Vector(Some("textuscontrolcenteractionspec"))
+      _records(listed).head.getAny("artifactId") shouldBe empty
+      _records(listed).head.getAny("subsystemVersion") shouldBe empty
     }
 
     "reject administrative reads from a non-operator principal" in {
@@ -625,7 +645,8 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
     operation: String,
     startedat: Instant,
     artifactid: Option[String] = None,
-    baseurl: String = "http://127.0.0.1:8080"
+    baseurl: String = "http://127.0.0.1:8080",
+    includeoptional: Boolean = true
   ): Request =
     Request.ofService(
       "SubsystemInventory",
@@ -635,16 +656,21 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         Property("instanceId", "textuscontrolcenteractionspec", None),
         Property("launcherKind", "textus", None),
         Property("target", "textus-control-center", None),
-        Property("executionMode", "development", None),
-        Property("developmentDirectory", "/work/textus-control-center", None),
-        Property("subsystemName", "TextusControlCenter", None),
-        Property("subsystemVersion", "v010snapshot", None),
-        Property("runtimeVersion", "v050", None),
         Property("baseUrl", baseurl, None),
         Property("hostLabel", "actionspec", None),
         Property("startedAt", startedat, None),
         Property("launcherState", if (operation == "registerSubsystem") "starting" else "running", None)
-      ) ++ artifactid.map(value => Property("artifactId", value, None)).toList
+      ) ++
+        (if (includeoptional)
+          List(
+            Property("executionMode", "development", None),
+            Property("developmentDirectory", "/work/textus-control-center", None),
+            Property("subsystemName", "TextusControlCenter", None),
+            Property("subsystemVersion", "v010snapshot", None),
+            Property("runtimeVersion", "v050", None)
+          )
+        else Nil) ++
+        artifactid.map(value => Property("artifactId", value, None)).toList
     )
 
   private def _records(record: Record): Vector[Record] =

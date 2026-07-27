@@ -1,5 +1,5 @@
 /*
- * @version Jul. 27, 2026
+ * @version Jul. 28, 2026
  */
 package org.simplemodeling.textus.controlcenter.impl
 
@@ -468,12 +468,12 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
           "instanceId" -> projection.instanceId,
           "launcherKind" -> projection.launcherKind,
           "target" -> projection.target,
-          "artifactId" -> projection.artifactId,
-          "executionMode" -> projection.executionMode,
-          "developmentDirectory" -> projection.developmentDirectory,
-          "subsystemName" -> projection.subsystemName,
-          "subsystemVersion" -> projection.subsystemVersion,
-          "runtimeVersion" -> projection.runtimeVersion,
+          "artifactId" -> projection.artifactId.orNull,
+          "executionMode" -> projection.executionMode.orNull,
+          "developmentDirectory" -> projection.developmentDirectory.orNull,
+          "subsystemName" -> projection.subsystemName.orNull,
+          "subsystemVersion" -> projection.subsystemVersion.orNull,
+          "runtimeVersion" -> projection.runtimeVersion.orNull,
           "baseUrl" -> projection.baseUrl,
           "hostLabel" -> projection.hostLabel,
           "startedAt" -> projection.startedAt,
