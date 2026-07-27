@@ -428,9 +428,10 @@ GetLauncherEvidenceResult
 ### DESCRIPTION
 
 Administrative lifecycle requests for managed operational components. The
-embedded `textus-supervisor-standalone` owns the Control Center lifecycle
-projection. During this transition slice, it delegates process execution through
-the bounded local Launcher CLI.
+Control Center consumes the CNCF `Supervisor` SPI through its
+`SupervisorSocket`. Standalone assembly installs the local
+`textus-supervisor` primary component; external assembly may install a proxy
+for the same Supervisor Service.
 
 ### OPERATION
 
@@ -438,8 +439,8 @@ the bounded local Launcher CLI.
 
 ##### DESCRIPTION
 
-Requests a start through the embedded Textus supervisor. Its transition
-executor uses the bounded local Launcher CLI.
+Requests a start through the provider-neutral CNCF Supervisor SPI. Standalone
+execution is owned by the embedded `textus-supervisor` Service.
 
 ##### TYPE
 
@@ -463,8 +464,8 @@ StartOperationalComponentResult
 
 ##### DESCRIPTION
 
-Requests a stop through the embedded Textus supervisor. Its transition
-executor uses the bounded local Launcher CLI.
+Requests a stop through the provider-neutral CNCF Supervisor SPI. Only a
+deployment owned by the selected Supervisor may be stopped.
 
 ##### TYPE
 
@@ -488,8 +489,8 @@ StopOperationalComponentResult
 
 ##### DESCRIPTION
 
-Requests a restart through the embedded Textus supervisor. Its transition
-executor uses the bounded local Launcher CLI.
+Requests a restart through the provider-neutral CNCF Supervisor SPI. Only a
+deployment owned by the selected Supervisor may be restarted.
 
 ##### TYPE
 
@@ -513,10 +514,9 @@ RestartOperationalComponentResult
 
 ##### DESCRIPTION
 
-Delivers one already-persisted lifecycle request to the embedded Textus
-supervisor. Its transition executor uses the bounded local Launcher CLI. This
-is an internal post-commit continuation and is not a browser-facing lifecycle
-command.
+Delivers one already-persisted lifecycle request through the selected
+Supervisor Service provider. This is an internal post-commit continuation and
+is not a browser-facing lifecycle command.
 
 ##### TYPE
 

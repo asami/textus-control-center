@@ -3,6 +3,14 @@ version: 0.1.0-SNAPSHOT
 components:
   - name: textus-control-center
     version: 0.1.0-SNAPSHOT
+  - name: textus-supervisor
+    version: 0.1.0-SNAPSHOT
+spi:
+  bindings:
+    - socket:
+        component: textus-control-center
+        contract: supervisor
+      provider: {}
 config:
   textus.component.textus-control-center.datastores.application.policy: local-default
 security:

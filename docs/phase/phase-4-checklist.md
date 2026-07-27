@@ -150,11 +150,12 @@ Planned implementation sequence:
   `supervisor.yaml` directory mapping is only a migration fallback.
 - [x] Restrict Control Center lifecycle actions to explicit Launcher-managed
   authority; never discover or signal an arbitrary process.
-- [ ] Define the `textus-supervisor` component identity, command/result
+- [x] Define the `textus-supervisor` component identity, command/result
   protocol, ownership persistence, and standalone embedding contract.
-- [x] Add the embedded `textus-supervisor-standalone` authority projection and
-  preserve the former launcher lifecycle path only as a transition executor.
-- [ ] Replace launcher-private authority hosting and `supervisor.yaml` as the
+- [x] Add the `textus-supervisor` primary component Service, generated
+  `submit`/`lookup` Operations, CNCF standard SPI provider, and standalone
+  assembly binding without a dummy Componentlet or status Service.
+- [x] Replace launcher-private authority hosting and `supervisor.yaml` as the
   normal lifecycle authority path.
 - [ ] Make CNCF Launcher and Textus Launcher write common evidence and issue
   best-effort supervisor notification without lifecycle ownership.

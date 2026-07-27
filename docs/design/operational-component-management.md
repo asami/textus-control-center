@@ -70,10 +70,11 @@ discovery or direct PID signalling.
 Launchers persist common evidence before any notification attempt. Their
 notification is bounded and best effort: Control Center or `textus-supervisor`
 unavailability cannot prevent `cncf server` or `textus <artifact> server` from
-starting. The first embedded slice projects lifecycle authority as
-`textus-supervisor-standalone` while using the former launcher lifecycle path
-only as a transition execution adapter. The earlier launcher-private supervisor
-is transitional only.
+starting. Standalone assembly installs the `textus-supervisor` primary
+component into Control Center's CNCF `SupervisorSocket`; its component Service
+and SPI adapter share one lifecycle implementation. The former
+launcher-private supervisor is not part of the normal standalone authority
+path.
 
 For initial standalone operation, one operational component selects one local
 default-port deployment. Supporting several independently placed instances of

@@ -13,6 +13,7 @@ import org.goldenport.cncf.context.{Capability, DataStoreContext, EntityStoreCon
 import org.goldenport.cncf.datastore.{ComponentDataStore, DataStore, DataStoreSpace}
 import org.goldenport.cncf.entity.EntityStoreSpace
 import org.goldenport.cncf.event.EventEngine
+import org.goldenport.cncf.spi.supervisor.{Supervisor, SupervisorRequest, SupervisorResult, SupervisorSocket, SupervisorState}
 import org.goldenport.cncf.subsystem.Subsystem
 import org.goldenport.cncf.unitofwork.{CommitRecorder, UnitOfWork, UnitOfWorkInterpreter, UnitOfWorkOp}
 import org.goldenport.protocol.{Property, Request}
@@ -459,8 +460,8 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       }
     }
 
-    "retain an idempotent lifecycle request when the transition executor command fails" in {
-      Given("an auto-managed development component with a failing transition executor command")
+    "retain an idempotent lifecycle request without a launcher-private lifecycle command" in {
+      Given("an auto-managed development component with a legacy launcher command that must be ignored")
       val root = Files.createTempDirectory("control-center-lifecycle-request")
       _write_car_descriptor(root, "textus-lifecycle-spec", "lifecycle-spec-component")
       val fixture = _fixture()
@@ -490,13 +491,8 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         operatorcontext,
         Request.ofService("LifecycleControl", "listLifecycleRequests", properties = List(Property("artifactId", "textus-lifecycle-spec", None)))
       ).toOption.getOrElse(fail("lifecycle request audit list failed")).asInstanceOf[OperationResponse.RecordResponse].record
-      val reconciled = _execute(
-        component,
-        operatorcontext,
-        Request.ofService("LifecycleControl", "getLifecycleRequest", properties = List(Property("requestId", first.getString("requestId").getOrElse(fail("request id is missing")), None)))
-      ).toOption.getOrElse(fail("lifecycle request reconciliation failed")).asInstanceOf[OperationResponse.RecordResponse].record
 
-      Then("the transition execution is queued, reconciled safely, and does not create a duplicate request")
+      Then("the embedded supervisor request is queued and does not create a duplicate request")
       first.getString("requestState") shouldBe Some("queued")
       first.getAny("deadlineAt") should not be empty
       first.getAny("acceptedAt") shouldBe empty
@@ -507,22 +503,17 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       _records(audit).map(_.getString("requestId")) shouldBe Vector(first.getString("requestId"))
       _records(audit).head.getAny("idempotencyKey") shouldBe empty
       _records(audit).head.getAny("operatorSubjectId") shouldBe empty
-      reconciled.getString("requestState") shouldBe Some("rejected")
-      reconciled.getString("diagnosticCode") shouldBe Some("launcher-lifecycle-command-failed")
     }
 
-    "queue a Launcher lifecycle request while rejecting an invalid bounded command declaration" in {
-      Given("an auto-managed development component with Launcher lifecycle command configuration")
+    "require an embedded supervisor home while ignoring legacy Launcher lifecycle declarations" in {
+      Given("an auto-managed development component with and without an embedded supervisor home")
       val root = Files.createTempDirectory("control-center-lifecycle-supervisor")
       _write_car_descriptor(root, "textus-lifecycle-supervisor-spec", "lifecycle-supervisor-spec-component")
       val fixture = _fixture()
       val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
-      val incompletecomponent = _component(_lifecycle_configuration(root, Map(
-        "textus-control-center.launcher.lifecycle.command" -> "invalid command"
-      )))
+      val incompletecomponent = _component(_catalog_configuration(root))
       val configuredcomponent = _component(_lifecycle_configuration(root, Map(
-        "textus-control-center.launcher.lifecycle.command" -> "/usr/bin/false",
-        "textus-control-center.launcher.lifecycle.timeout" -> "20s"
+        "textus-control-center.launcher.lifecycle.command" -> "invalid legacy command"
       )))
       val incompleteRequest = Request.ofService(
         "LifecycleControl",
@@ -541,26 +532,19 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         )
       )
 
-      When("the Launcher command declaration is invalid or is configured for post-commit dispatch")
+      When("the operator creates lifecycle requests")
       _execute(incompletecomponent, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
       _execute(configuredcomponent, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
       val incomplete = _execute(incompletecomponent, operatorcontext, incompleteRequest).toOption.getOrElse(fail("incomplete supervisor request failed")).asInstanceOf[OperationResponse.RecordResponse].record
       val configured = _execute(configuredcomponent, operatorcontext, configuredRequest).toOption.getOrElse(fail("configured supervisor request failed")).asInstanceOf[OperationResponse.RecordResponse].record
-      val reconciled = _execute(
-        configuredcomponent,
-        operatorcontext,
-        Request.ofService("LifecycleControl", "getLifecycleRequest", properties = List(Property("requestId", configured.getString("requestId").getOrElse(fail("configured request id is missing")), None)))
-      ).toOption.getOrElse(fail("configured supervisor reconciliation failed")).asInstanceOf[OperationResponse.RecordResponse].record
 
-      Then("the invalid declaration is rejected and the valid declaration retains a stable queued audit request")
+      Then("only the missing embedded supervisor home rejects the request")
       incomplete.getString("requestState") shouldBe Some("rejected")
-      incomplete.getString("diagnosticCode") shouldBe Some("launcher-lifecycle-command-invalid")
+      incomplete.getString("diagnosticCode") shouldBe Some("textus-supervisor-home-unavailable")
       incomplete.getAny("supervisorId") shouldBe empty
       configured.getString("requestState") shouldBe Some("queued")
       configured.getAny("diagnosticCode") shouldBe empty
       configured.getAny("supervisorId") shouldBe empty
-      reconciled.getString("requestState") shouldBe Some("rejected")
-      reconciled.getString("diagnosticCode") shouldBe Some("launcher-lifecycle-command-failed")
     }
   }
 
@@ -627,8 +611,29 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
     )
     val bundle = new impl.ComponentFactory().create(ComponentCreate(subsystem, ComponentOrigin.Main))
     val component = new org.goldenport.cncf.component.ComponentFactory().bootstrap(bundle.participants.head)
+    component match {
+      case socket: SupervisorSocket => socket.withSupervisor(_test_supervisor)
+      case _ => fail("Textus Control Center must expose the Supervisor SPI socket")
+    }
     subsystem.add(component)
     component
+  }
+
+  private val _test_supervisor: Supervisor = new Supervisor {
+    def submit(request: SupervisorRequest)(using ExecutionContext): Consequence[SupervisorResult] =
+      Consequence.success(SupervisorResult(
+        request.requestId,
+        SupervisorState.Accepted,
+        None,
+        None,
+        "textus-supervisor-test",
+        Some(s"instance-${request.requestId}"),
+        Some(summon[ExecutionContext].clock.instant()),
+        None
+      ))
+
+    def lookup(requestId: String)(using ExecutionContext): Consequence[Option[SupervisorResult]] =
+      Consequence.success(None)
   }
 
   private def _execute(
@@ -716,7 +721,10 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
   private def _lifecycle_configuration(root: Path, values: Map[String, String]): ResolvedConfiguration =
     ResolvedConfiguration(
       Configuration(
-        Map("textus-control-center.catalog.development.root" -> ConfigurationValue.StringValue(root.toString)) ++
+        Map(
+          "textus-control-center.catalog.development.root" -> ConfigurationValue.StringValue(root.toString),
+          "textus-control-center.home" -> ConfigurationValue.StringValue(root.resolve(".control-center").toString)
+        ) ++
           values.map { case (key, value) => key -> ConfigurationValue.StringValue(value) }
       ),
       ConfigurationTrace.empty
@@ -734,7 +742,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
     val project = Files.createDirectory(root.resolve(artifactid))
     Files.writeString(
       project.resolve("project.yaml"),
-      s"project:\n  name: $artifactid\n  kind: car\n  component:\n    name: $componentname\n"
+      s"project:\n  name: $artifactid\n  kind: car\n  component:\n    name: $componentname\n    config:\n      textus.server.default-port: \"19000\"\n"
     )
   }
 

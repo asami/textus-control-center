@@ -19,12 +19,14 @@ import org.goldenport.cncf.context.SecurityContext
 import org.goldenport.cncf.event.{CmlEventCategory, CmlEventDefinition, CmlSubscriptionDefinition, DispatchRoute, EventOriginBoundary, EventReceptionCondition, EventReceptionExecutionPolicy, EventReceptionRule, ReceptionDomainEvent, ReceptionInput, ReceptionOutcome}
 import org.goldenport.cncf.security.AuthenticationProvider
 import org.goldenport.cncf.security.SecuritySubject
+import org.goldenport.cncf.spi.supervisor.SupervisorSocket
 import org.goldenport.cncf.unitofwork.ExecUowM
 import org.goldenport.protocol.{Property, Request}
 import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
 import org.goldenport.schema.XString
 import org.simplemodeling.textus.controlcenter.TextusControlCenterComponent
+import org.simplemodeling.model.directive.Update
 import org.simplemodeling.textus.controlcenter.launcher.LauncherEvidenceSnapshotCodec
 import org.simplemodeling.textus.controlcenter.entity.{RegisteredSubsystem as RegisteredSubsystemEntity}
 import org.simplemodeling.textus.controlcenter.entity.{ManagedCar as ManagedCarEntity, ManagedCarSource as ManagedCarSourceEntity}
@@ -51,8 +53,8 @@ import org.simplemodeling.textus.controlcenter.entity.create.OperationalComponen
 import org.simplemodeling.textus.controlcenter.entity.create.LifecycleRequest.given
 import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCar as CatalogManagedCar, ManagedCarCatalog, ManagedCarSource as CatalogManagedCarSource, OperationalComponentManagement, OperationalManagementState, PublicRepositoryCatalog, RuntimeInstance, RuntimeInstanceStatus, StandaloneCatalogConfiguration, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
 import org.simplemodeling.textus.controlcenter.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
-import org.simplemodeling.textus.controlcenter.supervisor.{EmbeddedTextusSupervisor, LauncherLifecycleTransitionExecutor, LifecycleSupervisorProtocol, LifecycleSupervisorRequest, LifecycleSupervisorResult, TextusSupervisor}
-import org.simplemodeling.textus.controlcenter.launcher.{LauncherEvidenceClient, LauncherEvidenceClientConfiguration, LauncherEvidenceEntry, LauncherLifecycleClient, LauncherLifecycleClientConfiguration}
+import org.simplemodeling.textus.controlcenter.supervisor.{EmbeddedTextusSupervisor, LifecycleSupervisorProtocol, LifecycleSupervisorRequest, LifecycleSupervisorResult, TextusSupervisor}
+import org.simplemodeling.textus.controlcenter.launcher.{LauncherEvidenceClient, LauncherEvidenceClientConfiguration, LauncherEvidenceEntry}
 
 final class ComponentFactory extends Component.BundleFactory {
   def primaryFactory: Component.PrimaryComponentFactory =
@@ -98,7 +100,7 @@ abstract class TextusControlCenterParticipantFactoryBase extends TextusControlCe
 
 final class TextusControlCenterPrimaryComponent(
   registrationauthentication: AuthenticationProvider
-) extends TextusControlCenterComponent {
+) extends TextusControlCenterComponent with SupervisorSocket {
   override def authenticationProviders: Vector[AuthenticationProvider] =
     Vector(registrationauthentication)
 
@@ -427,7 +429,7 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
     protected final def base_url(value: String): Consequence[URL] =
       try {
         val uri = URI.create(value)
-        if (Set("http", "https").contains(Option(uri.getScheme).map(_.toLowerCase).orNull) && Option(uri.getHost).exists(_.nonEmpty)) Consequence.success(uri.toURL)
+        if (Option(uri.getScheme).exists(value => Set("http", "https").contains(value.toLowerCase)) && Option(uri.getHost).exists(_.nonEmpty)) Consequence.success(uri.toURL)
         else Consequence.valueInvalid(s"baseUrl is invalid: $value", XString)
       } catch {
         case NonFatal(_) => Consequence.valueInvalid(s"baseUrl is invalid: $value", XString)
@@ -468,12 +470,12 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
           "instanceId" -> projection.instanceId,
           "launcherKind" -> projection.launcherKind,
           "target" -> projection.target,
-          "artifactId" -> projection.artifactId.orNull,
-          "executionMode" -> projection.executionMode.orNull,
-          "developmentDirectory" -> projection.developmentDirectory.orNull,
-          "subsystemName" -> projection.subsystemName.orNull,
-          "subsystemVersion" -> projection.subsystemVersion.orNull,
-          "runtimeVersion" -> projection.runtimeVersion.orNull,
+          "artifactId" -> projection.artifactId,
+          "executionMode" -> projection.executionMode,
+          "developmentDirectory" -> projection.developmentDirectory,
+          "subsystemName" -> projection.subsystemName,
+          "subsystemVersion" -> projection.subsystemVersion,
+          "runtimeVersion" -> projection.runtimeVersion,
           "baseUrl" -> projection.baseUrl,
           "hostLabel" -> projection.hostLabel,
           "startedAt" -> projection.startedAt,
@@ -861,18 +863,18 @@ final class LauncherEvidenceServiceFactoryImpl extends TextusControlCenterCompon
         "instanceId" -> snapshot.instanceId,
         "launcherKind" -> snapshot.launcherKind,
         "target" -> snapshot.target,
-        "artifactId" -> snapshot.artifactId.orNull,
+        "artifactId" -> snapshot.artifactId,
         "executionMode" -> snapshot.executionMode,
-        "subsystemName" -> snapshot.subsystemName.orNull,
-        "subsystemVersion" -> snapshot.subsystemVersion.orNull,
+        "subsystemName" -> snapshot.subsystemName,
+        "subsystemVersion" -> snapshot.subsystemVersion,
         "runtimeVersion" -> snapshot.runtimeVersion,
         "startedAt" -> snapshot.startedAt,
         "lastSeenAt" -> snapshot.lastSeenAt,
-        "stoppedAt" -> snapshot.stoppedAt.orNull,
+        "stoppedAt" -> snapshot.stoppedAt,
         "evidenceDecision" -> snapshot.evidenceDecision,
         "observedAt" -> record.observedAt,
-        "developmentDirectory" -> detail.flatMap(_.entry.developmentDirectory).orNull,
-        "detailDiagnostic" -> (if (detail.isDefined) None else Some("launcher-evidence-detail-unavailable")).orNull
+        "developmentDirectory" -> detail.flatMap(_.entry.developmentDirectory),
+        "detailDiagnostic" -> (if (detail.isDefined) None else Some("launcher-evidence-detail-unavailable"))
       ))
   }
 
@@ -933,10 +935,10 @@ final class LauncherEvidenceServiceFactoryImpl extends TextusControlCenterCompon
     protected final def snapshot_payload(record: LauncherEvidenceSnapshotEntity): Consequence[LauncherEvidenceSnapshotCodec.Snapshot] =
       LauncherEvidenceSnapshotCodec.decode(record.snapshotPayload.value)
     protected final def safe_projection(record: LauncherEvidenceSnapshotCodec.Snapshot): Record = Record.dataAuto(
-      "instanceId" -> record.instanceId, "launcherKind" -> record.launcherKind, "target" -> record.target, "artifactId" -> record.artifactId.orNull,
-      "executionMode" -> record.executionMode, "subsystemName" -> record.subsystemName.orNull, "subsystemVersion" -> record.subsystemVersion.orNull,
+      "instanceId" -> record.instanceId, "launcherKind" -> record.launcherKind, "target" -> record.target, "artifactId" -> record.artifactId,
+      "executionMode" -> record.executionMode, "subsystemName" -> record.subsystemName, "subsystemVersion" -> record.subsystemVersion,
       "runtimeVersion" -> record.runtimeVersion, "startedAt" -> record.startedAt, "lastSeenAt" -> record.lastSeenAt,
-      "stoppedAt" -> record.stoppedAt.orNull, "evidenceDecision" -> record.evidenceDecision, "observedAt" -> record.observedAt
+      "stoppedAt" -> record.stoppedAt, "evidenceDecision" -> record.evidenceDecision, "observedAt" -> record.observedAt
     )
   }
 }
@@ -1032,11 +1034,11 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         components <- find_operational_components(artifactid)
         component <- exec_from(latest_operational_component(components).toRight(artifactid).fold(Consequence.resourceNotFound, Consequence.success))
         now = core.executionContext.clock.instant()
-        launcherconfiguration = launcher_lifecycle_configuration
-        deadlineat = now.plus(launcherconfiguration.toOption.map(_.timeout).getOrElse(Duration.ofSeconds(5)))
-        queued = component.managementState.value != "excluded" && launcherconfiguration.isRight
+        supervisor <- standalone_supervisor(artifactid)
+        deadlineat = now.plus(Duration.ofSeconds(20))
+        queued = component.managementState.value != "excluded" && supervisor.isRight
         state = if (queued) "queued" else "rejected"
-        diagnostic = if (queued) None else Some(lifecycle_diagnostic(component, launcherconfiguration))
+        diagnostic = if (queued) None else Some(lifecycle_diagnostic(component, supervisor))
         completedat = if (queued) None else Some(now)
         requestid = core.executionContext.idGeneration.opaqueId("lifecycle-request")
         stored <- entity_create(LifecycleRequestCreate(
@@ -1082,7 +1084,6 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
       if (request.requestState.value != "queued") exec_pure(request)
       else {
         val now = core.executionContext.clock.instant()
-        val launcherconfiguration = launcher_lifecycle_configuration
         val protocolrequest = LifecycleSupervisorRequest(
           request.requestId.value,
           request.idempotencyKey.value,
@@ -1091,11 +1092,12 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
           request.operatorSubjectId.value,
           request.deadlineAt
         )
-        val result = launcherconfiguration match {
-          case Right(configuration) => textus_supervisor(configuration).submit(protocolrequest, now)
-          case Left(code) => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.map(_.value).getOrElse(""), code, now)
-        }
         for {
+          supervisor <- standalone_supervisor(request.artifactId.value)
+          result = supervisor.fold(
+            code => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.map(_.value).getOrElse(""), code, now),
+            _.submit(protocolrequest, now)
+          )
           patch <- exec_from(lifecycle_request_update(result))
           _ <- entity_update(request.id, patch)
         } yield lifecycle_request_entity(request, result)
@@ -1105,29 +1107,45 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
       if (request.requestState.value != "queued") exec_pure(request)
       else {
         val now = core.executionContext.clock.instant()
-        val launcherconfiguration = launcher_lifecycle_configuration
         val protocolrequest = LifecycleSupervisorRequest(request.requestId.value, request.idempotencyKey.value, request.artifactId.value, request.lifecycleAction.value, request.operatorSubjectId.value, request.deadlineAt)
-        val result = launcherconfiguration match {
-          case Right(configuration) =>
-            val supervisor = textus_supervisor(configuration)
-            supervisor.lookup(protocolrequest.requestId).getOrElse(supervisor.submit(protocolrequest, now))
-          case Left(code) => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.map(_.value).getOrElse(""), code, now)
-        }
-        for { patch <- exec_from(lifecycle_request_update(result)); _ <- entity_update(request.id, patch) } yield lifecycle_request_entity(request, result)
+        for {
+          supervisor <- standalone_supervisor(request.artifactId.value)
+          result = supervisor.fold(
+            code => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.map(_.value).getOrElse(""), code, now),
+            value => value.lookup(protocolrequest.requestId).getOrElse(value.submit(protocolrequest, now))
+          )
+          patch <- exec_from(lifecycle_request_update(result))
+          _ <- entity_update(request.id, patch)
+        } yield lifecycle_request_entity(request, result)
       }
 
-    protected final def textus_supervisor(configuration: LauncherLifecycleClientConfiguration): TextusSupervisor =
-      new EmbeddedTextusSupervisor(new LauncherLifecycleTransitionExecutor(LauncherLifecycleClient(configuration)))
+    protected final def standalone_supervisor(artifactId: String): ExecUowM[Either[String, TextusSupervisor]] =
+      for {
+        sources <- find_managed_sources_all
+      } yield {
+        val source = sources
+          .filter(_.artifactId.value == artifactId)
+          .sortBy(value => (value.snapshotAt, value.id.print))
+          .reverse
+          .find(value => value.sourceKind.value == "DEV" && value.refreshState.value == "available")
+        given org.goldenport.cncf.context.ExecutionContext = core.executionContext
+        for {
+          _ <- source.flatMap(_.privateLocator.map(_.value)).filter(_.nonEmpty).toRight("supervisor-launch-profile-unavailable")
+          _ <- config_string("textus-control-center.home").map(_.trim).filter(_.nonEmpty).toRight("textus-supervisor-home-unavailable")
+          socket <- core.component.collect { case value: SupervisorSocket => value }.toRight("textus-supervisor-unavailable")
+          provider <- socket.supervisorC.toOption.toRight("textus-supervisor-unavailable")
+        } yield new EmbeddedTextusSupervisor(provider, core.executionContext)
+      }
 
     protected final def lifecycle_request_update(result: LifecycleSupervisorResult): Consequence[LifecycleRequestUpdate] =
       new LifecycleRequestUpdate.Builder()
         .withRequestState(LifecycleRequestStateValue(result.state))
-        .withAcceptedAt(result.acceptedAt.orNull)
-        .withCompletedAt(result.completedAt.orNull)
-        .withDiagnosticCode(result.diagnosticCode.map(LifecycleDiagnosticCodeValue.apply).orNull)
-        .withDiagnostic(result.diagnostic.map(LifecycleDiagnosticValue.apply).orNull)
+        .withAcceptedAt(result.acceptedAt.fold(Update.setNull[Instant])(Update.set))
+        .withCompletedAt(result.completedAt.fold(Update.setNull[Instant])(Update.set))
+        .withDiagnosticCode(result.diagnosticCode.map(LifecycleDiagnosticCodeValue.apply).fold(Update.setNull[LifecycleDiagnosticCodeValue])(Update.set))
+        .withDiagnostic(result.diagnostic.map(LifecycleDiagnosticValue.apply).fold(Update.setNull[LifecycleDiagnosticValue])(Update.set))
         .withSupervisorId(LifecycleSupervisorIdValue(result.supervisorId))
-        .withInstanceId(result.instanceId.map(SubsystemInstanceIdValue.apply).orNull)
+        .withInstanceId(result.instanceId.map(SubsystemInstanceIdValue.apply).fold(Update.setNull[SubsystemInstanceIdValue])(Update.set))
         .buildC()
 
     protected final def lifecycle_request_entity(request: LifecycleRequestEntity, result: LifecycleSupervisorResult): LifecycleRequestEntity =
@@ -1185,18 +1203,13 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
       for { values <- find_lifecycle_requests_all } yield values.filter(_.artifactId.value == artifactid)
     protected final def find_lifecycle_requests_all: ExecUowM[Vector[LifecycleRequestEntity]] =
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "LifecycleRequest")); query = EntityQuery[LifecycleRequestEntity](LifecycleRequestQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[LifecycleRequestEntity](query) } yield result.data
+    protected final def find_managed_sources_all: ExecUowM[Vector[ManagedCarSourceEntity]] =
+      for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "ManagedCarSource")); query = EntityQuery[ManagedCarSourceEntity](ManagedCarSourceQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[ManagedCarSourceEntity](query) } yield result.data
     protected final def latest_operational_component(values: Vector[OperationalComponentEntity]): Option[OperationalComponentEntity] =
       values.sortBy(value => (value.lastObservedAt, value.id.print)).lastOption
-    protected final def lifecycle_diagnostic(component: OperationalComponentEntity, launcherconfiguration: Either[String, LauncherLifecycleClientConfiguration]): String =
+    protected final def lifecycle_diagnostic(component: OperationalComponentEntity, supervisor: Either[String, TextusSupervisor]): String =
       if (component.managementState.value == "excluded") "component-not-managed"
-      else launcherconfiguration.fold(identity, _ => "launcher-lifecycle-unavailable")
-    protected final def launcher_lifecycle_configuration: Either[String, LauncherLifecycleClientConfiguration] =
-      LauncherLifecycleClientConfiguration.fromProperties(
-        Vector(
-          LauncherLifecycleClientConfiguration.Command,
-          LauncherLifecycleClientConfiguration.Timeout
-        ).flatMap(key => config_string(key).map(key -> _)).toMap
-      )
+      else supervisor.fold(identity, _ => "textus-supervisor-unavailable")
     protected final def safe_projection(request: LifecycleRequestEntity): Record = Record.dataAuto(
       "requestId" -> request.requestId.value,
       "artifactId" -> request.artifactId.value,

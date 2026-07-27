@@ -1,148 +1,132 @@
-status = superseded-by-phase-4-reopen
-scope = Phase 4 launcher-private lifecycle transition baseline
+status = active
+scope = Phase 4 Supervisor lifecycle control
 
-# Provisional Launcher Lifecycle Control Specification
+# Supervisor Lifecycle Control Specification
 
-This contract describes the former launcher-private authority. Reopened Phase 4
-replaces it with `textus-supervisor` as the lifecycle owner. Standalone Control
-Center embeds that component; future distributed placement reuses its command/
-result protocol. The remaining content is retained only to bound compatibility
-migration and must not be used for new lifecycle implementation.
+The former launcher-private lifecycle authority is retired from the normal
+standalone path. Textus Control Center consumes the CNCF
+`org.goldenport.cncf.spi.supervisor.Supervisor` contract through
+`SupervisorSocket`. The selected provider owns lifecycle execution and durable
+deployment ownership.
 
-## 1. Authority Boundary
+## 1. Component and Service Boundary
 
-Textus Control Center requests lifecycle work; it does not own or discover an
-operating-system process. The local `cncf-launcher` supervisor owns a server it
-starts and is the only standalone authority that may stop or restart it.
-`textus-launcher` exposes compatible behavior by delegating to the same
-supervisor contract.
+`textus-supervisor` defines one primary `TextusSupervisor` component and one
+component-owned `Supervisor` Service. The Service has exactly two lifecycle
+Operations:
 
-No participant may fulfil a lifecycle request by searching for a PID, matching
-a command line, or sending a signal to an arbitrary process.
+- `submit`, a command corresponding to `Supervisor.submit`;
+- `lookup`, a query corresponding to `Supervisor.lookup`.
 
-## 2. Local Supervisor Discovery and State
+The Service declares a provided standard `cncf.supervisor` SPI binding. It does
+not define a component-specific lifecycle socket, a parallel Textus lifecycle
+API, a status-only dummy Service, or a Componentlet.
 
-`cncf-launcher` is the standalone supervisor. Its configuration and durable
-ownership/request records live below the launcher-owned CNCF home (normally
-`~/.cncf/`); the normal launcher configuration remains the source of runtime
-and development-directory configuration. Textus Control Center must not open,
-enumerate, modify, or infer those files.
+The generated component Operations and the standard SPI provider delegate to
+the same application Service implementation. The Service owns executable
+operation structure, validation, authorization context, CallTree and diagnostic
+participation. The CNCF SPI owns provider-neutral selection and the stable
+`SupervisorRequest` and `SupervisorResult` contract.
 
-Control Center invokes a bounded local `cncf launcher lifecycle` command. It
-does not receive the authority endpoint, the supervisor credential, or the
-authority-state location. Launcher resolves its own configuration and
-environment-only credential, ensures the loopback authority when needed, then
-submits or looks up the request internally.
+## 2. Placement
 
-| Control Center configuration key | Required when enabled | Meaning |
-| --- | --- | --- |
-| `textus-control-center.launcher.lifecycle.command` | no | One executable name; default `cncf`. Multi-token values are rejected. |
-| `textus-control-center.launcher.lifecycle.timeout` | no | Bounded command and request deadline; default/minimum `20s`, maximum `30s`. This leaves authority cold-start and submission time inside one request. |
+Standalone assembly includes the `textus-supervisor` CAR and installs its local
+provider into Textus Control Center's `SupervisorSocket`. The lifecycle call
+may remain in-process, but it crosses the same Service semantics used by other
+placements.
 
-An unavailable or invalid Launcher command is recorded as a safe terminal
-result. It is never replaced with direct HTTP, filesystem, PID, or credential
-access by Control Center.
+An external placement installs a proxy provider into the same socket. The
+proxy invokes the remotely placed Supervisor Service and maps its typed result
+to the CNCF SPI. Control Center lifecycle request code does not change between
+local and external placement.
 
-`textus-launcher` is a compatible client of this same local supervisor. It may
-delegate a repository-CAR request, but it may not construct an independent
-process ownership record or use a process-table search to emulate one.
+Neither placement requires an operator to run
+`cncf launcher supervisor serve`. Launchers do not host lifecycle authority.
 
-## 3. Requests
+## 3. Standalone Ownership
 
-The protocol admits `start`, `stop`, and `restart` requests. Every request has
-an opaque request ID, an idempotency key scoped to the operational component,
-the requested action, a selected launch-profile identity, an authenticated
-operator identity, and a bounded timeout.
+The standalone `textus-supervisor` deployment resolves a selected development
+CAR from Control Center's configured development catalog. It validates the
+project identity, CAR kind, development directory, and declared default port
+before starting the canonical command in that development directory:
 
-A request is passed through the bounded Launcher command using the following
-named values:
+`cncf server`
+
+The directory, executable command, environment, port, credentials, and process
+handle remain provider-private. They never cross the CNCF Supervisor SPI.
+
+The provider persists request/result and owned-instance facts below the
+configured standalone Control Center home. Start, Stop, and Restart operate
+only on child handles created and retained by that provider. After a provider
+restart, persisted request results remain available, while unproven live
+process ownership fails closed. The provider never discovers ownership from a
+PID, command line, or occupied port.
+
+## 4. Requests
+
+Every request contains:
 
 | Field | Meaning |
 | --- | --- |
-| `requestId` | Control Center UUID; stable for a persisted lifecycle request. |
-| `idempotencyKey` | Opaque caller key, scoped by artifact and action. |
-| `artifactId` | Operational-component identity. |
+| `requestId` | Stable durable lifecycle request identity. |
+| `idempotencyKey` | Opaque retry identity scoped by the consumer. |
+| `targetId` | Opaque managed component identity. |
+| `deploymentId` | Optional placement identity. |
 | `action` | `start`, `stop`, or `restart`. |
-| `operatorSubjectId` | Authenticated Control Center operator identity. |
-| `deadlineAt` | Bounded absolute deadline. |
+| `operatorSubjectId` | Authenticated operator identity. |
+| `deadlineAt` | Absolute bounded deadline. |
 
-The request does not carry a filesystem locator, command line, environment,
-port override, or server PID. The supervisor resolves the selected
-launch-profile identity from launcher-owned local state, validates it, and
-persists the request before creating or controlling a child process.
+The request contains no filesystem locator, shell command, environment,
+credential, port, or process identifier.
 
-A request is accepted only when the component is managed, the launch profile
-is usable, and the caller is authorized. Stop and restart additionally require
-that the supervisor owns the selected active deployment. A request never grants
-authority over an independently launched process.
+Control Center commits its own `queued` audit record before dispatch. A retry
+uses the same request identity and idempotency key. The provider returns the
+previous result rather than creating a second managed instance.
 
-## 4. Results and Correlation
+## 5. Results and Correlation
 
-The supervisor returns `accepted`, `running`, `stopped`, `rejected`, `failed`,
-or `timed-out` with a stable diagnostic code and safe message. Repeating the
-same idempotency key returns the same request/result, rather than starting an
-additional server.
+`SupervisorResult` echoes `requestId` and reports one lifecycle state, a safe
+diagnostic code/message, `supervisorId`, optional `instanceId`, and
+acceptance/completion times.
 
-The Launcher `submit` response and its bounded `lookup` command return the
-same safe projection: `requestId`, `state`, `diagnosticCode`, `diagnostic`,
-`supervisorId`, `instanceId`, `acceptedAt`, and `completedAt`. A lost response
-is retried with the original request ID and idempotency key; Launcher returns
-the original durable record.
+Control Center accepts only a matching request ID. A malformed or mismatched
+response becomes a safe terminal diagnostic and cannot update another request.
+A successful lifecycle response is an ownership fact, not a runtime-health
+assertion.
 
-Control Center accepts a response only when its `requestId` equals the already
-persisted request identity. A malformed or mismatched response is recorded as
-the safe `supervisor-response-invalid` outcome and can never update another
-lifecycle request's audit facts.
+Launcher registration, heartbeat, deregistration, and retained common evidence
+remain observational inputs to the runtime projection. They do not grant
+lifecycle authority. When a supervisor-started child reports the supplied
+instance correlation, Control Center may join the lifecycle and observation
+records without inferring a process.
 
-Control Center first commits its own request with state `queued`, then routes a
-post-commit internal continuation that submits the request. The continuation is
-durable work, not a browser request. If it is delayed or its response is lost,
-an administrative `GetLifecycleRequest` retries the same stable request identity
-and reconciles the Launcher result. An unavailable command or authority is
-recorded as a safe terminal Control Center result; it never affects a
-Launcher-owned server.
+## 6. Failure Isolation
 
-On a successful start or restart, the launcher supplies correlation between the
-lifecycle request and its newly created `instanceId`. Ordinary registration,
-heartbeat, and deregistration remain the source of runtime state; a successful
-request alone does not assert that the server is healthy.
+Missing, unhealthy, or ambiguous Supervisor providers are structured failures.
+Control Center records a safe rejected or failed lifecycle result and retains
+the operational component.
 
-For a supervisor-created development-directory child, `cncf-launcher` allocates
-the instance ID before it starts the child, stores that exact ID in the durable
-lifecycle result, and passes it only as launcher-internal registration metadata.
-The child launcher reuses that ID for its registration and every heartbeat; it
-removes the metadata before invoking the Textus runtime. Direct launcher starts
-continue to allocate a fresh instance ID. Therefore a Control Center can join a
-lifecycle result and a registry record only when both report the same opaque
-instance ID, without inferring a process from a port, command line, or directory.
+Control Center unavailability, request timeout, lost response, or restart must
+not stop a provider-owned server. A provider restart may retain request
+evidence while rejecting new ownership-sensitive work; it must not guess that
+an unrelated process is owned.
 
-## 5. Failure Isolation
+## 7. Audit and Executable Evidence
 
-Control Center unavailability, request timeout, lost response, or Control
-Center restart must not stop a server already owned by the supervisor. The
-supervisor retains sufficient local request and ownership state to answer a
-safe retry. A launcher restart may report ownership as unavailable, but it must
-not guess ownership from the process table.
+Control Center retains action, request identity, target, operator, provider
+identity, instance correlation, timestamps, outcome, and safe diagnostics. It
+does not retain credentials, raw environment data, or unrestricted commands.
 
-## 6. Audit
+Executable Specifications must prove:
 
-Control Center retains requested action, request identity, target artifact,
-operator, receiver identity, timestamps, outcome, and safe diagnostic. It
-does not retain credentials, raw environment data, or unrestricted command
-lines. The standalone protocol has one local supervisor; multi-host routing and
-role policy are future extensions.
-
-## 7. Required Executable Scenarios
-
-- identical retries return one supervisor request and never create a second
-  server instance;
-- an unavailable Launcher command or authority records a retry-safe `rejected` or `timed-out`
-  Control Center result without affecting a server;
-- Control Center restart preserves its request identity and a later lookup
-  reconciles the launcher-owned result;
-- launcher restart never invents ownership from a PID, command line, or port;
-- a supervisor-created child registers and heartbeats with the exact instance ID
-  returned by its lifecycle result, while that internal correlation metadata is
-  not forwarded to the Textus runtime;
-- registration and heartbeat remain available while a request is rejected,
-  times out, or fails.
+- the Supervisor CML contains `submit` and `lookup`, a provided standard SPI,
+  and no dummy status Service or Componentlet;
+- generated Operations and the SPI provider use one application Service;
+- idempotent retries start at most one child;
+- Stop and Restart affect only provider-owned children;
+- durable lookup survives provider reconstruction while stale ownership fails
+  closed;
+- Control Center works through `SupervisorSocket` without launcher-private
+  lifecycle commands;
+- registration and launcher evidence remain observational and available when a
+  lifecycle request fails.
