@@ -180,6 +180,13 @@ Operation execution fails, the launcher:
 - continues server startup and preserves the server's original exit result;
 - does not retain a non-daemon task that prevents process exit.
 
+Before the first acknowledged registration, a later scheduled interval may retry
+`register` with `launcherState = starting`. After registration has been acknowledged,
+a heartbeat failure does not make the invocation unregistered and must not send a
+new `starting` registration. The launcher continues sending `running` heartbeats;
+while communication remains unavailable, Textus Control Center derives `stale` from
+the last accepted report.
+
 The launcher must not use deprecated `cncf dev server` state or arbitrary PID
 inspection as a fallback registration source.
 
@@ -204,6 +211,8 @@ The implementation must provide Given/When/Then executable specifications for:
 - command/REST/Web equivalence for list/detail;
 - Textus and canonical CNCF launcher registration, normal termination, and
   management-plane outage isolation.
+- transient heartbeat failure followed by recovery without a
+  `running -> starting` registration regression.
 
 ## 13. Shared Evidence Reconciliation
 

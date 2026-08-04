@@ -96,6 +96,14 @@ After server invocation begins, heartbeat requests report
 `launcherState = running`. A launcher may omit registration/heartbeat/exit
 requests when integration is disabled.
 
+The launcher distinguishes initial registration acquisition from heartbeat
+delivery. Until one registration response is accepted it may retry the
+`starting` registration on a later interval. Once accepted, an individual
+heartbeat transport or response failure does not revoke that local registration
+fact: later intervals continue the `running` heartbeat path. Control Center then
+exposes an extended outage as `stale` from lease age, without a fresh `starting`
+report overwriting the last running fact.
+
 The registration client has no retry loop that can delay process shutdown or
 outlive the launcher invocation. Each request uses the configured bounded
 timeout. Failures are emitted as sanitized launcher warnings and do not alter
