@@ -1,18 +1,20 @@
 subsystem: textus-control-center
 version: 0.1.0-SNAPSHOT
 components:
-  - name: textus-control-center
+  - namespace: org.simplemodeling.textus
+    id: ControlCenter
     version: 0.1.0-SNAPSHOT
-  - name: textus-supervisor
+  - namespace: org.simplemodeling.textus
+    id: Supervisor
     version: 0.1.0-SNAPSHOT
 spi:
   bindings:
     - socket:
-        component: textus-control-center
+        component: org.simplemodeling.textus.ControlCenter
         contract: supervisor
       provider: {}
 config:
-  textus.component.textus-control-center.datastores.application.policy: local-default
+  textus.component.org.simplemodeling.textus.ControlCenter.datastores.application.policy: local-default
 security:
   authentication:
     convention: enabled
@@ -28,7 +30,7 @@ security:
         installation: standalone
     providers:
       - name: textus-control-center-launcher-registration
-        component: textus-control-center
+        component: org.simplemodeling.textus.ControlCenter
         kind: service
         enabled: true
         priority: 100

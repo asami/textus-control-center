@@ -1,12 +1,9 @@
 project:
-  name: "textus-control-center"
+  namespace: "org.simplemodeling.textus"
+  id: "ControlCenter"
   title: "Textus Control Center"
   kind: car
-  organization: "org.textus"
-  scalaPackage: "org.simplemodeling.textus.controlcenter"
   component:
-    name: "textus-control-center"
-    className: "TextusControlCenter"
     displayName: "Textus Control Center"
     version: "0.1.0-SNAPSHOT"
     config:
@@ -14,10 +11,10 @@ project:
 
 build:
   scalaVersion: "3.3.8"
-  cozyVersion: "0.3.1-SNAPSHOT"
+  cozyVersion: "0.3.4-SNAPSHOT"
   dependencies:
     compile:
-      - "org.goldenport::goldenport-cncf:0.5.1"
+      - "org.goldenport::goldenport-cncf:0.5.2-SNAPSHOT"
     test:
       - "org.scalatest::scalatest:3.2.19"
       - "org.scalacheck::scalacheck:1.17.1"
@@ -34,11 +31,10 @@ packaging:
       domain: "system-administration"
     runtime:
       cncf:
-        minimum: "0.5.0"
+        minimum: "0.5.2-SNAPSHOT"
         excluded: []
         tested:
-          - "0.5.0"
-          - "0.5.1"
+          - "0.5.2-SNAPSHOT"
 
 warehouse:
   repository_artifacts:

@@ -1,5 +1,6 @@
 /*
- * @version Jul. 28, 2026
+ *  version Jul. 28, 2026
+ * @version Aug.  8, 2026
  */
 package org.simplemodeling.textus.controlcenter.impl
 
@@ -131,7 +132,9 @@ final class TextusControlCenterPrimaryComponent(
 object TextusControlCenterPrimaryFactory extends TextusControlCenterParticipantFactoryBase with Component.PrimaryComponentFactory {
   override protected def create_Component(params: ComponentCreate): Component =
     new TextusControlCenterPrimaryComponent(
-      TextusControlCenterLauncherRegistrationAuthenticationProvider.fromConfiguration(params.subsystem.configuration)
+      TextusControlCenterLauncherRegistrationAuthenticationProvider.fromConfiguration(
+        params.configuration
+      )
     )
 
   override protected def create_Core(
@@ -1171,7 +1174,7 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         org.goldenport.cncf.event.EventReception.StandardAttribute.operationEventTransactionRequirement,
         "ignore"
       ))
-      core.executionContext.runtime.unitOfWork.stageEvent(routableevent)
+      core.executionContext.unitOfWork.stageEvent(routableevent)
       given org.goldenport.cncf.context.ExecutionContext = core.executionContext
       core.component.flatMap(_.eventReception) match {
         case Some(reception) =>

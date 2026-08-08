@@ -1,13 +1,18 @@
 import org.goldenport.cozy.CozyPlugin.autoImport._
+import org.goldenport.cozy.CozyProjectIdentityEvidence
 import sbt.Keys.*
+
+lazy val projectIdentityEvidence = settingKey[CozyProjectIdentityEvidence]("Admitted project.yaml component identity evidence")
 
 lazy val root = project
   .in(file("."))
   .enablePlugins(org.goldenport.cozy.CozyPlugin)
   .settings(
-    organization := ControlCenterProjectYamlBuild.requiredValue(cozyProjectMetadata.value, "project.organization"),
-    name := ControlCenterProjectYamlBuild.requiredValue(cozyProjectMetadata.value, "project.name"),
-    version := ControlCenterProjectYamlBuild.requiredValue(cozyProjectMetadata.value, "project.component.version"),
+    projectIdentityEvidence := ControlCenterProjectYamlBuild.admitted(cozyProjectMetadata.value, scalaBinaryVersion.value),
+    organization := ControlCenterProjectYamlBuild.organization(projectIdentityEvidence.value),
+    moduleName := ControlCenterProjectYamlBuild.moduleName(projectIdentityEvidence.value),
+    name := moduleName.value,
+    version := ControlCenterProjectYamlBuild.version(projectIdentityEvidence.value),
     scalaVersion := ControlCenterProjectYamlBuild.requiredValue(cozyProjectMetadata.value, "build.scalaVersion"),
     useCoursier := false,
 
@@ -20,7 +25,8 @@ lazy val root = project
     cozyGeneratorBackend := "cozy",
     cozyDelegateProjectDir := None,
     cozyDelegateCommand := Seq("cozy"),
+    cozyCarName := ControlCenterProjectYamlBuild.carBaseName(projectIdentityEvidence.value),
     cozyManifestMetadata ++=
       cozyProjectMetadata.value.mapUnder("packaging.car.manifest_metadata") ++
-        Map("component" -> ControlCenterProjectYamlBuild.requiredValue(cozyProjectMetadata.value, "project.component.name"))
+        ControlCenterProjectYamlBuild.manifestMetadata(projectIdentityEvidence.value)
   )

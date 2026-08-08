@@ -1,5 +1,6 @@
 /*
- * @version Jul. 18, 2026
+ *  version Jul. 18, 2026
+ * @version Aug.  8, 2026
  */
 package org.simplemodeling.textus.controlcenter.impl
 
@@ -65,6 +66,9 @@ private[controlcenter] object TextusControlCenterLauncherRegistrationAuthenticat
   ): TextusControlCenterLauncherRegistrationAuthenticationProvider =
     new TextusControlCenterLauncherRegistrationAuthenticationProvider(
       ConfigurationAccess.getString(configuration, TOKEN_KEY).map(_.trim).filter(_.nonEmpty),
-      ConfigurationAccess.getString(configuration, PRINCIPAL_ID_KEY).map(_.trim).filter(_.nonEmpty).getOrElse(DEFAULT_PRINCIPAL_ID)
+      ConfigurationAccess.getString(configuration, PRINCIPAL_ID_KEY)
+        .map(_.trim)
+        .filter(_.nonEmpty)
+        .getOrElse(DEFAULT_PRINCIPAL_ID)
     )
 }

@@ -1,9 +1,12 @@
 {
-  "name": "textus-control-center",
-  "version": "0.1.0-SNAPSHOT",
-  "component": "textus-control-center",
+  "schemaVersion": 3,
+  "component": {
+    "namespace": "org.simplemodeling.textus",
+    "id": "ControlCenter",
+    "version": "0.1.0-SNAPSHOT"
+  },
   "config": {
     "textus.server.default-port": "18000",
-    "textus.component.textus-control-center.datastores.application.policy": "local-default"
+    "textus.component.org.simplemodeling.textus.ControlCenter.datastores.application.policy": "local-default"
   }
 }
