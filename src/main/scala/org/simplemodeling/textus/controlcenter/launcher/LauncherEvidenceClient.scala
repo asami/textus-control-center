@@ -1,6 +1,6 @@
 /*
  * @since   Jul. 22, 2026
- * @version Jul. 22, 2026
+ * @version Aug.  9, 2026
  * @author  ASAMI, Tomoharu
  */
 package org.simplemodeling.textus.controlcenter.launcher
@@ -16,24 +16,24 @@ final case class LauncherEvidenceClientConfiguration(command: String, timeout: D
 object LauncherEvidenceClientConfiguration {
   val Command = "textus-control-center.launcher.evidence.command"
   val Timeout = "textus-control-center.launcher.evidence.timeout"
-  val DefaultCommand = "cncf"
-  val DefaultTimeout = Duration.ofSeconds(5)
-  val MaximumTimeout = Duration.ofSeconds(30)
+  val DEFAULT_COMMAND = "cncf"
+  val DEFAULT_TIMEOUT = Duration.ofSeconds(15)
+  val MAXIMUM_TIMEOUT = Duration.ofSeconds(30)
 
   def fromProperties(properties: Map[String, String]): Either[String, LauncherEvidenceClientConfiguration] =
     for {
-      command <- properties.get(Command).map(_.trim).filter(_.nonEmpty).getOrElse(DefaultCommand).split("\\s+").toVector match {
+      command <- properties.get(Command).map(_.trim).filter(_.nonEmpty).getOrElse(DEFAULT_COMMAND).split("\\s+").toVector match {
         case Vector(value) if !value.contains("\u0000") => Right(value)
         case _ => Left("launcher-evidence-command-invalid")
       }
-      timeout <- properties.get(Timeout).map(_.trim).filter(_.nonEmpty).fold[Either[String, Duration]](Right(DefaultTimeout))(_timeout)
+      timeout <- properties.get(Timeout).map(_.trim).filter(_.nonEmpty).fold[Either[String, Duration]](Right(DEFAULT_TIMEOUT))(_timeout)
     } yield LauncherEvidenceClientConfiguration(command, timeout)
 
   private def _timeout(value: String): Either[String, Duration] = {
     val parsed =
       if (value.matches("[0-9]+ms")) scala.util.Try(Duration.ofMillis(value.dropRight(2).toLong)).toOption
       else scala.util.Try(Duration.parse(if (value.matches("[0-9]+s")) s"PT${value.dropRight(1)}S" else value)).toOption
-    parsed.filter(timeout => !timeout.isZero && !timeout.isNegative && timeout.compareTo(MaximumTimeout) <= 0)
+    parsed.filter(timeout => !timeout.isZero && !timeout.isNegative && timeout.compareTo(MAXIMUM_TIMEOUT) <= 0)
       .toRight("launcher-evidence-timeout-invalid")
   }
 }
@@ -46,7 +46,10 @@ object LauncherEvidenceCommandRunner {
   object System extends LauncherEvidenceCommandRunner {
     def run(configuration: LauncherEvidenceClientConfiguration, args: Vector[String]): Either[String, String] =
       try {
-        val process = ProcessBuilder((configuration.command +: args)*).redirectErrorStream(true).start()
+        val processbuilder = ProcessBuilder((configuration.command +: args)*).redirectErrorStream(true)
+        processbuilder.environment().remove("CNCF_LAUNCHER_DEV_DELEGATED")
+        processbuilder.environment().remove("CNCF_LAUNCHER_ARGS_FILE")
+        val process = processbuilder.start()
         val executor = Executors.newSingleThreadExecutor()
         val output = executor.submit(() => _read(process.getInputStream))
         try {
@@ -88,6 +91,6 @@ final class LauncherEvidenceClient(
   def list(): Either[String, LauncherEvidenceListProjection] =
     runner.run(configuration, Vector("launcher", "evidence", "list", "--format", "json")).flatMap(LauncherEvidenceProtocol.list)
 
-  def detail(instanceid: String): Either[String, LauncherEvidenceDetailProjection] =
-    runner.run(configuration, Vector("launcher", "evidence", "show", instanceid, "--format", "json")).flatMap(LauncherEvidenceProtocol.detail(_, instanceid))
+  def detail(instanceId: String): Either[String, LauncherEvidenceDetailProjection] =
+    runner.run(configuration, Vector("launcher", "evidence", "show", instanceId, "--format", "json")).flatMap(LauncherEvidenceProtocol.detail(_, instanceId))
 }

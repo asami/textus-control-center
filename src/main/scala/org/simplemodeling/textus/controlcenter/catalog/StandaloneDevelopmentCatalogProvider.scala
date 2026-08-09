@@ -1,5 +1,5 @@
 /*
- * @version Jul. 21, 2026
+ * @version Aug.  9, 2026
  */
 package org.simplemodeling.textus.controlcenter.catalog
 
@@ -7,16 +7,21 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
 import java.time.Instant
 import scala.jdk.CollectionConverters.*
+import scala.util.{Try, Using}
+import org.goldenport.cncf.component.identity.{ComponentId, ComponentIdentityProjection}
+import org.yaml.snakeyaml.Yaml
 
 /** Standalone host provider. cncf-car-lint: ignore provider/bootstrap boundary. */
 object StandaloneDevelopmentCatalogProvider {
   def discover(root: DevelopmentRoot, observedAt: Instant): Vector[ManagedCarSource] = {
     val base = Path.of(root.path)
     if (!Files.isDirectory(base)) Vector.empty
-    else Files.list(base).iterator.asScala.toVector
-      .filter(path => Files.isDirectory(path) && path.getFileName.toString.startsWith(root.includePrefix))
-      .flatMap(path => _descriptor_source(root.sourceId, path, observedAt))
-      .sortBy(source => (source.artifactId, source.sourceId))
+    else Using.resource(Files.list(base)) { stream =>
+      stream.iterator.asScala.toVector
+        .filter(path => Files.isDirectory(path) && path.getFileName.toString.startsWith(root.includePrefix))
+        .flatMap(path => _descriptor_source(root.sourceId, path, observedAt))
+        .sortBy(source => (source.artifactId, source.sourceId))
+    }
   }
 
   private def _descriptor_source(sourceid: String, project: Path, observedat: Instant): Option[ManagedCarSource] = {
@@ -24,23 +29,38 @@ object StandaloneDevelopmentCatalogProvider {
     if (!Files.isRegularFile(descriptor)) None
     else {
       val document = Files.readString(descriptor, StandardCharsets.UTF_8)
-      val projectname = _section_value(document, "project", "name")
-      val projectkind = _section_value(document, "project", "kind")
-      val componentname = _section_value(document, "component", "name")
-      if (projectkind.contains("car") && projectname.exists(_is_artifact_id))
-        Some(ManagedCarSource(projectname.get, ManagedCarSourceKind.Development, sourceid, componentname, Vector.empty, ManagedCarRefreshState.Available, observedat, None, Some(project.toString)))
-      else None
+      for {
+        root <- Try(new Yaml().load[AnyRef](document)).toOption.collect {
+          case values: java.util.Map[?, ?] => _mapping(values)
+        }
+        projectmetadata <- root.get("project").map(_mapping)
+        kind <- _string(projectmetadata, "kind") if kind == "car"
+        namespace <- _string(projectmetadata, "namespace")
+        id <- _string(projectmetadata, "id")
+        projection <- Try(ComponentIdentityProjection.of(ComponentId.require(s"$namespace.$id"))).toOption
+      } yield {
+        val componentmetadata = projectmetadata.get("component").map(_mapping).getOrElse(Map.empty)
+        ManagedCarSource(
+          projection.mavenArtifactId(),
+          ManagedCarSourceKind.Development,
+          sourceid,
+          Some(projection.qualifiedId()),
+          _string(componentmetadata, "version").toVector,
+          ManagedCarRefreshState.Available,
+          observedat,
+          None,
+          Some(project.toString)
+        )
+      }
     }
   }
 
-  private def _section_value(document: String, section: String, key: String): Option[String] = {
-    val lines = document.linesIterator.toVector
-    val start = lines.indexWhere(_.trim == s"$section:")
-    if (start < 0) None
-    else lines.drop(start + 1).takeWhile(line => line.takeWhile(_ == ' ').length >= 2 || line.trim.isEmpty).collectFirst {
-      case line if line.trim.startsWith(s"$key:") => line.trim.stripPrefix(s"$key:").trim.stripPrefix("\"").stripSuffix("\"")
-    }.filter(_.nonEmpty)
+  private def _mapping(value: Any): Map[String, Any] = value match {
+    case values: java.util.Map[?, ?] =>
+      values.asScala.collect { case (key: String, item) => key -> item }.toMap
+    case _ => Map.empty
   }
 
-  private def _is_artifact_id(value: String): Boolean = value.matches("[A-Za-z0-9][A-Za-z0-9._-]*")
+  private def _string(values: Map[String, Any], key: String): Option[String] =
+    values.get(key).collect { case value: String if value.trim.nonEmpty => value.trim }
 }

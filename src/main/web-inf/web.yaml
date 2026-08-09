@@ -9,5 +9,5 @@ routes:
   - path: /web/textus-control-center
     kind: alias
     target:
-      component: TextusControlCenter
+      component: org.simplemodeling.textus.ControlCenter
       app: textus-control-center

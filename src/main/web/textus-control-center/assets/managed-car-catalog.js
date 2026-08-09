@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const endpoint = "/rest/v1/textus-control-center/car-catalog";
+  const endpoint = "/rest/v1/org-simplemodeling-textus-control-center/car-catalog";
   const elements = {
     refresh: document.getElementById("refresh"), search: document.getElementById("search"), loading: document.getElementById("loading"),
     empty: document.getElementById("empty"), error: document.getElementById("error"), catalog: document.getElementById("catalog"),

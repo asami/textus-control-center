@@ -1,11 +1,11 @@
 (function () {
   "use strict";
 
-  const managementEndpoint = "/rest/v1/textus-control-center/operational-management";
-  const lifecycleEndpoint = "/rest/v1/textus-control-center/lifecycle-control";
-  const inventoryEndpoint = "/rest/v1/textus-control-center/subsystem-inventory";
-  const catalogEndpoint = "/rest/v1/textus-control-center/car-catalog";
-  const evidenceEndpoint = "/rest/v1/textus-control-center/launcher-evidence";
+  const managementEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/operational-management";
+  const lifecycleEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/lifecycle-control";
+  const inventoryEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/subsystem-inventory";
+  const catalogEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/car-catalog";
+  const evidenceEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/launcher-evidence";
   const elements = {
     refresh: document.getElementById("refresh"), loading: document.getElementById("operational-loading"), empty: document.getElementById("operational-empty"),
     error: document.getElementById("operational-error"), inventory: document.getElementById("operational-inventory"), rows: document.getElementById("operational-component-rows"), catalogStatus: document.getElementById("operational-catalog-status"), evidenceStatus: document.getElementById("operational-evidence-status"),
