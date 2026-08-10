@@ -93,9 +93,10 @@ sources with bounded source-specific timeouts:
   descriptors and exclude fixtures/nested examples unless explicitly listed;
 - local repository: read the configured CNCF CAR catalog and archive-presence
   metadata;
-- public repository: fetch only
-  `https://www.simplemodeling.org/repository/catalog/car/<artifactId>.yaml`
-  for configured subscriptions.
+- public repository: fetch configured subscriptions exactly; when subscriptions
+  are empty, fetch the versioned `/catalog/index.json` manifest. An invalid or
+  unavailable index produces the safe `public-index-invalid` or
+  `public-index-unavailable` refresh diagnostic and never invents artifact IDs.
 
 Refresh must never build, install, publish, download a CAR archive, start,
 stop, restart, inspect an arbitrary PID, or crawl a directory listing.  A
@@ -122,9 +123,9 @@ The registration protocol continues to accept Phase 1/2 records without
 rewrite existing registrations.  A catalog refresh never mutates an instance
 record merely to create a link.
 
-The SimpleModeling.org per-artifact catalog contract is sufficient for an
-explicit subscription.  Global public discovery is deferred until a versioned
-public manifest is available.
+Each source is a separate launch candidate identified exactly as
+`DEV:<sourceId>`, `LOCAL:<sourceId>`, or `PUBLIC:<sourceId>`; no source
+priority or fallback is permitted.
 
 ## 9. Executable Specification Requirements
 

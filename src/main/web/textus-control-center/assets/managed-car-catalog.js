@@ -31,7 +31,8 @@
   function render() {
     clearState();
     const query = elements.search.value.trim().toLowerCase();
-    const visible = records.filter((record) => [record.artifactId, record.componentName].filter(Boolean).join(" ").toLowerCase().includes(query));
+    const visible = records
+      .filter((record) => [record.artifactId, record.componentName, ...record.sources.flatMap((source) => [source.sourceKind, source.sourceId, source.refreshState, source.componentName, source.recommendedVersion, source.latestVersion, source.diagnostic])].filter(Boolean).join(" ").toLowerCase().includes(query));
     elements.cars.replaceChildren();
     if (!visible.length) { elements.empty.textContent = query ? "No managed CARs match this filter." : "No managed CARs are available from the configured sources."; elements.empty.hidden = false; return; }
     visible.forEach((record) => {

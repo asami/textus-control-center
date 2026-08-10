@@ -1,5 +1,6 @@
 /*
- * @version Jul. 28, 2026
+ *  version Jul. 28, 2026
+ * @version Aug. 10, 2026
  */
 package org.simplemodeling.textus.controlcenter.supervisor
 
@@ -58,7 +59,7 @@ final class EmbeddedTextusSupervisorSpec extends AnyWordSpec with Matchers with 
   }
 
   private def _request(requestid: String): LifecycleSupervisorRequest =
-    LifecycleSupervisorRequest(requestid, s"key-$requestid", "textus-control-center", "start", "operator-1", Instant.parse("2026-07-24T00:00:05Z"))
+    LifecycleSupervisorRequest(requestid, s"key-$requestid", "textus-control-center", Some("DEV:development-source"), "start", "operator-1", Instant.parse("2026-07-24T00:00:05Z"))
 
   private def _accepted(requestid: String): SupervisorResult =
     SupervisorResult(

@@ -1,5 +1,6 @@
 /*
- * @version Jul. 21, 2026
+ *  version Jul. 21, 2026
+ * @version Aug. 10, 2026
  */
 package org.simplemodeling.textus.controlcenter.catalog
 
@@ -105,7 +106,7 @@ object StandaloneCatalogConfiguration {
     } else if (configuration.localRepositoryCatalog.exists(catalog => !_is_absolute_path(catalog.catalogRoot))) {
       Left(StandaloneCatalogConfigurationError.Invalid("local repository catalog root must be an absolute path"))
     } else if (configuration.publicRepositoryCatalogs.exists(repository => !_is_public_repository(repository))) {
-      Left(StandaloneCatalogConfigurationError.Invalid("public repositories require HTTPS catalog bases and unique explicit artifact subscriptions"))
+      Left(StandaloneCatalogConfigurationError.Invalid("public repositories require HTTPS catalog bases and unique artifact subscriptions"))
     } else {
       Right(configuration)
     }
@@ -121,7 +122,6 @@ object StandaloneCatalogConfiguration {
     val uri = scala.util.Try(java.net.URI.create(repository.catalogBaseUrl)).toOption
     repository.sourceId.trim.nonEmpty &&
       uri.exists(value => value.isAbsolute && value.getScheme == "https" && value.getHost != null) &&
-      repository.subscriptions.nonEmpty &&
       repository.subscriptions.forall(_is_artifact_id) &&
       !_has_duplicates(repository.subscriptions)
   }

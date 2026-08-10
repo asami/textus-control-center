@@ -5,6 +5,7 @@ cncf_home="${HOME:?HOME is required}/.cncf"
 port="18000"
 host_label="local"
 rotate="false"
+canonical_inventory_path="/rest/v1/org-simplemodeling-textus-control-center/subsystem-inventory"
 
 usage() {
   printf '%s\n' 'Usage: bootstrap-standalone.sh [--cncf-home <path>] [--port <port>] [--host-label <label>] [--rotate]'
@@ -49,6 +50,8 @@ if ! [[ "$host_label" =~ ^[A-Za-z0-9._-]+$ ]]; then
   exit 2
 fi
 
+canonical_inventory_endpoint="http://127.0.0.1:$port$canonical_inventory_path"
+
 root="$cncf_home/textus-control-center"
 credential_dir="$root/credentials"
 state_dir="$root/state"
@@ -64,6 +67,26 @@ read_locator_value() {
   awk -F ': ' -v wanted="$key" '$1 == wanted { print substr($0, length(wanted) + 3); exit }' "$locator"
 }
 
+repair_locator_endpoint() {
+  local endpoint="$1"
+  local locator_mode
+  local locator_tmp
+  locator_mode="$(stat -f '%Lp' "$locator")"
+  locator_tmp="$(mktemp "$root/.standalone-locator.yaml.XXXXXX")"
+  if ! awk -v endpoint="$endpoint" '
+    BEGIN { replaced = 0 }
+    /^endpoint: / { print "endpoint: " endpoint; replaced = 1; next }
+    { print }
+    END { exit(replaced ? 0 : 1) }
+  ' "$locator" > "$locator_tmp"; then
+    rm -f "$locator_tmp"
+    printf '%s\n' 'existing standalone locator is missing an endpoint; repair it explicitly before bootstrap' >&2
+    return 1
+  fi
+  chmod "$locator_mode" "$locator_tmp"
+  mv -f "$locator_tmp" "$locator"
+}
+
 if [[ -f "$locator" ]]; then
   scope_id="$(read_locator_value scopeId)"
   installation_id="$(read_locator_value installationId)"
@@ -77,6 +100,10 @@ else
 fi
 
 if [[ -f "$credential" && "$rotate" != "true" && -f "$locator" && -f "$server_config" ]]; then
+  current_endpoint="$(read_locator_value endpoint)"
+  if [[ "$current_endpoint" != "$canonical_inventory_endpoint" ]]; then
+    repair_locator_endpoint "$canonical_inventory_endpoint"
+  fi
   printf 'Standalone Control Center bootstrap is already initialized at %s.\n' "$root"
   printf 'Use --rotate to replace the launcher credential without changing the installation identity.\n'
   exit 0
@@ -103,7 +130,7 @@ schemaVersion: 1
 profile: standalone
 scopeId: $scope_id
 installationId: $installation_id
-endpoint: http://127.0.0.1:$port/rest/v1/textus-control-center/subsystem-inventory
+endpoint: $canonical_inventory_endpoint
 credentialRef: credentials/launcher-registration.token
 timeout: 2s
 heartbeatInterval: 30s

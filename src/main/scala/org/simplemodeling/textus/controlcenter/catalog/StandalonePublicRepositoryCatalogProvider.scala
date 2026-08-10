@@ -1,14 +1,28 @@
 /*
- * @version Jul. 24, 2026
+ *  version Jul. 24, 2026
+ * @version Aug. 10, 2026
  */
 package org.simplemodeling.textus.controlcenter.catalog
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.Instant
+import io.circe.parser.parse
 
 /** Standalone HTTPS provider. The caller owns the bounded HTTP request. */
 object StandalonePublicRepositoryCatalogProvider {
+  def indexUrl(repository: PublicRepositoryCatalog): String =
+    repository.catalogBaseUrl.stripSuffix("/car") + "/index.json"
+
+  def indexArtifactIds(document: String): Either[String, Vector[String]] =
+    parse(document).left.map(_ => "public-index-invalid").flatMap { json =>
+      val cursor = json.hcursor
+      val schema = cursor.get[String]("schema").orElse(cursor.get[String]("schemaVersion")).toOption
+      val artifacts = cursor.downField("artifacts").as[Vector[io.circe.Json]].toOption.getOrElse(Vector.empty)
+        .flatMap(_.hcursor.get[String]("artifactId").toOption)
+        .map(_.trim).filter(_.matches("[A-Za-z0-9][A-Za-z0-9._-]*")).distinct.sorted
+      Either.cond(schema.contains("cncf.component-repository-index.v1"), artifacts, "public-index-invalid")
+    }
   def catalog_url(repository: PublicRepositoryCatalog, artifactId: String): String =
     s"${repository.catalogBaseUrl.stripSuffix("/")}/${URLEncoder.encode(artifactId.trim, StandardCharsets.UTF_8)}.yaml"
 

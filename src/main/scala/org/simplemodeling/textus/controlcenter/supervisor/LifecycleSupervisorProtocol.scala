@@ -1,5 +1,6 @@
 /*
- * @version Jul. 22, 2026
+ *  version Jul. 22, 2026
+ * @version Aug. 10, 2026
  */
 package org.simplemodeling.textus.controlcenter.supervisor
 
@@ -14,6 +15,7 @@ final case class LifecycleSupervisorRequest(
   requestId: String,
   idempotencyKey: String,
   artifactId: String,
+  launchProfileId: Option[String],
   action: String,
   operatorSubjectId: String,
   deadlineAt: Instant

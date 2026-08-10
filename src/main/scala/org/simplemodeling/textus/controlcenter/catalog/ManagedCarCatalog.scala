@@ -1,5 +1,6 @@
 /*
- * @version Jul. 21, 2026
+ *  version Jul. 21, 2026
+ * @version Aug. 10, 2026
  */
 package org.simplemodeling.textus.controlcenter.catalog
 
@@ -37,7 +38,9 @@ final case class ManagedCarSource(
   snapshotAt: Instant,
   diagnostic: Option[String],
   privateLocator: Option[String]
-)
+) {
+  def launchProfileId: String = s"${sourceKind.mark}:$sourceId"
+}
 
 final case class ManagedCarSourceProjection(
   artifactId: String,

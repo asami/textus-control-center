@@ -79,6 +79,10 @@ Every request contains:
 The request contains no filesystem locator, shell command, environment,
 credential, port, or process identifier.
 
+For Control Center Start and Restart, `deploymentId` is required and is the
+exact selected `DEV:<sourceId>`, `LOCAL:<sourceId>`, or `PUBLIC:<sourceId>`
+launch profile. Stop remains artifact-only and carries no deployment identity.
+
 Control Center commits its own `queued` audit record before dispatch. A retry
 uses the same request identity and idempotency key. The provider returns the
 previous result rather than creating a second managed instance.

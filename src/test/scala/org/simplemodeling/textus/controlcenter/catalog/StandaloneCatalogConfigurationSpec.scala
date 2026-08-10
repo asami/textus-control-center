@@ -1,5 +1,6 @@
 /*
- * @version Jul. 21, 2026
+ *  version Jul. 21, 2026
+ * @version Aug. 10, 2026
  */
 package org.simplemodeling.textus.controlcenter.catalog
 
@@ -81,6 +82,15 @@ class StandaloneCatalogConfigurationSpec extends AnyWordSpec with GivenWhenThen 
       configuration.isSubscribed("textus-unsubscribed") shouldBe false
     }
 
+    "allow an empty public subscription list for versioned index discovery" in {
+      Given("a public repository with no fixed subscriptions")
+      val configuration = _configuration(publicRepositoryCatalogs = Vector(PublicRepositoryCatalog("simplemodeling", "https://www.simplemodeling.org/repository/catalog/car", Vector.empty)))
+      When("the standalone configuration is validated")
+      val valid = StandaloneCatalogConfiguration.validate(configuration)
+      Then("the repository remains configured for its bounded global index")
+      valid shouldBe Right(configuration)
+    }
+
     "reject relative roots, unbounded refreshes, and duplicate public subscriptions" in {
       Given("invalid standalone source declarations")
       val relative = _configuration(developmentRoots = Vector(DevelopmentRoot("dev", "src/dev2026")))
@@ -103,7 +113,7 @@ class StandaloneCatalogConfigurationSpec extends AnyWordSpec with GivenWhenThen 
       Then("it fails before a refresh adapter can scan or call a source")
       relativeResult.left.map(_.message) shouldBe Left("development roots must use absolute paths and the textus- include prefix")
       unboundedResult.left.map(_.message) shouldBe Left("refreshTimeout must not exceed 30 seconds")
-      duplicateResult.left.map(_.message) shouldBe Left("public repositories require HTTPS catalog bases and unique explicit artifact subscriptions")
+      duplicateResult.left.map(_.message) shouldBe Left("public repositories require HTTPS catalog bases and unique artifact subscriptions")
     }
 
     "reserve fixture and nested example inclusion for explicit artifact selection" in {

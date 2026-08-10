@@ -1,5 +1,5 @@
 /*
- * @version Aug.  9, 2026
+ * @version Aug. 10, 2026
  */
 package org.simplemodeling.textus.controlcenter.catalog
 
@@ -40,6 +40,50 @@ class StandaloneDevelopmentCatalogProviderSpec extends AnyWordSpec with GivenWhe
       sources.head.componentName shouldBe Some("org.simplemodeling.textus.ArtScene")
       sources.head.availableVersions shouldBe Vector("0.1.2-SNAPSHOT")
       sources.head.privateLocator shouldBe Some(car.toString)
+    }
+
+    "return a verified loopback observation from a canonical ArtScene project" in {
+      Given("a canonical ArtScene CAR descriptor with a quoted default port and a matching assembly descriptor response")
+      val project = """project:
+  namespace: "org.simplemodeling.textus"
+  id: "ArtScene"
+  kind: car
+  component:
+    version: "0.1.2-SNAPSHOT"
+    config:
+      textus.server.default-port: "18011"
+"""
+
+      When("the provider observes the declared loopback assembly endpoint")
+      val observation = StandaloneDevelopmentCatalogProvider.observe(
+        project,
+        _ => Some(200 -> """{"subsystem":"textus-art-scene","version":"0.1.2-SNAPSHOT"}""")
+      )
+
+      Then("the matching descriptor is retained as a verified loopback observation")
+      observation shouldBe Some(StandaloneDevelopmentRuntimeObservation("textus-art-scene", "0.1.2-SNAPSHOT", "http://127.0.0.1:18011"))
+    }
+
+    "reject an assembly descriptor whose subsystem or version does not match the canonical project identity" in {
+      Given("a canonical ArtScene CAR descriptor with a quoted default port")
+      val project = """project:
+  namespace: "org.simplemodeling.textus"
+  id: "ArtScene"
+  kind: car
+  component:
+    version: "0.1.2-SNAPSHOT"
+    config:
+      textus.server.default-port: "18011"
+"""
+
+      When("the declared endpoint reports a different subsystem or component version")
+      val observations = Vector(
+        StandaloneDevelopmentCatalogProvider.observe(project, _ => Some(200 -> """{"subsystem":"another-car","version":"0.1.2-SNAPSHOT"}""")),
+        StandaloneDevelopmentCatalogProvider.observe(project, _ => Some(200 -> """{"subsystem":"textus-art-scene","version":"0.1.2"}"""))
+      )
+
+      Then("neither mismatched descriptor is admitted as a runtime observation")
+      observations shouldBe Vector(None, None)
     }
   }
 }

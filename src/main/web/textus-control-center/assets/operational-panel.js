@@ -3,6 +3,8 @@
 
   const managementEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/operational-management";
   const lifecycleEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/lifecycle-control";
+  const lifecyclePollIntervalMs = 250;
+  const lifecyclePollTimeoutMs = 20000;
   const inventoryEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/subsystem-inventory";
   const catalogEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/car-catalog";
   const evidenceEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/launcher-evidence";
@@ -15,6 +17,7 @@
   let components = [];
   let invocations = [];
   let evidence = [];
+  let catalog = [];
 
   function text(value) { return value === undefined || value === null || value === "" ? "—" : String(value); }
   function formatInstant(value) { const date = new Date(value); return !value || Number.isNaN(date.valueOf()) ? text(value) : date.toLocaleString(); }
@@ -26,13 +29,14 @@
   function componentRecord(value) { return { artifactId: value.artifact_id, managementState: value.management_state, firstManagedAt: value.first_managed_at, lastObservedAt: value.last_observed_at }; }
   function invocationRecord(value) { return { artifactId: value.artifact_id, status: value.status, instanceId: value.instance_id, baseUrl: value.base_url }; }
   function evidenceRecord(value) { return { artifactId: value.artifact_id, instanceId: value.instance_id, decision: value.evidence_decision, stoppedAt: value.stopped_at, launcherKind: value.launcher_kind, executionMode: value.execution_mode, lastSeenAt: value.last_seen_at }; }
-  function catalogRecord(value) { return { componentName: value.component_name, sources: Array.isArray(value.sources) ? value.sources : [] }; }
-  async function request(endpoint, path) {
-    const response = await fetch(`${endpoint}/${path}`, { credentials: "same-origin" });
+  function catalogRecord(value) { return { artifactId: value.artifact_id, componentName: value.component_name, runtimeState: value.runtime_state, observedBaseUrls: Array.isArray(value.observed_base_urls) ? value.observed_base_urls : [], sources: Array.isArray(value.sources) ? value.sources : [] }; }
+  async function request(endpoint, path, signal) {
+    const response = await fetch(`${endpoint}/${path}`, { credentials: "same-origin", ...(signal ? { signal } : {}) });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(message(body, response.status));
     return body;
   }
+  function timedOutLifecycleResult(result, requestId) { return { ...result, request_id: requestId, request_state: "timed-out", diagnostic: `Request ${requestId}: terminal status was not observed before timeout.` }; }
   function runtime(component) {
     const values = invocations.filter((value) => value.artifactId === component.artifactId).map((value) => String(value.status || "").toLowerCase());
     if (values.includes("running")) return "running";
@@ -42,9 +46,12 @@
     const observed = evidence.filter((value) => value.artifactId === component.artifactId && !value.stoppedAt).map((value) => String(value.decision || "").toLowerCase());
     if (observed.includes("current-registered")) return "running";
     if (observed.includes("current-evidence-only")) return "evidence-current";
-    return "not-running";
+    return catalog.find((value) => value.artifactId === component.artifactId)?.runtimeState || "not-running";
   }
-  function activeUrls(component) { return invocations.filter((value) => value.artifactId === component.artifactId && value.baseUrl && ["running", "starting"].includes(String(value.status || "").toLowerCase())).map((value) => value.baseUrl); }
+  function activeUrls(component) {
+    const registered = invocations.filter((value) => value.artifactId === component.artifactId && value.baseUrl && ["running", "starting"].includes(String(value.status || "").toLowerCase())).map((value) => value.baseUrl);
+    return registered.length ? registered : (catalog.find((value) => value.artifactId === component.artifactId)?.observedBaseUrls || []);
+  }
   function appLink(component) {
     const urls = activeUrls(component);
     const value = document.createElement(urls.length ? "a" : "button");
@@ -53,24 +60,70 @@
     else { value.type = "button"; value.disabled = true; value.title = "The component has no active application URL."; }
     return value;
   }
-  function button(label, action, component) {
+  function button(label, action, component, resolveCandidate) {
     const value = document.createElement("button");
     value.type = "button"; value.className = "button secondary operational-action"; value.textContent = label;
-    value.addEventListener("click", (event) => { event.stopPropagation(); requestLifecycle(action, component, value); });
+    if (action !== "stop" && !resolveCandidate()) { value.disabled = true; value.title = "Select an available source before starting or restarting."; }
+    value.addEventListener("click", (event) => { event.stopPropagation(); requestLifecycle(action, component, action === "stop" ? null : resolveCandidate(), value); });
     return value;
+  }
+  function candidates(component) { return catalog.find((value) => value.artifactId === component.artifactId)?.sources.filter((source) => String(source.refresh_state || source.refreshState).toLowerCase() === "available") || []; }
+  function sourceKind(candidate) { return candidate.source_kind || candidate.sourceKind; }
+  function sourceId(candidate) { return candidate.source_id || candidate.sourceId; }
+  function sourceVersion(candidate) { return candidate.recommended_version || candidate.latest_version || candidate.recommendedVersion || candidate.latestVersion || "Version unavailable"; }
+  function sourceKindLabel(candidate) {
+    const kind = String(sourceKind(candidate) || "").toUpperCase();
+    return { DEV: "Development", PUBLIC: "Release", LOCAL: "Local release" }[kind] || text(sourceKind(candidate));
+  }
+  function sourceLabel(candidate) { return [sourceKindLabel(candidate), sourceVersion(candidate), `Source: ${text(sourceId(candidate))}`].filter(Boolean).join(" · "); }
+  function appendLaunchVersionDetails(parent, candidate) {
+    const details = document.createElement("span"); details.className = "launch-version-option-details";
+    const kindVersion = document.createElement("span"); kindVersion.className = "launch-version-kind-version";
+    const kind = document.createElement("strong"); kind.className = "launch-version-kind"; kind.textContent = sourceKindLabel(candidate);
+    const version = document.createElement("span"); version.className = "launch-version-version"; version.textContent = sourceVersion(candidate);
+    kindVersion.append(kind, version);
+    const source = document.createElement("span"); source.className = "launch-version-source"; source.textContent = `Source: ${text(sourceId(candidate))}`;
+    details.append(kindVersion, source); parent.append(details);
   }
   function render() {
     clearState(); elements.rows.replaceChildren();
     if (!components.length) { elements.empty.hidden = false; return; }
-    components.forEach((component) => {
+    components.forEach((component, componentIndex) => {
+      const values = candidates(component);
       const row = document.createElement("tr"); row.className = "inventory-row"; row.tabIndex = 0; row.setAttribute("role", "button");
       row.addEventListener("click", () => loadDetail(component)); row.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); loadDetail(component); } });
       const state = runtime(component); const runtimeCell = document.createElement("td"); const mark = document.createElement("span"); mark.className = `status ${state}`; mark.textContent = state; runtimeCell.append(mark);
       const componentCell = document.createElement("td"); const name = document.createElement("strong"); name.textContent = text(component.artifactId); componentCell.append(name);
+      let resolveCandidate = () => values[0] || null;
+      if (values.length > 1) {
+        const launchChoices = document.createElement("fieldset"); launchChoices.className = "launch-version-choice";
+        const legend = document.createElement("legend"); legend.textContent = "Launch version"; launchChoices.append(legend);
+        const groupName = `launch-version-${componentIndex}-${String(component.artifactId).replace(/[^a-z0-9_-]/gi, "-")}`;
+        values.forEach((candidate, index) => {
+          const option = document.createElement("label"); option.className = "launch-version-option";
+          const radio = document.createElement("input"); radio.type = "radio"; radio.name = groupName; radio.value = String(index); radio.checked = index === 0;
+          option.append(radio); appendLaunchVersionDetails(option, candidate); launchChoices.append(option);
+        });
+        componentCell.append(launchChoices);
+        resolveCandidate = () => {
+          const checked = launchChoices.querySelector("input[type=\"radio\"]:checked");
+          return values[Number(checked?.value)] || null;
+        };
+        launchChoices.addEventListener("click", (event) => event.stopPropagation()); launchChoices.addEventListener("keydown", (event) => event.stopPropagation());
+      } else {
+        const source = document.createElement("div"); source.className = values.length ? "launch-version-summary" : "launch-version-unavailable";
+        if (values.length) {
+          const label = document.createElement("span"); label.className = "launch-version-summary-label"; label.textContent = "Launch version";
+          const details = document.createElement("span"); details.className = "launch-version-summary-details"; details.textContent = sourceLabel(values[0]); source.append(label, details);
+        } else {
+          source.textContent = "Launch version unavailable — No available source";
+        }
+        componentCell.append(source);
+      }
       const managementCell = document.createElement("td"); const management = document.createElement("span"); management.className = "execution-mark execution-development"; management.textContent = text(component.managementState); managementCell.append(management);
       const observedCell = document.createElement("td"); observedCell.textContent = formatInstant(component.lastObservedAt);
       const actionsCell = document.createElement("td"); actionsCell.className = "operational-actions";
-      [button("Start", "start", component), button("Stop", "stop", component), button("Restart", "restart", component), appLink(component)].forEach((value) => actionsCell.append(value));
+      [button("Start", "start", component, resolveCandidate), button("Stop", "stop", component, () => null), button("Restart", "restart", component, resolveCandidate), appLink(component)].forEach((value) => actionsCell.append(value));
       const remove = document.createElement("button"); remove.type = "button"; remove.className = "button secondary operational-action"; remove.textContent = "Remove";
       remove.addEventListener("click", (event) => { event.stopPropagation(); removeComponent(component, remove); }); actionsCell.append(remove);
       [runtimeCell, componentCell, managementCell, observedCell, actionsCell].forEach((cell) => row.append(cell)); elements.rows.append(row);
@@ -92,26 +145,48 @@
       } catch (error) {
         showEvidenceStatus("Launcher evidence is temporarily unavailable. Retained inventory and management rows remain usable; no lifecycle authority is inferred from unavailable evidence.", true);
       }
-      const [managed, registered, observed] = await Promise.all([
+      const [managed, registered, observed, discovered] = await Promise.all([
         request(managementEndpoint, "list-operational-components?offset=0&limit=100"),
         request(inventoryEndpoint, "list-subsystems?offset=0&limit=100"),
-        request(evidenceEndpoint, "list-launcher-evidence?offset=0&limit=100")
+        request(evidenceEndpoint, "list-launcher-evidence?offset=0&limit=100"),
+        request(catalogEndpoint, "list-managed-cars?offset=0&limit=100")
       ]);
       components = Array.isArray(managed.data) ? managed.data.map(componentRecord) : [];
       invocations = Array.isArray(registered.data) ? registered.data.map(invocationRecord) : [];
       evidence = Array.isArray(observed.data) ? observed.data.map(evidenceRecord) : [];
+      catalog = Array.isArray(discovered.data) ? discovered.data.map(catalogRecord) : [];
       render();
     } catch (error) { showError(error.message || "The operational component panel could not be loaded."); }
   }
-  async function requestLifecycle(action, component, control) {
+  async function requestLifecycle(action, component, candidate, control) {
     control.disabled = true;
     try {
       const key = `${action}-${component.artifactId}-${Date.now()}`;
-      let result = await request(lifecycleEndpoint, `${action}-operational-component?artifactId=${encodeURIComponent(component.artifactId)}&idempotencyKey=${encodeURIComponent(key)}`);
+      const source = action === "stop" ? "" : `&sourceKind=${encodeURIComponent(candidate.source_kind || candidate.sourceKind)}&sourceId=${encodeURIComponent(candidate.source_id || candidate.sourceId)}`;
+      let result = await request(lifecycleEndpoint, `${action}-operational-component?artifactId=${encodeURIComponent(component.artifactId)}&idempotencyKey=${encodeURIComponent(key)}${source}`);
       if (result.request_state === "queued" && result.request_id) {
-        result = await request(lifecycleEndpoint, `get-lifecycle-request?requestId=${encodeURIComponent(result.request_id)}`);
+        const requestId = result.request_id;
+        const deadline = Date.now() + lifecyclePollTimeoutMs;
+        while (result.request_state === "queued") {
+          const remaining = deadline - Date.now();
+          if (remaining <= 0) break;
+          const controller = new AbortController();
+          const abortTimer = setTimeout(() => controller.abort(), remaining);
+          try {
+            result = await request(lifecycleEndpoint, `get-lifecycle-request?requestId=${encodeURIComponent(requestId)}`, controller.signal);
+          } catch (error) {
+            if (controller.signal.aborted && error?.name === "AbortError") { result = timedOutLifecycleResult(result, requestId); break; }
+            throw error;
+          } finally { clearTimeout(abortTimer); }
+          if (result.request_state === "queued") {
+            const remaining = deadline - Date.now();
+            if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, Math.min(lifecyclePollIntervalMs, remaining)));
+          }
+        }
+        if (result.request_state === "queued") {
+          result = timedOutLifecycleResult(result, requestId);
+        }
       }
-      await load();
       await loadDetail(component, result);
     } catch (error) { showError(error.message || "The lifecycle request could not be recorded."); }
     finally { control.disabled = false; }
@@ -147,6 +222,19 @@
         });
         elements.lifecycleHistory.append(item);
       });
+      const latestState = String(latest?.request_state || "").toLowerCase();
+      const latestDiagnostic = latest?.diagnostic_code || latest?.diagnostic;
+      const matchingLatest = latest && requests.find((value) => value.request_id === latest.request_id);
+      const matchingDiagnostic = matchingLatest?.diagnostic_code || matchingLatest?.diagnostic;
+      const latestIsStale = latest && (!matchingLatest || matchingLatest.request_state !== latest.request_state || (["failed", "rejected"].includes(latestState) && latestDiagnostic && matchingDiagnostic !== latestDiagnostic) || latestState === "timed-out");
+      if (latestIsStale) {
+        const item = document.createElement("section"); item.className = "catalog-source";
+        const title = document.createElement("h4"); title.textContent = ["Latest result", text(latest.lifecycle_action), text(latest.request_state)].join(" · "); item.append(title);
+        [["Request", latest.request_id], ["Supervisor", latest.supervisor_id], ["Instance", latest.instance_id], ["Accepted", formatInstant(latest.accepted_at)], ["Completed", formatInstant(latest.completed_at)], ["Diagnostic", latestDiagnostic]].forEach(([label, fact]) => {
+          if (fact && fact !== "—") { const detail = document.createElement("p"); detail.textContent = `${label}: ${fact}`; item.append(detail); }
+        });
+        elements.lifecycleHistory.append(item);
+      }
       elements.dialog.showModal();
     } catch (error) { showError(error.message || "The operational component detail could not be loaded."); }
   }

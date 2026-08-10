@@ -1,6 +1,6 @@
 /*
  *  version Jul. 28, 2026
- * @version Aug.  8, 2026
+ * @version Aug. 10, 2026
  */
 package org.simplemodeling.textus.controlcenter.impl
 
@@ -538,14 +538,17 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
         existingcars <- find_managed_cars_all
         existingsources <- find_managed_sources_all
         local = developmentroots.flatMap(StandaloneDevelopmentCatalogProvider.discover(_, now)) ++ localcatalogs.flatMap(StandaloneLocalRepositoryCatalogProvider.discover(_, now))
-        public <- publicrepositories.traverse(fetch_public_sources(_, now, refreshtimeout)).map(_.flatten)
+        publicrefreshes <- publicrepositories.traverse(fetch_public_sources(_, now, refreshtimeout))
+        public = publicrefreshes.flatMap(_._1)
+        refreshdiagnostics = publicrefreshes.flatMap(_._2)
         discovered = local ++ public
         stored <- discovered.traverse(persist_discovered_source(_, now, existingcars, existingsources))
       } yield OperationResponse(Record.dataAuto(
         "artifactId" -> action.record.getString("artifactId").map(_.trim).filter(_.nonEmpty),
         "refreshedAt" -> now,
         "refreshedSourceCount" -> stored.size,
-        "adapterState" -> (if (catalogfile.isDefined && catalogconfiguration.isEmpty) "invalid" else if (developmentroots.nonEmpty || localcatalogs.nonEmpty || publicrepositories.nonEmpty) "configured" else "not-configured")
+        "adapterState" -> (if (catalogfile.isDefined && catalogconfiguration.isEmpty) "invalid" else if (developmentroots.nonEmpty || localcatalogs.nonEmpty || publicrepositories.nonEmpty) "configured" else "not-configured"),
+        "refreshDiagnostics" -> refreshdiagnostics
       ))
   }
 
@@ -604,8 +607,8 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "ManagedCarSource")); query = EntityQuery[ManagedCarSourceEntity](ManagedCarSourceQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[ManagedCarSourceEntity](query) } yield result.data
     protected final def find_registered_subsystems_all: ExecUowM[Vector[RegisteredSubsystemEntity]] =
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "RegisteredSubsystem")); query = EntityQuery[RegisteredSubsystemEntity](RegisteredSubsystemQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[RegisteredSubsystemEntity](query) } yield result.data
-    protected final def fetch_public_sources(repository: PublicRepositoryCatalog, now: Instant, timeout: Duration): ExecUowM[Vector[CatalogManagedCarSource]] =
-      repository.subscriptions.traverse { artifactid =>
+    protected final def fetch_public_sources(repository: PublicRepositoryCatalog, now: Instant, timeout: Duration): ExecUowM[(Vector[CatalogManagedCarSource], Vector[String])] =
+      def fetch(artifactids: Vector[String]): ExecUowM[Vector[CatalogManagedCarSource]] = artifactids.traverse { artifactid =>
         http_get(
           StandalonePublicRepositoryCatalogProvider.catalog_url(repository, artifactid),
           Map("Accept" -> "application/yaml, text/yaml"),
@@ -618,6 +621,22 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
               StandalonePublicRepositoryCatalogProvider.unavailable(repository, artifactid, now)
           }
       }
+      if (repository.subscriptions.nonEmpty)
+        fetch(repository.subscriptions.distinct.sorted).map(_ -> Vector.empty)
+      else
+        http_get(
+          StandalonePublicRepositoryCatalogProvider.indexUrl(repository),
+          Map("Accept" -> "application/json"),
+          Vector(Property("http.timeout-seconds", timeout.toSeconds.toString, None))
+        ).flatMap { response =>
+          if (response.status.code / 100 == 2)
+            StandalonePublicRepositoryCatalogProvider.indexArtifactIds(response.getString.getOrElse("")).fold(
+              _ => exec_pure(Vector.empty[CatalogManagedCarSource] -> Vector("public-index-invalid")),
+              ids => fetch(ids).map(_ -> Vector.empty)
+            )
+          else
+            exec_pure(Vector.empty[CatalogManagedCarSource] -> Vector("public-index-unavailable"))
+        }
     protected final def persist_discovered_source(
       source: CatalogManagedCarSource,
       now: Instant,
@@ -671,7 +690,7 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
       new OperationalComponentUpdate.Builder().withManagementState(OperationalManagementStateValue(managementstate)).withLastObservedAt(now).buildC()
     protected final def retain_source_facts(source: CatalogManagedCarSource, existing: Vector[ManagedCarSourceEntity]): CatalogManagedCarSource =
       if (source.refreshState == org.simplemodeling.textus.controlcenter.catalog.ManagedCarRefreshState.Available) source
-      else latest_sources(existing).find(current => current.artifactId.value == source.artifactId && current.sourceId.value == source.sourceId) match {
+      else latest_sources(existing).find(current => current.artifactId.value == source.artifactId && current.sourceKind.value == source.sourceKind.mark && current.sourceId.value == source.sourceId) match {
         case Some(current) => source.copy(
           componentName = source.componentName.orElse(current.componentName.map(_.value)),
           availableVersions = if (source.availableVersions.nonEmpty) source.availableVersions else Vector(current.recommendedVersion, current.latestVersion).flatten.map(_.value).distinct
@@ -681,7 +700,7 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
     protected final def latest_cars(sources: Vector[ManagedCarEntity]): Vector[ManagedCarEntity] =
       sources.groupBy(_.artifactId.value).valuesIterator.flatMap(_.sortBy(source => (source.lastObservedAt, source.id.print)).lastOption).toVector.sortBy(_.artifactId.value)
     protected final def latest_sources(sources: Vector[ManagedCarSourceEntity]): Vector[ManagedCarSourceEntity] =
-      sources.groupBy(source => (source.artifactId.value, source.sourceId.value)).valuesIterator.flatMap(_.sortBy(source => (source.snapshotAt, source.id.print)).lastOption).toVector.sortBy(source => (source.artifactId.value, source.sourceKind.value, source.sourceId.value))
+      sources.groupBy(source => (source.artifactId.value, source.sourceKind.value, source.sourceId.value)).valuesIterator.flatMap(_.sortBy(source => (source.snapshotAt, source.id.print)).lastOption).toVector.sortBy(source => (source.artifactId.value, source.sourceKind.value, source.sourceId.value))
     protected final def latest_registered_subsystems(sources: Vector[RegisteredSubsystemEntity]): Vector[RegisteredSubsystemEntity] =
       sources.groupBy(_.instanceId.value).valuesIterator.flatMap(_.sortBy(source => (source.lastSeenAt, source.id.print)).lastOption).toVector.sortBy(_.instanceId.value)
     protected final def runtime_summary(car: ManagedCarEntity, cars: Vector[ManagedCarEntity], registered: Vector[RegisteredSubsystemEntity], now: Instant) = {
@@ -803,7 +822,7 @@ final class OperationalManagementServiceFactoryImpl extends TextusControlCenterC
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "RegisteredSubsystem")); query = EntityQuery[RegisteredSubsystemEntity](RegisteredSubsystemQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[RegisteredSubsystemEntity](query) } yield result.data
     protected final def latest_operational_component(sources: Vector[OperationalComponentEntity]): Option[OperationalComponentEntity] = sources.sortBy(source => (source.lastObservedAt, source.id.print)).lastOption
     protected final def latest_operational_components(sources: Vector[OperationalComponentEntity]): Vector[OperationalComponentEntity] = sources.groupBy(_.artifactId.value).valuesIterator.flatMap(latest_operational_component).toVector.sortBy(_.artifactId.value)
-    protected final def latest_managed_sources(sources: Vector[ManagedCarSourceEntity]): Vector[ManagedCarSourceEntity] = sources.groupBy(source => (source.artifactId, source.sourceId)).valuesIterator.flatMap(source => source.sortBy(value => (value.snapshotAt, value.id.print)).lastOption).toVector
+    protected final def latest_managed_sources(sources: Vector[ManagedCarSourceEntity]): Vector[ManagedCarSourceEntity] = sources.groupBy(source => (source.artifactId.value, source.sourceKind.value, source.sourceId.value)).valuesIterator.flatMap(source => source.sortBy(value => (value.snapshotAt, value.id.print)).lastOption).toVector
     protected final def operational_component_update(managementstate: String, now: Instant): Consequence[OperationalComponentUpdate] =
       new OperationalComponentUpdate.Builder().withManagementState(OperationalManagementStateValue(managementstate)).withLastObservedAt(now).buildC()
     protected final def safe_projection(component: OperationalComponentEntity): Record = Record.dataAuto("artifactId" -> component.artifactId.value, "managementState" -> component.managementState.value, "firstManagedAt" -> component.firstManagedAt, "lastObservedAt" -> component.lastObservedAt)
@@ -1025,19 +1044,20 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         _ <- exec_from(administrative_principal)
         artifactid <- exec_from(required_string(record, "artifactId"))
         idempotencykey <- exec_from(required_string(record, "idempotencyKey"))
+        profileid <- exec_from(lifecycle_launch_profile(actionname, record))
         requests <- find_lifecycle_requests(artifactid)
-        response <- requests.find(value => value.lifecycleAction.value == actionname && value.idempotencyKey.value == idempotencykey) match {
+        response <- requests.find(value => value.lifecycleAction.value == actionname && value.idempotencyKey.value == idempotencykey && value.launchProfileId.map(_.value) == profileid) match {
           case Some(existing) => exec_pure(OperationResponse(safe_projection(existing)))
-          case None => _create_lifecycle_request(artifactid, actionname, idempotencykey)
+          case None => _create_lifecycle_request(artifactid, actionname, idempotencykey, profileid)
         }
       } yield response
 
-    private def _create_lifecycle_request(artifactid: String, actionname: String, idempotencykey: String): ExecUowM[OperationResponse] =
+    private def _create_lifecycle_request(artifactid: String, actionname: String, idempotencykey: String, profileid: Option[String]): ExecUowM[OperationResponse] =
       for {
         components <- find_operational_components(artifactid)
         component <- exec_from(latest_operational_component(components).toRight(artifactid).fold(Consequence.resourceNotFound, Consequence.success))
         now = core.executionContext.clock.instant()
-        supervisor <- standalone_supervisor(artifactid)
+        supervisor <- standalone_supervisor(artifactid, profileid)
         deadlineat = now.plus(Duration.ofSeconds(20))
         queued = component.managementState.value != "excluded" && supervisor.isRight
         state = if (queued) "queued" else "rejected"
@@ -1055,7 +1075,7 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
           deadlineat,
           None,
           completedat,
-          None,
+          profileid.map(LifecycleLaunchProfileIdValue.apply),
           diagnostic.map(LifecycleDiagnosticCodeValue.apply),
           diagnostic.map(LifecycleDiagnosticValue.apply),
           OperatorSubjectIdValue(executionContext.security.principal.id.value),
@@ -1073,7 +1093,7 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
           deadlineat,
           None,
           completedat,
-          None,
+          profileid.map(LifecycleLaunchProfileIdValue.apply),
           diagnostic.map(LifecycleDiagnosticCodeValue.apply),
           diagnostic.map(LifecycleDiagnosticValue.apply),
           OperatorSubjectIdValue(executionContext.security.principal.id.value),
@@ -1091,12 +1111,13 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
           request.requestId.value,
           request.idempotencyKey.value,
           request.artifactId.value,
+          request.launchProfileId.map(_.value),
           request.lifecycleAction.value,
           request.operatorSubjectId.value,
           request.deadlineAt
         )
         for {
-          supervisor <- standalone_supervisor(request.artifactId.value)
+          supervisor <- standalone_supervisor(request.artifactId.value, request.launchProfileId.map(_.value))
           result = supervisor.fold(
             code => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.map(_.value).getOrElse(""), code, now),
             _.submit(protocolrequest, now)
@@ -1110,9 +1131,9 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
       if (request.requestState.value != "queued") exec_pure(request)
       else {
         val now = core.executionContext.clock.instant()
-        val protocolrequest = LifecycleSupervisorRequest(request.requestId.value, request.idempotencyKey.value, request.artifactId.value, request.lifecycleAction.value, request.operatorSubjectId.value, request.deadlineAt)
+        val protocolrequest = LifecycleSupervisorRequest(request.requestId.value, request.idempotencyKey.value, request.artifactId.value, request.launchProfileId.map(_.value), request.lifecycleAction.value, request.operatorSubjectId.value, request.deadlineAt)
         for {
-          supervisor <- standalone_supervisor(request.artifactId.value)
+          supervisor <- standalone_supervisor(request.artifactId.value, request.launchProfileId.map(_.value))
           result = supervisor.fold(
             code => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.map(_.value).getOrElse(""), code, now),
             value => value.lookup(protocolrequest.requestId).getOrElse(value.submit(protocolrequest, now))
@@ -1122,23 +1143,39 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         } yield lifecycle_request_entity(request, result)
       }
 
-    protected final def standalone_supervisor(artifactId: String): ExecUowM[Either[String, TextusSupervisor]] =
+    protected final def standalone_supervisor(artifactId: String, profileId: Option[String]): ExecUowM[Either[String, TextusSupervisor]] =
       for {
         sources <- find_managed_sources_all
       } yield {
-        val source = sources
-          .filter(_.artifactId.value == artifactId)
-          .sortBy(value => (value.snapshotAt, value.id.print))
-          .reverse
-          .find(value => value.sourceKind.value == "DEV" && value.refreshState.value == "available")
+        val source = profileId.flatMap { value =>
+          value.split(":", 2).toList match {
+            case kind :: sourceid :: Nil => latest_sources(sources).find(source => source.artifactId.value == artifactId && source.sourceKind.value == kind && source.sourceId.value == sourceid && source.refreshState.value == "available")
+            case _ => None
+          }
+        }
+        val sourcevalidation = profileId match {
+          case Some(_) => for {
+            _ <- source.toRight("supervisor-launch-profile-unavailable")
+            _ <- source.flatMap(value => if (value.sourceKind.value == "DEV") value.privateLocator.map(_.value).filter(_.nonEmpty) else Some("repository-profile")).toRight("supervisor-launch-profile-unavailable")
+          } yield ()
+          case None => Right(())
+        }
         given org.goldenport.cncf.context.ExecutionContext = core.executionContext
         for {
-          _ <- source.flatMap(_.privateLocator.map(_.value)).filter(_.nonEmpty).toRight("supervisor-launch-profile-unavailable")
+          _ <- sourcevalidation
           _ <- config_string("textus-control-center.home").map(_.trim).filter(_.nonEmpty).toRight("textus-supervisor-home-unavailable")
           socket <- core.component.collect { case value: SupervisorSocket => value }.toRight("textus-supervisor-unavailable")
           provider <- socket.supervisorC.toOption.toRight("textus-supervisor-unavailable")
         } yield new EmbeddedTextusSupervisor(provider, core.executionContext)
       }
+
+    protected final def lifecycle_launch_profile(actionname: String, record: Record): Consequence[Option[String]] =
+      if (actionname == "stop") Consequence.success(None)
+      else for {
+        sourcekind <- required_string(record, "sourceKind")
+        sourceid <- required_string(record, "sourceId")
+        _ <- if (Set("DEV", "LOCAL", "PUBLIC").contains(sourcekind)) Consequence.unit else Consequence.operationInvalid("sourceKind is invalid")
+      } yield Some(s"$sourcekind:$sourceid")
 
     protected final def lifecycle_request_update(result: LifecycleSupervisorResult): Consequence[LifecycleRequestUpdate] =
       new LifecycleRequestUpdate.Builder()
@@ -1210,6 +1247,8 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "ManagedCarSource")); query = EntityQuery[ManagedCarSourceEntity](ManagedCarSourceQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[ManagedCarSourceEntity](query) } yield result.data
     protected final def latest_operational_component(values: Vector[OperationalComponentEntity]): Option[OperationalComponentEntity] =
       values.sortBy(value => (value.lastObservedAt, value.id.print)).lastOption
+    protected final def latest_sources(sources: Vector[ManagedCarSourceEntity]): Vector[ManagedCarSourceEntity] =
+      sources.groupBy(source => (source.artifactId.value, source.sourceKind.value, source.sourceId.value)).valuesIterator.flatMap(_.sortBy(source => (source.snapshotAt, source.id.print)).lastOption).toVector
     protected final def lifecycle_diagnostic(component: OperationalComponentEntity, supervisor: Either[String, TextusSupervisor]): String =
       if (component.managementState.value == "excluded") "component-not-managed"
       else supervisor.fold(identity, _ => "textus-supervisor-unavailable")

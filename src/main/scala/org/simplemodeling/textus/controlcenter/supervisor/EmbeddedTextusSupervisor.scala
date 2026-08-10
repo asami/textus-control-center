@@ -1,5 +1,6 @@
 /*
- * @version Jul. 28, 2026
+ *  version Jul. 28, 2026
+ * @version Aug. 10, 2026
  */
 package org.simplemodeling.textus.controlcenter.supervisor
 
@@ -42,7 +43,7 @@ final class EmbeddedTextusSupervisor(
         request.requestId,
         request.idempotencyKey,
         request.artifactId,
-        Some("standalone"),
+        if (request.action == "stop") None else request.launchProfileId,
         action,
         request.operatorSubjectId,
         request.deadlineAt

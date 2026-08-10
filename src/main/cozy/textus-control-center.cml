@@ -794,6 +794,8 @@ GetLifecycleRequestResult
 |----------------|--------|--------------|
 | artifactId     | string | 1            |
 | idempotencyKey | string | 1            |
+| sourceKind     | string | 1            |
+| sourceId       | string | 1            |
 
 ## StopOperationalComponent
 
@@ -812,6 +814,8 @@ GetLifecycleRequestResult
 |----------------|--------|--------------|
 | artifactId     | string | 1            |
 | idempotencyKey | string | 1            |
+| sourceKind     | string | 1            |
+| sourceId       | string | 1            |
 
 ## DispatchLifecycleRequest
 

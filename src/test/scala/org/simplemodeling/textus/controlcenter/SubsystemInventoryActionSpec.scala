@@ -1,5 +1,6 @@
 /*
- * @version Jul. 28, 2026
+ *  version Jul. 28, 2026
+ * @version Aug. 10, 2026
  */
 package org.simplemodeling.textus.controlcenter
 
@@ -24,11 +25,14 @@ import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import com.sun.net.httpserver.HttpServer
+import java.net.InetSocketAddress
 import java.time.Instant
 import java.nio.file.{Files, Path, Paths}
 
 final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen with Matchers {
   "SubsystemInventory Actions" should {
+    "registration and inventory authority" which {
     "persist launcher reports and return only safe administrative projections" in {
       Given("an in-memory Textus Control Center component with launcher and operator principals")
       val fixture = _fixture()
@@ -225,13 +229,16 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       _records(result).flatMap(_.getAny("registrationPrincipalId")) shouldBe empty
     }
 
+    }
+
+    "catalog and operational target management" which {
     "refresh, list, and load managed CAR snapshots through the protected operation surface" in {
       Given("a configured standalone development root with one CAR descriptor")
       val root = Files.createTempDirectory("control-center-catalog")
       val car = Files.createDirectory(root.resolve("textus-catalog-spec"))
       Files.writeString(
         car.resolve("project.yaml"),
-        "project:\n  name: textus-catalog-spec\n  kind: car\n  component:\n    name: catalog-spec-component\n"
+        "project:\n  namespace: org.simplemodeling.textus\n  id: CatalogSpec\n  kind: car\n  component:\n    name: catalog-spec-component\n"
       )
       val fixture = _fixture()
       val component = _component(_catalog_configuration(root))
@@ -279,6 +286,49 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
 
       Then("the catalog boundary rejects non-administrative authority")
       unauthorized.toOption shouldBe empty
+    }
+
+    "read persisted catalog snapshots without observing a live development endpoint" in {
+      Given("a persisted development CAR whose matching assembly endpoint is live")
+      val server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0)
+      server.createContext("/rest/v1/admin/assembly/descriptor", exchange => {
+        val body = """{"subsystem":"textus-catalog-read-spec","version":"0.1.0-SNAPSHOT"}""".getBytes
+        exchange.sendResponseHeaders(200, body.length)
+        val output = exchange.getResponseBody
+        try output.write(body)
+        finally output.close()
+      })
+      server.start()
+      try {
+        val root = Files.createTempDirectory("control-center-catalog-read")
+        val car = Files.createDirectory(root.resolve("textus-catalog-read-spec"))
+        Files.writeString(
+          car.resolve("project.yaml"),
+          s"project:\n  namespace: org.simplemodeling.textus\n  id: CatalogReadSpec\n  kind: car\n  component:\n    version: 0.1.0-SNAPSHOT\n    config:\n      textus.server.default-port: \"${server.getAddress.getPort}\"\n"
+        )
+        val fixture = _fixture()
+        val component = _component(_catalog_configuration(root))
+        val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
+
+        When("the operator refreshes once and later lists and loads the persisted CAR")
+        _execute(component, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
+        val listed = _execute(component, operatorcontext, Request.ofService("CarCatalog", "listManagedCars"))
+          .toOption.getOrElse(fail("catalog list failed"))
+          .asInstanceOf[OperationResponse.RecordResponse].record
+        val detail = _execute(
+          component,
+          operatorcontext,
+          Request.ofService("CarCatalog", "getManagedCar", properties = List(Property("artifactId", "textus-catalog-read-spec", None)))
+        ).toOption.getOrElse(fail("catalog detail failed")).asInstanceOf[OperationResponse.RecordResponse].record
+
+        Then("both projections retain only registered runtime evidence and make no live observation")
+        _records(listed).head.getString("runtimeState") shouldBe Some("not-running")
+        _records(listed).head.getAny("observedBaseUrls") shouldBe empty
+        detail.getString("runtimeState") shouldBe Some("not-running")
+        detail.getAny("observedBaseUrls") shouldBe empty
+      } finally {
+        server.stop(0)
+      }
     }
 
     "refresh every configured standalone development root" in {
@@ -403,6 +453,9 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       _records(listed).head.getString("managementState") shouldBe Some("adopted")
     }
 
+    }
+
+    "launcher evidence reconciliation" which {
     "reconcile Launcher evidence retained before Control Center startup without direct shared-file access" in {
       Given("a bounded CNCF Launcher command whose evidence was retained before Control Center startup")
       val root = Files.createTempDirectory("control-center-launcher-evidence")
@@ -460,6 +513,9 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       }
     }
 
+    }
+
+    "lifecycle control" which {
     "retain an idempotent lifecycle request without a launcher-private lifecycle command" in {
       Given("an auto-managed development component with a legacy launcher command that must be ignored")
       val root = Files.createTempDirectory("control-center-lifecycle-request")
@@ -475,7 +531,9 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         "startOperationalComponent",
         properties = List(
           Property("artifactId", "textus-lifecycle-spec", None),
-          Property("idempotencyKey", "lifecycle-request-spec-key", None)
+          Property("idempotencyKey", "lifecycle-request-spec-key", None),
+          Property("sourceKind", "DEV", None),
+          Property("sourceId", "standalone-development", None)
         )
       )
 
@@ -496,13 +554,124 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       first.getString("requestState") shouldBe Some("queued")
       first.getAny("deadlineAt") should not be empty
       first.getAny("acceptedAt") shouldBe empty
-      first.getAny("launchProfileId") shouldBe empty
+      first.getString("launchProfileId") shouldBe Some("DEV:standalone-development")
       first.getAny("diagnosticCode") shouldBe empty
       first.getAny("diagnostic") shouldBe empty
       second.getString("requestId") shouldBe first.getString("requestId")
       _records(audit).map(_.getString("requestId")) shouldBe Vector(first.getString("requestId"))
       _records(audit).head.getAny("idempotencyKey") shouldBe empty
       _records(audit).head.getAny("operatorSubjectId") shouldBe empty
+    }
+
+    "stop without a source while restart retains an exact required source selector" in {
+      Given("an auto-managed development component and an embedded supervisor home")
+      val root = Files.createTempDirectory("control-center-lifecycle-source-selector")
+      _write_car_descriptor(root, "textus-lifecycle-source-selector-spec", "lifecycle-source-selector-component")
+      val fixture = _fixture()
+      val component = _component(_lifecycle_configuration(root, Map.empty))
+      val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
+      _execute(component, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
+      val stoprequest = Request.ofService(
+        "LifecycleControl",
+        "stopOperationalComponent",
+        properties = List(
+          Property("artifactId", "textus-lifecycle-source-selector-spec", None),
+          Property("idempotencyKey", "lifecycle-stop-source-selector-spec-key", None)
+        )
+      )
+      val missingrestartsource = Request.ofService(
+        "LifecycleControl",
+        "restartOperationalComponent",
+        properties = List(
+          Property("artifactId", "textus-lifecycle-source-selector-spec", None),
+          Property("idempotencyKey", "lifecycle-restart-source-selector-missing-key", None)
+        )
+      )
+      val restartrequest = Request.ofService(
+        "LifecycleControl",
+        "restartOperationalComponent",
+        properties = List(
+          Property("artifactId", "textus-lifecycle-source-selector-spec", None),
+          Property("idempotencyKey", "lifecycle-restart-source-selector-spec-key", None),
+          Property("sourceKind", "DEV", None),
+          Property("sourceId", "standalone-development", None)
+        )
+      )
+
+      When("the operator stops without a source and restarts with and without the exact source")
+      val stopped = _execute(component, operatorcontext, stoprequest)
+        .toOption.getOrElse(fail("source-free stop request failed"))
+        .asInstanceOf[OperationResponse.RecordResponse].record
+      val missing = _execute(component, operatorcontext, missingrestartsource)
+      val restarted = _execute(component, operatorcontext, restartrequest)
+        .toOption.getOrElse(fail("source-selected restart request failed"))
+        .asInstanceOf[OperationResponse.RecordResponse].record
+
+      Then("stop is artifact-only and restart retains only the required exact source")
+      stopped.getString("requestState") shouldBe Some("queued")
+      stopped.getAny("launchProfileId") shouldBe empty
+      missing.toOption shouldBe empty
+      restarted.getString("requestState") shouldBe Some("queued")
+      restarted.getString("launchProfileId") shouldBe Some("DEV:standalone-development")
+    }
+
+    "reject a restart when its current source snapshot became unavailable" in {
+      Given("an adopted component with an initially available local CAR archive")
+      val repository = Files.createTempDirectory("control-center-lifecycle-source-transition")
+      val catalogroot = Files.createDirectories(repository.resolve("repository/catalog/car"))
+      val archive = repository.resolve("repository/car/textus-lifecycle-source-transition-spec/0.1.0/textus-lifecycle-source-transition-spec-0.1.0.car")
+      Files.createDirectories(archive.getParent)
+      Files.writeString(archive, "CAR")
+      Files.writeString(
+        catalogroot.resolve("textus-lifecycle-source-transition-spec.yaml"),
+        "kind: car\nartifactId: textus-lifecycle-source-transition-spec\nversions:\n  - version: 0.1.0\n    file: repository/car/textus-lifecycle-source-transition-spec/0.1.0/textus-lifecycle-source-transition-spec-0.1.0.car\n"
+      )
+      val catalogfile = Files.createTempFile("control-center-lifecycle-source-transition", ".yaml")
+      Files.writeString(
+        catalogfile,
+        s"schema: textus-control-center.catalog.v1\nlocal-repository:\n  id: local-transition\n  catalog-root: ${catalogroot.toString}\n"
+      )
+      val fixture = _fixture()
+      val component = _component(_catalog_file_lifecycle_configuration(catalogfile, repository))
+      val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
+      val launchercontext = fixture.launcherContextFor(SecurityContext.Privilege.Internal)
+      _execute(component, launchercontext, _registration_request("registerSubsystem", Instant.parse("2026-08-10T00:00:00Z"), Some("textus-lifecycle-source-transition-spec"))).toOption should not be empty
+      _execute(component, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
+      val availablerestart = Request.ofService(
+        "LifecycleControl",
+        "restartOperationalComponent",
+        properties = List(
+          Property("artifactId", "textus-lifecycle-source-transition-spec", None),
+          Property("idempotencyKey", "lifecycle-source-transition-available-key", None),
+          Property("sourceKind", "LOCAL", None),
+          Property("sourceId", "local-transition", None)
+        )
+      )
+      val unavailablerestart = Request.ofService(
+        "LifecycleControl",
+        "restartOperationalComponent",
+        properties = List(
+          Property("artifactId", "textus-lifecycle-source-transition-spec", None),
+          Property("idempotencyKey", "lifecycle-source-transition-unavailable-key", None),
+          Property("sourceKind", "LOCAL", None),
+          Property("sourceId", "local-transition", None)
+        )
+      )
+
+      When("the archive disappears after an available refresh and the catalog records a newer unavailable source snapshot")
+      val available = _execute(component, operatorcontext, availablerestart)
+        .toOption.getOrElse(fail("available local source restart failed"))
+        .asInstanceOf[OperationResponse.RecordResponse].record
+      Files.delete(archive)
+      _execute(component, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
+      val unavailable = _execute(component, operatorcontext, unavailablerestart)
+        .toOption.getOrElse(fail("unavailable local source restart did not return a request"))
+        .asInstanceOf[OperationResponse.RecordResponse].record
+
+      Then("restart accepts the available snapshot but never falls back after its newer unavailable transition")
+      available.getString("requestState") shouldBe Some("queued")
+      unavailable.getString("requestState") shouldBe Some("rejected")
+      unavailable.getString("diagnosticCode") shouldBe Some("supervisor-launch-profile-unavailable")
     }
 
     "require an embedded supervisor home while ignoring legacy Launcher lifecycle declarations" in {
@@ -520,7 +689,9 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         "startOperationalComponent",
         properties = List(
           Property("artifactId", "textus-lifecycle-supervisor-spec", None),
-          Property("idempotencyKey", "lifecycle-incomplete-supervisor-spec-key", None)
+          Property("idempotencyKey", "lifecycle-incomplete-supervisor-spec-key", None),
+          Property("sourceKind", "DEV", None),
+          Property("sourceId", "standalone-development", None)
         )
       )
       val configuredRequest = Request.ofService(
@@ -528,7 +699,9 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         "startOperationalComponent",
         properties = List(
           Property("artifactId", "textus-lifecycle-supervisor-spec", None),
-          Property("idempotencyKey", "lifecycle-configured-supervisor-spec-key", None)
+          Property("idempotencyKey", "lifecycle-configured-supervisor-spec-key", None),
+          Property("sourceKind", "DEV", None),
+          Property("sourceId", "standalone-development", None)
         )
       )
 
@@ -546,9 +719,11 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       configured.getAny("diagnosticCode") shouldBe empty
       configured.getAny("supervisorId") shouldBe empty
     }
+
+    }
   }
 
-  private def _fixture(datastorepath: Option[Path] = None): _Fixture = {
+  private def _fixture(datastorepath: Option[Path] = None): Fixture = {
     val datastorespace = datastorepath match {
       case Some(path) =>
         DataStoreSpace.default().useApplicationDataStore(
@@ -601,7 +776,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       )
       context
     }
-    _Fixture(build)
+    Fixture(build)
   }
 
   private def _component(configuration: ResolvedConfiguration = ResolvedConfiguration(Configuration.empty, ConfigurationTrace.empty)): Component = {
@@ -738,11 +913,21 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       ConfigurationTrace.empty
     )
 
+  private def _catalog_file_lifecycle_configuration(catalogfile: Path, home: Path): ResolvedConfiguration =
+    ResolvedConfiguration(
+      Configuration(Map(
+        "textus-control-center.catalog.file" -> ConfigurationValue.StringValue(catalogfile.toString),
+        "textus-control-center.home" -> ConfigurationValue.StringValue(home.resolve(".control-center").toString)
+      )),
+      ConfigurationTrace.empty
+    )
+
   private def _write_car_descriptor(root: Path, artifactid: String, componentname: String): Unit = {
     val project = Files.createDirectory(root.resolve(artifactid))
+    val componentid = artifactid.stripPrefix("textus-").split("-").iterator.map(_.capitalize).mkString
     Files.writeString(
       project.resolve("project.yaml"),
-      s"project:\n  name: $artifactid\n  kind: car\n  component:\n    name: $componentname\n    config:\n      textus.server.default-port: \"19000\"\n"
+      s"project:\n  namespace: org.simplemodeling.textus\n  id: $componentid\n  kind: car\n  component:\n    name: $componentname\n    config:\n      textus.server.default-port: \"19000\"\n"
     )
   }
 
@@ -756,7 +941,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       )
     )
 
-  private final case class _Fixture(
+  private final case class Fixture(
     build: (SecurityContext.Privilege, Set[Capability]) => ExecutionContext
   ) {
     def contextFor(privilege: SecurityContext.Privilege): ExecutionContext =
