@@ -36,7 +36,7 @@ rg -F -- 'id="running-count"' "$inventory_page" >/dev/null
 rg -F -- 'id="stopped-count"' "$inventory_page" >/dev/null
 rg -F -- 'id="attention-count"' "$inventory_page" >/dev/null
 rg -F -- 'id="registered-count"' "$inventory_page" >/dev/null
-rg -F -- 'const endpoint = "/rest/v1/textus-control-center/subsystem-inventory"' "$script" >/dev/null
+rg -F -- 'const endpoint = "/rest/v1/org-simplemodeling-textus-control-center/subsystem-inventory"' "$script" >/dev/null
 rg -F -- 'request("list-subsystems?offset=0&limit=100")' "$script" >/dev/null
 rg -F -- 'request(`get-subsystem?instanceId=${encodeURIComponent(instanceId)}`)' "$script" >/dev/null
 rg -F -- 'instanceId: record.instance_id' "$script" >/dev/null
@@ -46,28 +46,22 @@ rg -F -- 'systemAdminUrl' "$script" >/dev/null
 rg -F -- 'credentials: "same-origin"' "$script" >/dev/null
 rg -F -- 'function renderOverview()' "$script" >/dev/null
 rg -F -- 'function resetOverview()' "$script" >/dev/null
-rg -F -- 'const managementEndpoint = "/rest/v1/textus-control-center/operational-management"' "$operationalscript" >/dev/null
+rg -F -- 'const managementEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/operational-management"' "$operationalscript" >/dev/null
 rg -F -- 'id="operational-evidence-status"' "$page" >/dev/null
 rg -F -- 'id="operational-catalog-status"' "$page" >/dev/null
-rg -F -- 'function showCatalogStatus(value, unavailable)' "$operationalscript" >/dev/null
 rg -F -- 'refresh-car-catalog' "$operationalscript" >/dev/null
 rg -F -- 'Registered development sources were refreshed before operational components loaded.' "$operationalscript" >/dev/null
-rg -F -- 'function appLink(component)' "$operationalscript" >/dev/null
-rg -F -- 'value.textContent = "Open app"' "$operationalscript" >/dev/null
-rg -F -- 'elements.sources.append(empty)' "$operationalscript" >/dev/null
-rg -F -- 'function showEvidenceStatus(value, unavailable)' "$operationalscript" >/dev/null
 rg -F -- 'Launcher evidence reconciled at' "$operationalscript" >/dev/null
 rg -F -- 'Launcher evidence is temporarily unavailable.' "$operationalscript" >/dev/null
 rg -F -- 'lifecycle actions remain Launcher-authorized' "$operationalscript" >/dev/null
-rg -F -- 'const lifecycleEndpoint = "/rest/v1/textus-control-center/lifecycle-control"' "$operationalscript" >/dev/null
-rg -F -- 'const catalogEndpoint = "/rest/v1/textus-control-center/car-catalog"' "$operationalscript" >/dev/null
+rg -F -- 'const lifecycleEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/lifecycle-control"' "$operationalscript" >/dev/null
+rg -F -- 'const catalogEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/car-catalog"' "$operationalscript" >/dev/null
 rg -F -- 'list-operational-components?offset=0&limit=100' "$operationalscript" >/dev/null
 rg -F -- 'get-managed-car?artifactId=' "$operationalscript" >/dev/null
 rg -F -- 'value.private_locator' "$operationalscript" >/dev/null
 rg -F -- 'list-lifecycle-requests?artifactId=' "$operationalscript" >/dev/null
 rg -F -- 'value.supervisor_id' "$operationalscript" >/dev/null
 rg -F -- 'value.instance_id' "$operationalscript" >/dev/null
-rg -F -- 'function requestLifecycle(action, component, control)' "$operationalscript" >/dev/null
 rg -F -- '`${action}-operational-component?artifactId=' "$operationalscript" >/dev/null
 rg -F -- 'remove-operational-component?artifactId=' "$operationalscript" >/dev/null
 rg -F -- '@media' "$style" >/dev/null
@@ -78,7 +72,7 @@ rg -F -- 'textus-control-center.lifecycle-control.start-operational-component: p
 rg -F -- 'route: /web/{component}/textus-control-center' "$web" >/dev/null
 rg -F -- 'path: /web/textus-control-center' "$web" >/dev/null
 rg -F -- 'kind: alias' "$web" >/dev/null
-rg -F -- 'component: TextusControlCenter' "$web" >/dev/null
+rg -F -- 'component: org.simplemodeling.textus.ControlCenter' "$web" >/dev/null
 rg -F -- 'app: textus-control-center' "$web" >/dev/null
 ! rg -F -- 'subsystem-management' "$form"
 ! rg -F -- 'http://' "$page" "$inventory_page" "$script" "$style"

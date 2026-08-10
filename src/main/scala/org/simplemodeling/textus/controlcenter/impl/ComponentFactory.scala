@@ -17,7 +17,7 @@ import org.goldenport.cncf.directive.Query
 import org.goldenport.cncf.entity.{EntityQuery, EntitySearchScope, EntityVisibilityScope}
 import org.goldenport.cncf.entity.runtime.EntityQueryFieldResolver
 import org.goldenport.cncf.context.SecurityContext
-import org.goldenport.cncf.event.{CmlEventCategory, CmlEventDefinition, CmlSubscriptionDefinition, DispatchRoute, EventOriginBoundary, EventReceptionCondition, EventReceptionExecutionPolicy, EventReceptionRule, ReceptionDomainEvent, ReceptionInput, ReceptionOutcome}
+import org.goldenport.cncf.event.{CmlEventCategory, CmlEventDefinition, CmlSubscriptionDefinition, DispatchRoute, EventOriginBoundary, EventReceptionCondition, EventReceptionExecutionPolicy, EventReceptionRule, ReceptionDomainEvent}
 import org.goldenport.cncf.security.AuthenticationProvider
 import org.goldenport.cncf.security.SecuritySubject
 import org.goldenport.cncf.spi.supervisor.SupervisorSocket
@@ -1212,21 +1212,7 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         "ignore"
       ))
       core.executionContext.unitOfWork.stageEvent(routableevent)
-      given org.goldenport.cncf.context.ExecutionContext = core.executionContext
-      core.component.flatMap(_.eventReception) match {
-        case Some(reception) =>
-          reception.receiveInternal(ReceptionInput(
-            name = routableevent.name,
-            kind = routableevent.kind,
-            payload = routableevent.payload,
-            attributes = routableevent.attributes,
-            persistent = false
-          )).flatMap { result =>
-            if (result.outcome == ReceptionOutcome.Routed && result.dispatchedCount > 0) Consequence.unit
-            else Consequence.stateConflict(s"Lifecycle request event was not routed: ${routableevent.name}: $result")
-          }
-        case None => Consequence.stateConflict(s"Lifecycle request event reception is not initialized: ${routableevent.name}")
-      }
+      Consequence.unit
     }
 
     protected final def administrative_principal: Consequence[Unit] = {

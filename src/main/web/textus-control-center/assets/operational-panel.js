@@ -5,6 +5,8 @@
   const lifecycleEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/lifecycle-control";
   const lifecyclePollIntervalMs = 250;
   const lifecyclePollTimeoutMs = 20000;
+  const runtimeObservationPollIntervalMs = 750;
+  const runtimeObservationTimeoutMs = 60000;
   const inventoryEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/subsystem-inventory";
   const catalogEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/car-catalog";
   const evidenceEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/launcher-evidence";
@@ -18,6 +20,7 @@
   let invocations = [];
   let evidence = [];
   let catalog = [];
+  const rowStates = new Map();
 
   function text(value) { return value === undefined || value === null || value === "" ? "—" : String(value); }
   function formatInstant(value) { const date = new Date(value); return !value || Number.isNaN(date.valueOf()) ? text(value) : date.toLocaleString(); }
@@ -27,9 +30,82 @@
   function showCatalogStatus(value, unavailable) { elements.catalogStatus.textContent = value; elements.catalogStatus.classList.toggle("unavailable", Boolean(unavailable)); }
   function showEvidenceStatus(value, unavailable) { elements.evidenceStatus.textContent = value; elements.evidenceStatus.classList.toggle("unavailable", Boolean(unavailable)); }
   function componentRecord(value) { return { artifactId: value.artifact_id, managementState: value.management_state, firstManagedAt: value.first_managed_at, lastObservedAt: value.last_observed_at }; }
-  function invocationRecord(value) { return { artifactId: value.artifact_id, status: value.status, instanceId: value.instance_id, baseUrl: value.base_url }; }
+  function invocationRecord(value) {
+    return {
+      artifactId: value.artifact_id || value.artifactId || value.target,
+      status: value.status,
+      instanceId: value.instance_id || value.instanceId,
+      baseUrl: value.base_url || value.baseUrl,
+      target: value.target
+    };
+  }
   function evidenceRecord(value) { return { artifactId: value.artifact_id, instanceId: value.instance_id, decision: value.evidence_decision, stoppedAt: value.stopped_at, launcherKind: value.launcher_kind, executionMode: value.execution_mode, lastSeenAt: value.last_seen_at }; }
-  function catalogRecord(value) { return { artifactId: value.artifact_id, componentName: value.component_name, runtimeState: value.runtime_state, observedBaseUrls: Array.isArray(value.observed_base_urls) ? value.observed_base_urls : [], sources: Array.isArray(value.sources) ? value.sources : [] }; }
+  function catalogRecord(value) {
+    return {
+      artifactId: value.artifact_id || value.artifactId,
+      componentName: value.component_name || value.componentName,
+      runtimeState: value.runtime_state || value.runtimeState,
+      activeInstanceIds: Array.isArray(value.active_instance_ids) ? value.active_instance_ids : (Array.isArray(value.activeInstanceIds) ? value.activeInstanceIds : []),
+      observedBaseUrls: Array.isArray(value.observed_base_urls) ? value.observed_base_urls : (Array.isArray(value.observedBaseUrls) ? value.observedBaseUrls : []),
+      sources: Array.isArray(value.sources) ? value.sources : []
+    };
+  }
+  function rowState(component) { return rowStates.get(component.artifactId); }
+  function runtimeClass(state) { return String(state || "unknown").toLowerCase().replace(/[^a-z0-9-]/g, "-"); }
+  function runtimeBadge(state) {
+    const value = String(state || "unknown").toLowerCase();
+    return value === "not-running" || value === "stopped" || value === "running" || value === "starting" || value === "launching" || value === "stopping" || value === "stale" || value === "evidence-current" ? value : "unknown";
+  }
+  function expectedRuntime(action) { return action === "stop" ? ["not-running", "stopped"] : ["running"]; }
+  function authoritativeRuntime(component) { return rowState(component)?.authoritativeState || runtimeBadge(catalog.find((value) => value.artifactId === component.artifactId)?.runtimeState || runtime(component)); }
+  function actionAvailability(state, action, candidateAvailable) {
+    const value = runtimeBadge(state);
+    if (["launching", "starting", "stopping"].includes(value)) return false;
+    if (value === "not-running" || value === "stopped") return action === "start" && candidateAvailable;
+    if (value === "running") return action === "stop" || (action === "restart" && candidateAvailable);
+    return false;
+  }
+  function actionTitle(state, action, candidateAvailable) {
+    if ((action === "start" || action === "restart") && !candidateAvailable && ["not-running", "stopped", "running"].includes(runtimeBadge(state))) return "Select an available source before starting or restarting.";
+    return `Lifecycle action unavailable while runtime state is ${state}.`;
+  }
+  function updateActionControls(component, state) {
+    const current = rowState(component);
+    if (!current || current.busy) return;
+    const candidateAvailable = candidates(component).length > 0;
+    current.controls.forEach((control, action) => {
+      const enabled = actionAvailability(state, action, candidateAvailable);
+      control.disabled = !enabled;
+      control.title = enabled ? "" : actionTitle(state, action, candidateAvailable);
+    });
+  }
+  function updateRuntimeRow(component, state, authoritative) {
+    const current = rowState(component);
+    if (!current) return;
+    const normalized = runtimeBadge(state);
+    if (authoritative) current.authoritativeState = normalized;
+    current.runtimeBadge.className = `status ${runtimeClass(normalized)}`;
+    current.runtimeBadge.textContent = normalized;
+    current.row.dataset.runtimeState = normalized;
+    updateActionControls(component, normalized);
+  }
+  function setRowFeedback(component, value, tone) {
+    const current = rowState(component);
+    if (!current) return;
+    current.feedback.className = `lifecycle-feedback${tone ? ` ${tone}` : ""}`;
+    current.feedback.textContent = value;
+    current.feedback.hidden = !value;
+  }
+  function setLifecycleBusy(component, action, busy) {
+    const current = rowState(component);
+    if (!current) return;
+    current.busy = busy;
+    current.controls.forEach((control, controlAction) => {
+      control.disabled = busy || !actionAvailability(authoritativeRuntime(component), controlAction, candidates(component).length > 0);
+      control.title = busy ? "A lifecycle request is already in progress for this component." : (control.disabled ? actionTitle(authoritativeRuntime(component), controlAction, candidates(component).length > 0) : "");
+      control.textContent = busy && controlAction === action ? ({ start: "Starting…", stop: "Stopping…", restart: "Restarting…" }[action]) : ({ start: "Start", stop: "Stop", restart: "Restart" }[controlAction]);
+    });
+  }
   async function request(endpoint, path, signal) {
     const response = await fetch(`${endpoint}/${path}`, { credentials: "same-origin", ...(signal ? { signal } : {}) });
     const body = await response.json().catch(() => ({}));
@@ -60,10 +136,16 @@
     else { value.type = "button"; value.disabled = true; value.title = "The component has no active application URL."; }
     return value;
   }
+  function updateOpenApp(component) {
+    const current = rowState(component);
+    if (!current) return;
+    const next = appLink(component);
+    current.openApp.replaceWith(next);
+    current.openApp = next;
+  }
   function button(label, action, component, resolveCandidate) {
     const value = document.createElement("button");
-    value.type = "button"; value.className = "button secondary operational-action"; value.textContent = label;
-    if (action !== "stop" && !resolveCandidate()) { value.disabled = true; value.title = "Select an available source before starting or restarting."; }
+    value.type = "button"; value.className = "button secondary operational-action"; value.textContent = label; value.dataset.lifecycleAction = action;
     value.addEventListener("click", (event) => { event.stopPropagation(); requestLifecycle(action, component, action === "stop" ? null : resolveCandidate(), value); });
     return value;
   }
@@ -86,13 +168,13 @@
     details.append(kindVersion, source); parent.append(details);
   }
   function render() {
-    clearState(); elements.rows.replaceChildren();
+    clearState(); elements.rows.replaceChildren(); rowStates.clear();
     if (!components.length) { elements.empty.hidden = false; return; }
     components.forEach((component, componentIndex) => {
       const values = candidates(component);
       const row = document.createElement("tr"); row.className = "inventory-row"; row.tabIndex = 0; row.setAttribute("role", "button");
       row.addEventListener("click", () => loadDetail(component)); row.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); loadDetail(component); } });
-      const state = runtime(component); const runtimeCell = document.createElement("td"); const mark = document.createElement("span"); mark.className = `status ${state}`; mark.textContent = state; runtimeCell.append(mark);
+      const state = runtime(component); const runtimeCell = document.createElement("td"); const mark = document.createElement("span"); mark.className = `status ${runtimeClass(state)}`; mark.textContent = state; runtimeCell.append(mark);
       const componentCell = document.createElement("td"); const name = document.createElement("strong"); name.textContent = text(component.artifactId); componentCell.append(name);
       let resolveCandidate = () => values[0] || null;
       if (values.length > 1) {
@@ -123,10 +205,17 @@
       const managementCell = document.createElement("td"); const management = document.createElement("span"); management.className = "execution-mark execution-development"; management.textContent = text(component.managementState); managementCell.append(management);
       const observedCell = document.createElement("td"); observedCell.textContent = formatInstant(component.lastObservedAt);
       const actionsCell = document.createElement("td"); actionsCell.className = "operational-actions";
-      [button("Start", "start", component, resolveCandidate), button("Stop", "stop", component, () => null), button("Restart", "restart", component, resolveCandidate), appLink(component)].forEach((value) => actionsCell.append(value));
+      const lifecycleControls = new Map();
+      [button("Start", "start", component, resolveCandidate), button("Stop", "stop", component, () => null), button("Restart", "restart", component, resolveCandidate)].forEach((value) => { lifecycleControls.set(value.dataset.lifecycleAction, value); actionsCell.append(value); });
+      const openApp = appLink(component); actionsCell.append(openApp);
       const remove = document.createElement("button"); remove.type = "button"; remove.className = "button secondary operational-action"; remove.textContent = "Remove";
       remove.addEventListener("click", (event) => { event.stopPropagation(); removeComponent(component, remove); }); actionsCell.append(remove);
+      const feedback = document.createElement("div"); feedback.className = "lifecycle-feedback"; feedback.hidden = true; feedback.setAttribute("role", "status"); feedback.setAttribute("aria-live", "polite");
+      runtimeCell.append(feedback);
+      row.dataset.artifactId = component.artifactId; row.dataset.runtimeState = runtimeBadge(state);
       [runtimeCell, componentCell, managementCell, observedCell, actionsCell].forEach((cell) => row.append(cell)); elements.rows.append(row);
+      rowStates.set(component.artifactId, { row, runtimeBadge: mark, feedback, controls: lifecycleControls, openApp, authoritativeState: runtimeBadge(state), busy: false });
+      updateActionControls(component, state);
     });
     elements.inventory.hidden = false;
   }
@@ -158,8 +247,62 @@
       render();
     } catch (error) { showError(error.message || "The operational component panel could not be loaded."); }
   }
+  async function observeRuntime(action, component, result) {
+    const acceptedState = String(result.request_state || "accepted").toLowerCase();
+    const actionLabel = action.charAt(0).toUpperCase() + action.slice(1);
+    setRowFeedback(component, `Supervisor ${acceptedState} ${actionLabel.toLowerCase()}; observing runtime state…`, "busy");
+    const deadline = Date.now() + runtimeObservationTimeoutMs;
+    while (Date.now() < deadline) {
+      const remaining = deadline - Date.now();
+      const controller = new AbortController();
+      const abortTimer = setTimeout(() => controller.abort(), remaining);
+      try {
+        const observed = catalogRecord(await request(catalogEndpoint, `get-managed-car?artifactId=${encodeURIComponent(component.artifactId)}`, controller.signal));
+        const index = catalog.findIndex((value) => value.artifactId === component.artifactId);
+        if (index >= 0) catalog[index] = observed; else catalog.push(observed);
+        const observedState = runtimeBadge(observed.runtimeState);
+        updateRuntimeRow(component, observedState, true);
+        let urlDiagnostic = "";
+        if (observedState === "running") {
+          try {
+            const activeInstanceIds = observed.activeInstanceIds;
+            const records = await Promise.all(activeInstanceIds.map((instanceId) => request(inventoryEndpoint, `get-subsystem?instanceId=${encodeURIComponent(instanceId)}`, controller.signal)));
+            const mapped = records.map(invocationRecord);
+            invocations = invocations.filter((value) => value.artifactId !== component.artifactId);
+            invocations.push(...mapped);
+            updateOpenApp(component);
+            if (!activeInstanceIds.length || !mapped.some((value) => value.baseUrl)) urlDiagnostic = " Open app URL is not yet available.";
+          } catch (error) {
+            urlDiagnostic = ` Open app URL synchronization failed: ${error.message || "network error"}.`;
+          }
+        } else if (observedState === "stopped" || observedState === "not-running") {
+          invocations = invocations.filter((value) => value.artifactId !== component.artifactId || !["running", "starting"].includes(String(value.status || "").toLowerCase()));
+          updateOpenApp(component);
+        }
+        if (expectedRuntime(action).includes(observedState)) {
+          setRowFeedback(component, `${actionLabel} succeeded; runtime is ${observedState}.${urlDiagnostic}`, urlDiagnostic ? "error" : "success");
+          return true;
+        }
+      } catch (error) {
+        if (controller.signal.aborted && error?.name === "AbortError") break;
+        updateRuntimeRow(component, "unknown", true);
+        setRowFeedback(component, `Supervisor ${acceptedState} ${actionLabel.toLowerCase()}, but runtime observation failed: ${error.message || "network error"}.`, "error");
+        return false;
+      } finally { clearTimeout(abortTimer); }
+      await new Promise((resolve) => setTimeout(resolve, Math.min(runtimeObservationPollIntervalMs, Math.max(0, deadline - Date.now()))));
+    }
+    updateRuntimeRow(component, "unknown", true);
+    setRowFeedback(component, `Supervisor ${acceptedState} ${actionLabel.toLowerCase()}, but runtime observation timed out after ${Math.round(runtimeObservationTimeoutMs / 1000)} seconds.`, "error");
+    return false;
+  }
   async function requestLifecycle(action, component, candidate, control) {
-    control.disabled = true;
+    if (action !== "stop" && !candidate) {
+      setRowFeedback(component, "No available launch source is selected.", "error");
+      return;
+    }
+    setLifecycleBusy(component, action, true);
+    updateRuntimeRow(component, action === "stop" ? "stopping" : "launching");
+    setRowFeedback(component, `${action.charAt(0).toUpperCase() + action.slice(1)} requested; waiting for supervisor…`, "busy");
     try {
       const key = `${action}-${component.artifactId}-${Date.now()}`;
       const source = action === "stop" ? "" : `&sourceKind=${encodeURIComponent(candidate.source_kind || candidate.sourceKind)}&sourceId=${encodeURIComponent(candidate.source_id || candidate.sourceId)}`;
@@ -187,9 +330,24 @@
           result = timedOutLifecycleResult(result, requestId);
         }
       }
-      await loadDetail(component, result);
-    } catch (error) { showError(error.message || "The lifecycle request could not be recorded."); }
-    finally { control.disabled = false; }
+      const resultState = String(result.request_state || "").toLowerCase();
+      const diagnostic = result.diagnostic_code || result.diagnostic;
+      if (["failed", "rejected", "timed-out"].includes(resultState)) {
+        updateRuntimeRow(component, resultState === "timed-out" ? "unknown" : authoritativeRuntime(component), resultState === "timed-out");
+        setRowFeedback(component, `${action.charAt(0).toUpperCase() + action.slice(1)} ${resultState}: ${diagnostic || "No diagnostic was provided."}`, "error");
+      } else if (["accepted", "running", "stopped"].includes(resultState)) {
+        await observeRuntime(action, component, result);
+      } else {
+        updateRuntimeRow(component, "unknown", true);
+        setRowFeedback(component, `${action.charAt(0).toUpperCase() + action.slice(1)} returned an unexpected lifecycle state: ${resultState || "unknown"}.`, "error");
+      }
+    } catch (error) {
+      updateRuntimeRow(component, "unknown", true);
+      setRowFeedback(component, `${action.charAt(0).toUpperCase() + action.slice(1)} request failed: ${error.message || "network error"}.`, "error");
+    } finally {
+      setLifecycleBusy(component, action, false);
+      updateActionControls(component, authoritativeRuntime(component));
+    }
   }
   async function removeComponent(component, control) {
     control.disabled = true;
