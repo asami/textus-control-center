@@ -15,7 +15,7 @@ spi:
       provider: {}
 config:
   textus.subsystem.user-mode: standalone
-  textus.component.org.simplemodeling.textus.ControlCenter.datastores.application.policy: local-default
+  textus.component.org.simplemodeling.textus.control-center.datastores.application.policy: local-default
 security:
   authentication:
     convention: enabled

@@ -10,16 +10,23 @@ Subsystem entity or access another component's datastore.
 
 ## Datastore Boundary
 
-The assembly declares the `local-default` application datastore policy for
-`textus-control-center`. CNCF resolves the local data location through its
-standard component datastore mechanism. The registry uses that application
-datastore through the existing entity/Operation path, so a restarted standalone
-runtime opens the same accepted registrations.
+The assembly declares the `local-default` application datastore policy for the
+canonical derived selector `org.simplemodeling.textus.control-center`. CNCF
+resolves the local data location through its standard component datastore
+mechanism. The registry uses that application datastore through the existing
+entity/Operation path, so a restarted standalone runtime opens the same accepted
+registrations.
 
 Tests supply an isolated target-owned SQLite file through the normal
-`textus.local-data.textus-control-center.application.path` parameter. Production
-standalone configuration must use the corresponding machine-local state path
-under the Control Center locator root; tests never create user-home state.
+`textus.local-data.org.simplemodeling.textus.control-center.application.path`
+parameter. Production standalone configuration must use the corresponding
+machine-local state path under the Control Center locator root; tests never
+create user-home state.
+
+When an initialized standalone installation is reused, bootstrap atomically
+migrates only the legacy Control Center datastore policy and application-path
+keys to these canonical keys. The migration preserves the installation identity
+and launcher credential; canonical keys remain authoritative.
 
 ## Assembly Boundary
 

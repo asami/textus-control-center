@@ -1,17 +1,16 @@
 /*
  *  version Jul. 28, 2026
- * @version Aug. 10, 2026
+ * @version Aug. 12, 2026
  */
 package org.simplemodeling.textus.controlcenter
 
 import cats.~>
 import org.goldenport.Consequence
 import org.goldenport.configuration.{Configuration, ConfigurationTrace, ConfigurationValue, ResolvedConfiguration}
-import org.goldenport.cncf.config.ResolvedParameters
 import org.goldenport.cncf.action.Action
 import org.goldenport.cncf.component.{Component, ComponentCreate, ComponentOrigin}
 import org.goldenport.cncf.context.{Capability, DataStoreContext, EntityStoreContext, ExecutionContext, Principal, PrincipalId, RuntimeContext, SecurityContext}
-import org.goldenport.cncf.datastore.{ComponentDataStore, DataStore, DataStoreSpace}
+import org.goldenport.cncf.datastore.{DataStore, DataStoreSpace}
 import org.goldenport.cncf.entity.EntityStoreSpace
 import org.goldenport.cncf.event.EventEngine
 import org.goldenport.cncf.spi.supervisor.{Supervisor, SupervisorRequest, SupervisorResult, SupervisorSocket, SupervisorState}
@@ -207,13 +206,19 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       val startedat = Instant.parse("2026-07-19T00:00:00Z")
 
       When("a launcher registers an instance before the standalone runtime stops")
-      _execute(
+      val registrationresult = _execute(
         firstcomponent,
         firstfixture.launcherContextFor(SecurityContext.Privilege.Internal),
         _registration_request("registerSubsystem", startedat)
-      ).toOption should not be empty
+      )
+      registrationresult.toOption.getOrElse(fail(s"standalone registration failed: $registrationresult"))
 
-      And("a newly constructed runtime opens the same local datastore")
+      And("the owning first component subsystem shuts down before the restart")
+      val shutdownresult = firstcomponent.subsystem
+        .getOrElse(fail("first Control Center component has no owning subsystem"))
+        .shutdownC()
+
+      And("a newly constructed runtime opens the same local datastore through managed binding")
       val secondfixture = _fixture(Some(datastorepath))
       val secondcomponent = _component(configuration)
       val result = _execute(
@@ -225,6 +230,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         .record
 
       Then("the safe inventory projection retains the accepted instance")
+      shutdownresult.toOption should not be empty
       _records(result).map(_.getString("instanceId")) shouldBe Vector(Some("textuscontrolcenteractionspec"))
       _records(result).flatMap(_.getAny("registrationPrincipalId")) shouldBe empty
     }
@@ -684,7 +690,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       val configuredcomponent = _component(_lifecycle_configuration(root, Map(
         "textus-control-center.launcher.lifecycle.command" -> "invalid legacy command"
       )))
-      val incompleteRequest = Request.ofService(
+      val incompleterequest = Request.ofService(
         "LifecycleControl",
         "startOperationalComponent",
         properties = List(
@@ -694,7 +700,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
           Property("sourceId", "standalone-development", None)
         )
       )
-      val configuredRequest = Request.ofService(
+      val configuredrequest = Request.ofService(
         "LifecycleControl",
         "startOperationalComponent",
         properties = List(
@@ -708,8 +714,8 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       When("the operator creates lifecycle requests")
       _execute(incompletecomponent, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
       _execute(configuredcomponent, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
-      val incomplete = _execute(incompletecomponent, operatorcontext, incompleteRequest).toOption.getOrElse(fail("incomplete supervisor request failed")).asInstanceOf[OperationResponse.RecordResponse].record
-      val configured = _execute(configuredcomponent, operatorcontext, configuredRequest).toOption.getOrElse(fail("configured supervisor request failed")).asInstanceOf[OperationResponse.RecordResponse].record
+      val incomplete = _execute(incompletecomponent, operatorcontext, incompleterequest).toOption.getOrElse(fail("incomplete supervisor request failed")).asInstanceOf[OperationResponse.RecordResponse].record
+      val configured = _execute(configuredcomponent, operatorcontext, configuredrequest).toOption.getOrElse(fail("configured supervisor request failed")).asInstanceOf[OperationResponse.RecordResponse].record
 
       Then("only the missing embedded supervisor home rejects the request")
       incomplete.getString("requestState") shouldBe Some("rejected")
@@ -725,12 +731,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
 
   private def _fixture(datastorepath: Option[Path] = None): Fixture = {
     val datastorespace = datastorepath match {
-      case Some(path) =>
-        DataStoreSpace.default().useApplicationDataStore(
-          ComponentDataStore.Environment(_resolved_parameters(path), Some(_standalone_configuration(path))),
-          "TextusControlCenter",
-          "application"
-        )
+      case Some(_) => new DataStoreSpace()
       case None => new DataStoreSpace().addDataStore(DataStore.inMemorySearchable())
     }
     val entitystorespace = EntityStoreSpace.create(
@@ -745,7 +746,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       entitystore = Some(EntityStoreContext(entitystorespace))
     )
     val eventengine = EventEngine.noop(DataStore.noop())
-    def build(privilege: SecurityContext.Privilege, extraCapabilities: Set[Capability]): ExecutionContext = {
+    def _build_(privilege: SecurityContext.Privilege, extracapabilities: Set[Capability]): ExecutionContext = {
       lazy val context: ExecutionContext = ExecutionContext.withSecurityContext(
         ExecutionContext.withRuntimeContext(base, runtime),
         SecurityContext(
@@ -754,7 +755,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
             def attributes: Map[String, String] =
               privilege.attributes + ("access_token" -> s"token-${privilege.principalId.value}")
           },
-          capabilities = privilege.capabilities ++ extraCapabilities,
+          capabilities = privilege.capabilities ++ extracapabilities,
           level = privilege.level,
           subjectKind = privilege.subjectKind
         )
@@ -776,7 +777,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       )
       context
     }
-    Fixture(build)
+    Fixture(_build_)
   }
 
   private def _component(configuration: ResolvedConfiguration = ResolvedConfiguration(Configuration.empty, ConfigurationTrace.empty)): Component = {
@@ -870,8 +871,8 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
   private def _standalone_configuration(path: Path): ResolvedConfiguration =
     ResolvedConfiguration(
       Configuration(Map(
-        "textus.component.textus-control-center.datastores.application.policy" -> ConfigurationValue.StringValue("local-default"),
-        "textus.local-data.textus-control-center.application.path" -> ConfigurationValue.StringValue(path.toString)
+        "textus.component.org.simplemodeling.textus.control-center.datastores.application.policy" -> ConfigurationValue.StringValue("local-default"),
+        "textus.local-data.org.simplemodeling.textus.control-center.application.path" -> ConfigurationValue.StringValue(path.toString)
       )),
       ConfigurationTrace.empty
     )
@@ -930,16 +931,6 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       s"project:\n  namespace: org.simplemodeling.textus\n  id: $componentid\n  kind: car\n  component:\n    name: $componentname\n    config:\n      textus.server.default-port: \"19000\"\n"
     )
   }
-
-  private def _resolved_parameters(path: Path): ResolvedParameters =
-    ResolvedParameters.fromResolvedConfiguration(
-      ResolvedConfiguration(
-        Configuration(Map(
-          "textus.local-data.textus-control-center.application.path" -> ConfigurationValue.StringValue(path.toString)
-        )),
-        ConfigurationTrace.empty
-      )
-    )
 
   private final case class Fixture(
     build: (SecurityContext.Privilege, Set[Capability]) => ExecutionContext

@@ -87,6 +87,83 @@ repair_locator_endpoint() {
   mv -f "$locator_tmp" "$locator"
 }
 
+migrate_server_config_datastore_keys() {
+  local server_config_mode
+  local server_config_tmp
+  server_config_mode="$(stat -f '%Lp' "$server_config")"
+  server_config_tmp="$(mktemp "$root/.server-config.yaml.XXXXXX")"
+  if ! awk \
+    -v canonical_policy='textus.component.org.simplemodeling.textus.control-center.datastores.application.policy' \
+    -v canonical_path='textus.local-data.org.simplemodeling.textus.control-center.application.path' \
+    -v legacy_policy='textus.component.textus-control-center.datastores.application.policy' \
+    -v legacy_path='textus.local-data.textus-control-center.application.path' '
+      function key_line(key, line) {
+        return line ~ ("^\\\"" key "\\\": ")
+      }
+      {
+        lines[NR] = $0
+        if (key_line(canonical_policy, $0)) {
+          canonical_policy_count++
+          canonical_policy_line = $0
+        }
+        if (key_line(canonical_path, $0)) {
+          canonical_path_count++
+          canonical_path_line = $0
+        }
+        if (key_line(legacy_policy, $0)) {
+          legacy_policy_count++
+          legacy_policy_line = $0
+        }
+        if (key_line(legacy_path, $0)) {
+          legacy_path_count++
+          legacy_path_line = $0
+        }
+      }
+      END {
+        if (canonical_policy_count > 1 || canonical_path_count > 1 || legacy_policy_count > 1 || legacy_path_count > 1)
+          exit 1
+        if (canonical_policy_count && legacy_policy_count && canonical_policy_line != legacy_policy_line) {
+          sub("^\\\"" canonical_policy "\\\": ", "", canonical_policy_line)
+          sub("^\\\"" legacy_policy "\\\": ", "", legacy_policy_line)
+          if (canonical_policy_line != legacy_policy_line)
+            exit 1
+        }
+        if (canonical_path_count && legacy_path_count && canonical_path_line != legacy_path_line) {
+          sub("^\\\"" canonical_path "\\\": ", "", canonical_path_line)
+          sub("^\\\"" legacy_path "\\\": ", "", legacy_path_line)
+          if (canonical_path_line != legacy_path_line)
+            exit 1
+        }
+        for (i = 1; i <= NR; i++) {
+          line = lines[i]
+          if (key_line(legacy_policy, line)) {
+            if (!canonical_policy_count) {
+              sub("^\\\"" legacy_policy "\\\"", "\"" canonical_policy "\"", line)
+              print line
+            }
+          } else if (key_line(legacy_path, line)) {
+            if (!canonical_path_count) {
+              sub("^\\\"" legacy_path "\\\"", "\"" canonical_path "\"", line)
+              print line
+            }
+          } else {
+            print line
+          }
+        }
+      }
+    ' "$server_config" > "$server_config_tmp"; then
+    rm -f "$server_config_tmp"
+    printf '%s\n' 'existing standalone server configuration cannot be safely migrated; repair its datastore keys explicitly before bootstrap' >&2
+    return 1
+  fi
+  if cmp -s "$server_config" "$server_config_tmp"; then
+    rm -f "$server_config_tmp"
+  else
+    chmod "$server_config_mode" "$server_config_tmp"
+    mv -f "$server_config_tmp" "$server_config"
+  fi
+}
+
 if [[ -f "$locator" ]]; then
   scope_id="$(read_locator_value scopeId)"
   installation_id="$(read_locator_value installationId)"
@@ -100,6 +177,7 @@ else
 fi
 
 if [[ -f "$credential" && "$rotate" != "true" && -f "$locator" && -f "$server_config" ]]; then
+  migrate_server_config_datastore_keys
   current_endpoint="$(read_locator_value endpoint)"
   if [[ "$current_endpoint" != "$canonical_inventory_endpoint" ]]; then
     repair_locator_endpoint "$canonical_inventory_endpoint"
@@ -140,8 +218,8 @@ cat > "$server_config_tmp" <<EOF
 "textus-control-center.registration.authentication.token": "$token"
 "textus-control-center.registration.authentication.principal-id": "textus-control-center-launcher"
 "textus-control-center.home": "$root"
-"textus.component.textus-control-center.datastores.application.policy": "local-default"
-"textus.local-data.textus-control-center.application.path": "$state_dir/registry.sqlite"
+"textus.component.org.simplemodeling.textus.control-center.datastores.application.policy": "local-default"
+"textus.local-data.org.simplemodeling.textus.control-center.application.path": "$state_dir/registry.sqlite"
 EOF
 
 chmod 600 "$credential_tmp" "$locator_tmp" "$server_config_tmp"

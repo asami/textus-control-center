@@ -7,10 +7,14 @@ scope = standalone assembly and durable registry state
 
 The standalone assembly must declare:
 
-- `textus.component.textus-control-center.datastores.application.policy` as
-  `local-default`;
+- `textus.component.org.simplemodeling.textus.control-center.datastores.application.policy`
+  as `local-default`;
 - one installation-scoped operator subject with operator capability; and
 - the limited launcher-registration authentication provider.
+
+On reuse, bootstrap must atomically migrate the legacy Control Center datastore
+policy and application-path keys to the canonical keys without changing the
+installation identity or launcher credential. Canonical keys are authoritative.
 
 ## 2. Durable Registry
 

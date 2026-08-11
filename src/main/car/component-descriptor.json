@@ -7,6 +7,6 @@
   },
   "config": {
     "textus.server.default-port": "18000",
-    "textus.component.org.simplemodeling.textus.ControlCenter.datastores.application.policy": "local-default"
+    "textus.component.org.simplemodeling.textus.control-center.datastores.application.policy": "local-default"
   }
 }
