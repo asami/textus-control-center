@@ -56,6 +56,8 @@ rg -F -- 'Launcher evidence is temporarily unavailable.' "$operationalscript" >/
 rg -F -- 'lifecycle actions remain Launcher-authorized' "$operationalscript" >/dev/null
 rg -F -- 'const lifecycleEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/lifecycle-control"' "$operationalscript" >/dev/null
 rg -F -- 'const catalogEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/car-catalog"' "$operationalscript" >/dev/null
+rg -F -- 'value.addEventListener("click", (event) => { event.stopPropagation(); });' "$operationalscript" >/dev/null
+rg -F -- 'value.addEventListener("keydown", (event) => { event.stopPropagation(); });' "$operationalscript" >/dev/null
 rg -F -- 'list-operational-components?offset=0&limit=100' "$operationalscript" >/dev/null
 rg -F -- 'get-managed-car?artifactId=' "$operationalscript" >/dev/null
 rg -F -- 'value.private_locator' "$operationalscript" >/dev/null

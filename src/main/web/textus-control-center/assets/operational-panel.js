@@ -132,6 +132,8 @@
     const urls = activeUrls(component);
     const value = document.createElement(urls.length ? "a" : "button");
     value.className = "button secondary operational-action"; value.textContent = "Open app";
+    value.addEventListener("click", (event) => { event.stopPropagation(); });
+    value.addEventListener("keydown", (event) => { event.stopPropagation(); });
     if (urls.length) { value.href = urls[0]; value.target = "_blank"; value.rel = "noopener"; }
     else { value.type = "button"; value.disabled = true; value.title = "The component has no active application URL."; }
     return value;
