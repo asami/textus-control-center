@@ -6,6 +6,7 @@ page="$project_root/src/main/web/textus-control-center/index.html"
 inventory_page="$project_root/src/main/web/textus-control-center/inventory.html"
 script="$project_root/src/main/web/textus-control-center/assets/subsystem-inventory.js"
 operationalscript="$project_root/src/main/web/textus-control-center/assets/operational-panel.js"
+linkpolicyscript="$project_root/src/main/web/textus-control-center/assets/operational-link-policy.js"
 style="$project_root/src/main/web/textus-control-center/assets/subsystem-inventory.css"
 form="$project_root/src/main/web-inf/form.yaml"
 web="$project_root/src/main/web-inf/web.yaml"
@@ -22,6 +23,7 @@ rg -F -- 'href="/web/system/admin"' "$page" >/dev/null
 rg -F -- 'href="/man/textus-control-center"' "$page" >/dev/null
 rg -F -- '/web/textus-control-center/assets/subsystem-inventory.css' "$page" >/dev/null
 rg -F -- '/web/textus-control-center/assets/operational-panel.js' "$page" >/dev/null
+rg -F -- '/web/textus-control-center/assets/operational-link-policy.js' "$page" >/dev/null
 rg -F -- 'href="/web/textus-control-center/inventory.html"' "$page" >/dev/null
 ! rg -F -- 'id="invocation-inventory"' "$page"
 ! rg -F -- '/web/textus-control-center/assets/subsystem-inventory.js' "$page"
@@ -56,8 +58,23 @@ rg -F -- 'Launcher evidence is temporarily unavailable.' "$operationalscript" >/
 rg -F -- 'lifecycle actions remain Launcher-authorized' "$operationalscript" >/dev/null
 rg -F -- 'const lifecycleEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/lifecycle-control"' "$operationalscript" >/dev/null
 rg -F -- 'const catalogEndpoint = "/rest/v1/org-simplemodeling-textus-control-center/car-catalog"' "$operationalscript" >/dev/null
-rg -F -- 'value.addEventListener("click", (event) => { event.stopPropagation(); });' "$operationalscript" >/dev/null
-rg -F -- 'value.addEventListener("keydown", (event) => { event.stopPropagation(); });' "$operationalscript" >/dev/null
+node "$project_root/scripts/check-operational-link-policy.js"
+rg -F -- '<h3>Lifecycle errors</h3>' "$page" >/dev/null
+rg -F -- 'const lifecycleErrorStates = ["failed", "rejected", "timed-out"];' "$operationalscript" >/dev/null
+rg -F -- 'const errorRequests = requests.filter((value) => lifecycleErrorStates.includes(String(value.request_state || "").toLowerCase()));' "$operationalscript" >/dev/null
+rg -F -- 'No lifecycle errors have been recorded.' "$operationalscript" >/dev/null
+rg -F -- 'function lifecycleDiagnostic(value)' "$operationalscript" >/dev/null
+rg -F -- 'const code = value?.diagnostic_code || value?.diagnosticCode;' "$operationalscript" >/dev/null
+rg -F -- 'const diagnostic = lifecycleDiagnostic(result);' "$operationalscript" >/dev/null
+rg -F -- '["Diagnostic", lifecycleDiagnostic(value)]' "$operationalscript" >/dev/null
+rg -F -- 'const latestDiagnostic = lifecycleDiagnostic(latest);' "$operationalscript" >/dev/null
+rg -F -- 'const matchingDiagnostic = lifecycleDiagnostic(matchingLatest);' "$operationalscript" >/dev/null
+rg -F -- 'const latestIsStale = latest && lifecycleErrorStates.includes(latestState)' "$operationalscript" >/dev/null
+rg -F -- 'function renderControl(document, label, state)' "$linkpolicyscript" >/dev/null
+rg -F -- 'control.addEventListener("click", (event) => { event.stopPropagation(); });' "$linkpolicyscript" >/dev/null
+rg -F -- 'control.addEventListener("keydown", (event) => { event.stopPropagation(); });' "$linkpolicyscript" >/dev/null
+rg -F -- 'return linkPolicy.renderOpenApp(document, component, invocations);' "$operationalscript" >/dev/null
+rg -F -- 'return linkPolicy.renderDashboard(document, component, invocations);' "$operationalscript" >/dev/null
 rg -F -- 'list-operational-components?offset=0&limit=100' "$operationalscript" >/dev/null
 rg -F -- 'get-managed-car?artifactId=' "$operationalscript" >/dev/null
 rg -F -- 'value.private_locator' "$operationalscript" >/dev/null

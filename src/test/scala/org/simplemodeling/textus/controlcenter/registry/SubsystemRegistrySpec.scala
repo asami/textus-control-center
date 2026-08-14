@@ -1,5 +1,6 @@
 /*
- * @version Jul. 19, 2026
+ *  version Jul. 19, 2026
+ * @version Aug. 14, 2026
  */
 package org.simplemodeling.textus.controlcenter.registry
 
@@ -99,6 +100,56 @@ class SubsystemRegistrySpec extends AnyWordSpec with GivenWhenThen with Matchers
       projection.map(_.developmentDirectory) shouldBe Right(Some("/work/textus-control-center"))
     }
 
+    "accept and project a same-origin application URL" in {
+      Given("a registration whose application URL uses the base URL origin and its effective HTTPS port")
+      val input = _input(launcherState = SubsystemRegistry.starting).copy(
+        applicationUrl = Some("https://admin.example.test:443/web/application")
+      )
+      val received = Instant.parse("2026-07-18T00:00:00Z")
+
+      When("the launcher registers the invocation and an operator reads its projection")
+      val registered = SubsystemRegistry.register(None, input, "launcher-a", received)
+      val projection = registered.flatMap(value => SubsystemRegistry.projection(value, received, Duration.ofSeconds(90)))
+
+      Then("the application URL is retained exactly while Dashboard remains derived from baseUrl")
+      registered.map(_.applicationUrl) shouldBe Right(input.applicationUrl)
+      projection.map(_.applicationUrl) shouldBe Right(input.applicationUrl)
+      projection.map(_.dashboardUrl) shouldBe Right("https://admin.example.test/web/system/dashboard")
+    }
+
+    "accept canonical application routes and reject malformed, privileged, or cross-origin URLs for registration and heartbeat" in {
+      Given("a valid base URL, canonical /web routes, and malformed or cross-origin alternatives")
+      val received = Instant.parse("2026-07-18T00:00:00Z")
+      val canonical = Vector("https://admin.example.test/web", "https://admin.example.test/web/application")
+      val invalid = Vector("not-a-url", "https://admin.example.test/web/system", "https://admin.example.test/web/../private", "https://admin.example.test/web//application", "https://admin.example.test/web?token=secret", "https://admin.example.test/web#fragment", "https://user@admin.example.test/web", "https://admin.example.test/form/application")
+      val crossorigin = _input(launcherState = SubsystemRegistry.starting).copy(applicationUrl = Some("https://other.example.test/web/application"))
+      val current = SubsystemRegistry.register(None, _input(launcherState = SubsystemRegistry.starting), "launcher-a", received).toOption
+
+      When("the launcher submits those URLs during registration and heartbeat")
+      val accepted = canonical.map(value => SubsystemRegistry.register(None, _input(launcherState = SubsystemRegistry.starting).copy(applicationUrl = Some(value)), "launcher-a", received))
+      val invalidresults = invalid.map(value => SubsystemRegistry.register(None, _input(launcherState = SubsystemRegistry.starting).copy(applicationUrl = Some(value)), "launcher-a", received))
+      val crossoriginresult = SubsystemRegistry.register(None, crossorigin, "launcher-a", received)
+      val heartbeatresult = SubsystemRegistry.heartbeat(
+        current,
+        crossorigin.copy(launcherState = SubsystemRegistry.running),
+        "launcher-a",
+        received.plusSeconds(30)
+      )
+      val invalidheartbeatresult = SubsystemRegistry.heartbeat(
+        current,
+        _input(launcherState = SubsystemRegistry.running).copy(applicationUrl = Some("https://admin.example.test/web/system")),
+        "launcher-a",
+        received.plusSeconds(30)
+      )
+
+      Then("canonical routes remain optional and every invalid shape fails closed with a structured RegistryError.Invalid")
+      accepted.foreach(_.isRight shouldBe true)
+      invalidresults.foreach(_.isLeft shouldBe true)
+      crossoriginresult shouldBe Left(RegistryError.Invalid("applicationUrl must have the same origin as baseUrl"))
+      heartbeatresult shouldBe Left(RegistryError.Invalid("applicationUrl must have the same origin as baseUrl"))
+      invalidheartbeatresult shouldBe Left(RegistryError.Invalid("applicationUrl must use a canonical /web application path"))
+    }
+
     "reject a missing or stopped instance heartbeat" in {
       Given("a valid running heartbeat report")
       val input = _input(launcherState = SubsystemRegistry.running)
@@ -180,6 +231,7 @@ class SubsystemRegistrySpec extends AnyWordSpec with GivenWhenThen with Matchers
       subsystemVersion = Some("0.1.0-SNAPSHOT"),
       runtimeVersion = Some("0.5.0"),
       baseUrl = "https://admin.example.test",
+      applicationUrl = None,
       hostLabel = "test",
       startedAt = Instant.parse("2026-07-18T00:00:00Z"),
       launcherState = launcherState
@@ -201,6 +253,7 @@ class SubsystemRegistrySpec extends AnyWordSpec with GivenWhenThen with Matchers
       subsystemVersion = Some("0.1.0-SNAPSHOT"),
       runtimeVersion = Some("0.5.0"),
       baseUrl = "https://admin.example.test",
+      applicationUrl = None,
       hostLabel = "test",
       startedAt = lastSeenAt,
       lastSeenAt = lastSeenAt,

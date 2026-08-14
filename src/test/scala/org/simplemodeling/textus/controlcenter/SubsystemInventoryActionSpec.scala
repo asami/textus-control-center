@@ -1,6 +1,6 @@
 /*
  *  version Jul. 28, 2026
- * @version Aug. 12, 2026
+ * @version Aug. 14, 2026
  */
 package org.simplemodeling.textus.controlcenter
 
@@ -39,9 +39,10 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       val launchercontext = fixture.launcherContextFor(SecurityContext.Privilege.Internal)
       val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
       val startedat = Instant.parse("2026-07-18T00:00:00Z")
+      val applicationurl = "http://127.0.0.1:8080/web/application"
 
       When("a launcher registers a running server instance")
-      val registrationresult = _execute(component, launchercontext, _registration_request("registerSubsystem", startedat))
+      val registrationresult = _execute(component, launchercontext, _registration_request("registerSubsystem", startedat, applicationurl = Some(applicationurl)))
       val registered = registrationresult
         .toOption
         .getOrElse(fail(s"registration failed: $registrationresult"))
@@ -53,10 +54,11 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       registered.getString("status") shouldBe Some("starting")
       registered.getString("executionMode") shouldBe Some("development")
       registered.getString("developmentDirectory") shouldBe Some("/work/textus-control-center")
+      registered.getString("applicationUrl") shouldBe Some(applicationurl)
       registered.getAny("registrationPrincipalId") shouldBe empty
 
       When("the launcher repeats the same registration")
-      val repeated = _execute(component, launchercontext, _registration_request("registerSubsystem", startedat))
+      val repeated = _execute(component, launchercontext, _registration_request("registerSubsystem", startedat, applicationurl = Some(applicationurl)))
         .toOption
         .getOrElse(fail("repeated registration failed"))
         .asInstanceOf[OperationResponse.RecordResponse]
@@ -83,6 +85,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       loaded.getString("instanceId") shouldBe registered.getString("instanceId")
       loaded.getString("executionMode") shouldBe Some("development")
       loaded.getString("developmentDirectory") shouldBe Some("/work/textus-control-center")
+      loaded.getString("applicationUrl") shouldBe Some(applicationurl)
       loaded.getAny("registrationPrincipalId") shouldBe empty
 
       When("an authenticated standalone operator capability reads the inventory")
@@ -92,7 +95,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       localoperatorresult.toOption should not be empty
 
       When("the launcher sends a heartbeat and normal termination")
-      val heartbeatresult = _execute(component, launchercontext, _registration_request("heartbeatSubsystem", startedat))
+      val heartbeatresult = _execute(component, launchercontext, _registration_request("heartbeatSubsystem", startedat, applicationurl = Some(applicationurl)))
       val heartbeated = heartbeatresult
         .toOption
         .getOrElse(fail(s"heartbeat failed: $heartbeatresult"))
@@ -106,6 +109,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
 
       Then("the instance is retained as stopped")
       heartbeated.getString("status") shouldBe Some("running")
+      heartbeated.getString("applicationUrl") shouldBe Some(applicationurl)
       stopped.getString("status") shouldBe Some("stopped")
     }
 
@@ -150,6 +154,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       _records(listed).map(_.getString("instanceId")) shouldBe Vector(Some("textuscontrolcenteractionspec"))
       _records(listed).head.getAny("artifactId") shouldBe empty
       _records(listed).head.getAny("subsystemVersion") shouldBe empty
+      _records(listed).head.getAny("applicationUrl") shouldBe empty
     }
 
     "reject administrative reads from a non-operator principal" in {
@@ -197,21 +202,26 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       result.toString should include ("not authorized")
     }
 
-    "retain a standalone registry across a local datastore restart" in {
-      Given("a standalone Control Center application datastore")
+    "retain legacy-absent and value-bearing application URLs across a local datastore restart" in {
+      Given("a standalone Control Center application datastore with legacy and value-bearing registration records")
       val datastorepath = _local_datastore_path("control-center-standalone-restart")
       val configuration = _standalone_configuration(datastorepath)
       val firstfixture = _fixture(Some(datastorepath))
       val firstcomponent = _component(configuration)
       val startedat = Instant.parse("2026-07-19T00:00:00Z")
 
-      When("a launcher registers an instance before the standalone runtime stops")
+      When("a launcher registers both compatibility forms before the standalone runtime stops")
       val registrationresult = _execute(
         firstcomponent,
         firstfixture.launcherContextFor(SecurityContext.Privilege.Internal),
-        _registration_request("registerSubsystem", startedat)
+        _registration_request("registerSubsystem", startedat, instanceid = "legacy-registration")
       )
       registrationresult.toOption.getOrElse(fail(s"standalone registration failed: $registrationresult"))
+      _execute(
+        firstcomponent,
+        firstfixture.launcherContextFor(SecurityContext.Privilege.Internal),
+        _registration_request("registerSubsystem", startedat, applicationurl = Some("http://127.0.0.1:8080/web"), instanceid = "value-registration")
+      ).toOption.getOrElse(fail("value-bearing standalone registration failed"))
 
       And("the owning first component subsystem shuts down before the restart")
       val shutdownresult = firstcomponent.subsystem
@@ -229,10 +239,15 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
         .asInstanceOf[OperationResponse.RecordResponse]
         .record
 
-      Then("the safe inventory projection retains the accepted instance")
+      Then("the safe inventory projection retains optional absence and the exact canonical application URL")
+      val records = _records(result)
       shutdownresult.toOption should not be empty
-      _records(result).map(_.getString("instanceId")) shouldBe Vector(Some("textuscontrolcenteractionspec"))
-      _records(result).flatMap(_.getAny("registrationPrincipalId")) shouldBe empty
+      records.size shouldBe 2
+      records.map(record => record.getString("instanceId") -> record.getString("applicationUrl")).toMap shouldBe Map(
+        Some("legacy-registration") -> None,
+        Some("value-registration") -> Some("http://127.0.0.1:8080/web")
+      )
+      records.flatMap(_.getAny("registrationPrincipalId")) shouldBe empty
     }
 
     }
@@ -569,6 +584,54 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       _records(audit).head.getAny("operatorSubjectId") shouldBe empty
     }
 
+    "reconcile an accepted start request to the supervisor's running lifecycle state" in {
+      Given("an auto-managed development component and an embedded supervisor that accepts then reports the started instance")
+      val root = Files.createTempDirectory("control-center-lifecycle-reconcile")
+      _write_car_descriptor(root, "textus-lifecycle-reconcile-spec", "lifecycle-reconcile-spec-component")
+      val fixture = _fixture()
+      val component = _component(_lifecycle_configuration(root, Map.empty))
+      val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
+      _execute(component, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
+      val request = Request.ofService(
+        "LifecycleControl",
+        "startOperationalComponent",
+        properties = List(
+          Property("artifactId", "textus-lifecycle-reconcile-spec", None),
+          Property("idempotencyKey", "lifecycle-reconcile-spec-key", None),
+          Property("sourceKind", "DEV", None),
+          Property("sourceId", "standalone-development", None)
+        )
+      )
+
+      When("the operator queues a start, explicitly dispatches the accepted request, and later gets its lifecycle state")
+      val queued = _execute(component, operatorcontext, request)
+        .toOption.getOrElse(fail("lifecycle reconcile request failed")).asInstanceOf[OperationResponse.RecordResponse].record
+      val dispatched = _execute(
+        component,
+        operatorcontext,
+        Request.ofService("LifecycleControl", "dispatchLifecycleRequest", properties = List(Property("requestId", queued.getString("requestId").getOrElse(fail("queued request ID is missing")), None)))
+      ).toOption.getOrElse(fail("lifecycle reconcile dispatch failed")).asInstanceOf[OperationResponse.RecordResponse].record
+      val reconciled = _execute(
+        component,
+        operatorcontext,
+        Request.ofService("LifecycleControl", "getLifecycleRequest", properties = List(Property("requestId", queued.getString("requestId").getOrElse(fail("queued request ID is missing")), None)))
+      ).toOption.getOrElse(fail("lifecycle reconcile get failed")).asInstanceOf[OperationResponse.RecordResponse].record
+      val audit = _execute(
+        component,
+        operatorcontext,
+        Request.ofService("LifecycleControl", "listLifecycleRequests", properties = List(Property("artifactId", "textus-lifecycle-reconcile-spec", None)))
+      ).toOption.getOrElse(fail("lifecycle reconcile audit failed")).asInstanceOf[OperationResponse.RecordResponse].record
+
+      Then("GET observes the running supervisor state and persists the running projection with its instance ID")
+      queued.getString("requestState") shouldBe Some("queued")
+      dispatched.getString("requestState") shouldBe Some("accepted")
+      dispatched.getString("instanceId") shouldBe Some(s"instance-${queued.getString("requestId").getOrElse(fail("queued request ID is missing"))}")
+      reconciled.getString("requestState") shouldBe Some("running")
+      reconciled.getString("instanceId") shouldBe dispatched.getString("instanceId")
+      _records(audit).head.getString("requestState") shouldBe Some("running")
+      _records(audit).head.getString("instanceId") shouldBe dispatched.getString("instanceId")
+    }
+
     "stop without a source while restart retains an exact required source selector" in {
       Given("an auto-managed development component and an embedded supervisor home")
       val root = Files.createTempDirectory("control-center-lifecycle-source-selector")
@@ -809,7 +872,16 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       ))
 
     def lookup(requestId: String)(using ExecutionContext): Consequence[Option[SupervisorResult]] =
-      Consequence.success(None)
+      Consequence.success(Some(SupervisorResult(
+        requestId,
+        SupervisorState.Running,
+        None,
+        None,
+        "textus-supervisor-test",
+        Some(s"instance-$requestId"),
+        Some(summon[ExecutionContext].clock.instant()),
+        None
+      )))
   }
 
   private def _execute(
@@ -827,6 +899,8 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
     startedat: Instant,
     artifactid: Option[String] = None,
     baseurl: String = "http://127.0.0.1:8080",
+    applicationurl: Option[String] = None,
+    instanceid: String = "textuscontrolcenteractionspec",
     includeoptional: Boolean = true
   ): Request =
     Request.ofService(
@@ -834,7 +908,7 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       operation,
       properties = List(
         Property("protocolVersion", 1, None),
-        Property("instanceId", "textuscontrolcenteractionspec", None),
+          Property("instanceId", instanceid, None),
         Property("launcherKind", "textus", None),
         Property("target", "textus-control-center", None),
         Property("baseUrl", baseurl, None),
@@ -849,8 +923,9 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
             Property("subsystemName", "TextusControlCenter", None),
             Property("subsystemVersion", "v010snapshot", None),
             Property("runtimeVersion", "v050", None)
-          )
+        )
         else Nil) ++
+        applicationurl.map(value => Property("applicationUrl", value, None)).toList ++
         artifactid.map(value => Property("artifactId", value, None)).toList
     )
 

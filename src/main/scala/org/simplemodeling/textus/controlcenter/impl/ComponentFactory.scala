@@ -1,6 +1,6 @@
 /*
  *  version Jul. 28, 2026
- * @version Aug. 10, 2026
+ * @version Aug. 14, 2026
  */
 package org.simplemodeling.textus.controlcenter.impl
 
@@ -53,7 +53,7 @@ import org.simplemodeling.textus.controlcenter.entity.create.ManagedCarSource.gi
 import org.simplemodeling.textus.controlcenter.entity.create.OperationalComponent.given
 import org.simplemodeling.textus.controlcenter.entity.create.LifecycleRequest.given
 import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCar as CatalogManagedCar, ManagedCarCatalog, ManagedCarSource as CatalogManagedCarSource, OperationalComponentManagement, OperationalManagementState, PublicRepositoryCatalog, RuntimeInstance, RuntimeInstanceStatus, StandaloneCatalogConfiguration, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
-import org.simplemodeling.textus.controlcenter.registry.{RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
+import org.simplemodeling.textus.controlcenter.registry.{ApplicationUrlPolicy, RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
 import org.simplemodeling.textus.controlcenter.supervisor.{EmbeddedTextusSupervisor, LifecycleSupervisorProtocol, LifecycleSupervisorRequest, LifecycleSupervisorResult, TextusSupervisor}
 import org.simplemodeling.textus.controlcenter.launcher.{LauncherEvidenceClient, LauncherEvidenceClientConfiguration, LauncherEvidenceEntry}
 
@@ -281,20 +281,21 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
         }
         launcherstate <- required_string(record, "launcherState")
       } yield RegistrationInput(
-        protocolversion,
-        instanceid,
-        launcherkind,
-        target,
-        record.getString("artifactId").map(_.trim).filter(_.nonEmpty),
-        record.getString("executionMode").map(_.trim).filter(_.nonEmpty),
-        record.getString("developmentDirectory").map(_.trim).filter(_.nonEmpty),
-        record.getString("subsystemName").map(_.trim).filter(_.nonEmpty),
-        record.getString("subsystemVersion").map(_.trim).filter(_.nonEmpty),
-        record.getString("runtimeVersion").map(_.trim).filter(_.nonEmpty),
-        baseurl,
-        hostlabel,
-        startedat,
-        launcherstate
+        protocolVersion = protocolversion,
+        instanceId = instanceid,
+        launcherKind = launcherkind,
+        target = target,
+        artifactId = record.getString("artifactId").map(_.trim).filter(_.nonEmpty),
+        executionMode = record.getString("executionMode").map(_.trim).filter(_.nonEmpty),
+        developmentDirectory = record.getString("developmentDirectory").map(_.trim).filter(_.nonEmpty),
+        subsystemName = record.getString("subsystemName").map(_.trim).filter(_.nonEmpty),
+        subsystemVersion = record.getString("subsystemVersion").map(_.trim).filter(_.nonEmpty),
+        runtimeVersion = record.getString("runtimeVersion").map(_.trim).filter(_.nonEmpty),
+        baseUrl = baseurl,
+        hostLabel = hostlabel,
+        startedAt = startedat,
+        launcherState = launcherstate,
+        applicationUrl = record.getString("applicationUrl").map(_.trim).filter(_.nonEmpty)
       )
     }
 
@@ -362,28 +363,32 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
 
     protected final def to_registry(source: RegisteredSubsystemEntity): RegistrySubsystem =
       RegistrySubsystem(
-        source.protocolVersion,
-        source.instanceId.value,
-        source.launcherKind.value,
-        source.target.value,
-        source.artifactId.map(_.value),
-        source.executionMode.map(_.value),
-        source.developmentDirectory.map(_.value),
-        source.subsystemName.map(_.value),
-        source.subsystemVersion.map(_.value),
-        source.runtimeVersion.map(_.value),
-        source.baseUrl.toExternalForm,
-        source.hostLabel.toI18nString.displayMessage,
-        source.startedAt,
-        source.lastSeenAt,
-        source.launcherState.value,
-        source.registrationPrincipalId.value
+        protocolVersion = source.protocolVersion,
+        instanceId = source.instanceId.value,
+        launcherKind = source.launcherKind.value,
+        target = source.target.value,
+        artifactId = source.artifactId.map(_.value),
+        executionMode = source.executionMode.map(_.value),
+        developmentDirectory = source.developmentDirectory.map(_.value),
+        subsystemName = source.subsystemName.map(_.value),
+        subsystemVersion = source.subsystemVersion.map(_.value),
+        runtimeVersion = source.runtimeVersion.map(_.value),
+        baseUrl = source.baseUrl.toExternalForm,
+        hostLabel = source.hostLabel.toI18nString.displayMessage,
+        startedAt = source.startedAt,
+        lastSeenAt = source.lastSeenAt,
+        launcherState = source.launcherState.value,
+        registrationPrincipalId = source.registrationPrincipalId.value,
+        applicationUrl = source.applicationUrl.flatMap(value => ApplicationUrlPolicy.parse(value.toExternalForm).toOption.map(_.toString))
       )
 
     protected final def to_create(
       source: RegistrySubsystem
     ): Consequence[RegisteredSubsystemCreate] =
-      base_url(source.baseUrl).map { baseurl =>
+      for {
+        baseurl <- base_url(source.baseUrl)
+        applicationurl <- source.applicationUrl.traverse(application_url)
+      } yield {
         RegisteredSubsystemCreate(
           None,
           SubsystemInstanceIdValue(source.instanceId),
@@ -397,6 +402,7 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
           source.subsystemVersion.map(SubsystemVersionValue.apply),
           source.runtimeVersion.map(RuntimeVersionValue.apply),
           baseurl,
+          applicationurl,
           I18nLabel(source.hostLabel),
           source.startedAt,
           source.lastSeenAt,
@@ -422,6 +428,7 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
         source.subsystemVersion.map(SubsystemVersionValue.apply),
         source.runtimeVersion.map(RuntimeVersionValue.apply),
         create.baseUrl,
+        create.applicationUrl,
         create.hostLabel,
         source.startedAt,
         source.lastSeenAt,
@@ -437,6 +444,12 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
       } catch {
         case NonFatal(_) => Consequence.valueInvalid(s"baseUrl is invalid: $value", XString)
       }
+
+    protected final def application_url(value: String): Consequence[URL] =
+      ApplicationUrlPolicy.parse(value).fold(
+        _ => Consequence.valueInvalid(s"applicationUrl is invalid: $value", XString),
+        uri => Consequence.success(uri.toURL)
+      )
 
     protected final def ensure_adopted_operational_component(artifactid: Option[String], now: Instant): ExecUowM[Unit] =
       artifactid match {
@@ -480,6 +493,7 @@ final class SubsystemInventoryServiceFactoryImpl extends TextusControlCenterComp
           "subsystemVersion" -> projection.subsystemVersion,
           "runtimeVersion" -> projection.runtimeVersion,
           "baseUrl" -> projection.baseUrl,
+          "applicationUrl" -> projection.applicationUrl,
           "hostLabel" -> projection.hostLabel,
           "startedAt" -> projection.startedAt,
           "lastSeenAt" -> projection.lastSeenAt,
@@ -706,7 +720,25 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
     protected final def runtime_summary(car: ManagedCarEntity, cars: Vector[ManagedCarEntity], registered: Vector[RegisteredSubsystemEntity], now: Instant) = {
       val catalogcars = cars.map(source => CatalogManagedCar(source.artifactId.value, source.componentName.map(_.value), source.componentName.map(_.value).toSet, Vector.empty, Vector.empty))
       val instances = latest_registered_subsystems(registered).map { source =>
-        val registry = RegistrySubsystem(source.protocolVersion, source.instanceId.value, source.launcherKind.value, source.target.value, source.artifactId.map(_.value), source.executionMode.map(_.value), source.developmentDirectory.map(_.value), source.subsystemName.map(_.value), source.subsystemVersion.map(_.value), source.runtimeVersion.map(_.value), source.baseUrl.toExternalForm, source.hostLabel.toI18nString.displayMessage, source.startedAt, source.lastSeenAt, source.launcherState.value, source.registrationPrincipalId.value)
+        val registry = RegistrySubsystem(
+          protocolVersion = source.protocolVersion,
+          instanceId = source.instanceId.value,
+          launcherKind = source.launcherKind.value,
+          target = source.target.value,
+          artifactId = source.artifactId.map(_.value),
+          executionMode = source.executionMode.map(_.value),
+          developmentDirectory = source.developmentDirectory.map(_.value),
+          subsystemName = source.subsystemName.map(_.value),
+          subsystemVersion = source.subsystemVersion.map(_.value),
+          runtimeVersion = source.runtimeVersion.map(_.value),
+          baseUrl = source.baseUrl.toExternalForm,
+          hostLabel = source.hostLabel.toI18nString.displayMessage,
+          startedAt = source.startedAt,
+          lastSeenAt = source.lastSeenAt,
+          launcherState = source.launcherState.value,
+          registrationPrincipalId = source.registrationPrincipalId.value,
+          applicationUrl = source.applicationUrl.map(_.toExternalForm)
+        )
         val status = SubsystemRegistry.projection(registry, now, Duration.ofSeconds(90)).toOption.map(_.status) match {
           case Some(SubsystemRegistry.running) => RuntimeInstanceStatus.Running
           case Some(SubsystemRegistry.starting) => RuntimeInstanceStatus.Starting
@@ -1034,7 +1066,7 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
         requestid <- exec_from(required_string(action.record, "requestId"))
         requests <- find_lifecycle_requests_all
         request <- exec_from(requests.find(_.requestId.value == requestid).toRight(requestid).fold(Consequence.resourceNotFound, Consequence.success))
-        reconciled <- if (request.requestState.value == "queued") reconcile_lifecycle_request(request) else exec_pure(request)
+        reconciled <- if (Set("queued", "accepted").contains(request.requestState.value)) reconcile_lifecycle_request(request) else exec_pure(request)
       } yield OperationResponse(safe_projection(reconciled))
   }
 
@@ -1128,19 +1160,25 @@ final class LifecycleControlServiceFactoryImpl extends TextusControlCenterCompon
       }
 
     protected final def reconcile_lifecycle_request(request: LifecycleRequestEntity): ExecUowM[LifecycleRequestEntity] =
-      if (request.requestState.value != "queued") exec_pure(request)
+      if (!Set("queued", "accepted").contains(request.requestState.value)) exec_pure(request)
       else {
         val now = core.executionContext.clock.instant()
         val protocolrequest = LifecycleSupervisorRequest(request.requestId.value, request.idempotencyKey.value, request.artifactId.value, request.launchProfileId.map(_.value), request.lifecycleAction.value, request.operatorSubjectId.value, request.deadlineAt)
         for {
           supervisor <- standalone_supervisor(request.artifactId.value, request.launchProfileId.map(_.value))
           result = supervisor.fold(
-            code => LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.map(_.value).getOrElse(""), code, now),
-            value => value.lookup(protocolrequest.requestId).getOrElse(value.submit(protocolrequest, now))
+            code => if (request.requestState.value == "queued") Some(LifecycleSupervisorProtocol.unavailable(protocolrequest, request.supervisorId.map(_.value).getOrElse(""), code, now)) else None,
+            value => value.lookup(protocolrequest.requestId).orElse(if (request.requestState.value == "queued") Some(value.submit(protocolrequest, now)) else None)
           )
-          patch <- exec_from(lifecycle_request_update(result))
-          _ <- entity_update(request.id, patch)
-        } yield lifecycle_request_entity(request, result)
+          reconciled <- result match {
+            case Some(value) =>
+              for {
+                patch <- exec_from(lifecycle_request_update(value))
+                _ <- entity_update(request.id, patch)
+              } yield lifecycle_request_entity(request, value)
+            case None => exec_pure(request)
+          }
+        } yield reconciled
       }
 
     protected final def standalone_supervisor(artifactId: String, profileId: Option[String]): ExecUowM[Either[String, TextusSupervisor]] =

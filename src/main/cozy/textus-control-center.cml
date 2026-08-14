@@ -606,6 +606,7 @@ GetLifecycleRequestResult
 | subsystemVersion        | SubsystemVersion        | ?            |                 |
 | runtimeVersion          | RuntimeVersion          | ?            |                 |
 | baseUrl                 | url                     | 1            |                 |
+| applicationUrl          | url                     | ?            |                 |
 | hostLabel               | label                   | 1            |                 |
 | startedAt               | instant                 | 1            |                 |
 | lastSeenAt              | instant                 | 1            |                 |
@@ -729,6 +730,7 @@ GetLifecycleRequestResult
 | subsystemVersion | string  | ?            |
 | runtimeVersion   | string  | ?            |
 | baseUrl          | string  | 1            |
+| applicationUrl   | string  | ?            |
 | hostLabel        | string  | 1            |
 | startedAt        | instant | 1            |
 | launcherState    | string  | 1            |
@@ -750,6 +752,7 @@ GetLifecycleRequestResult
 | subsystemVersion | string  | ?            |
 | runtimeVersion   | string  | ?            |
 | baseUrl          | string  | 1            |
+| applicationUrl   | string  | ?            |
 | hostLabel        | string  | 1            |
 | startedAt        | instant | 1            |
 | launcherState    | string  | 1            |

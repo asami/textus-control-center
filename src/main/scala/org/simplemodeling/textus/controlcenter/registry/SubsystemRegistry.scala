@@ -1,5 +1,6 @@
 /*
- * @version Jul. 19, 2026
+ *  version Jul. 19, 2026
+ * @version Aug. 14, 2026
  */
 package org.simplemodeling.textus.controlcenter.registry
 
@@ -19,7 +20,8 @@ final case class RegistrationInput(
   baseUrl: String,
   hostLabel: String,
   startedAt: Instant,
-  launcherState: String
+  launcherState: String,
+  applicationUrl: Option[String] = None
 )
 
 final case class RegisteredSubsystem(
@@ -38,7 +40,8 @@ final case class RegisteredSubsystem(
   startedAt: Instant,
   lastSeenAt: Instant,
   launcherState: String,
-  registrationPrincipalId: String
+  registrationPrincipalId: String,
+  applicationUrl: Option[String] = None
 )
 
 final case class SubsystemProjection(
@@ -59,7 +62,8 @@ final case class SubsystemProjection(
   launcherState: String,
   status: String,
   dashboardUrl: String,
-  systemAdminUrl: String
+  systemAdminUrl: String,
+  applicationUrl: Option[String] = None
 )
 
 sealed trait RegistryError {
@@ -150,24 +154,25 @@ object SubsystemRegistry {
       val status = _status(source, now, staleThreshold)
       val baseurl = source.baseUrl.stripSuffix("/")
       Right(SubsystemProjection(
-        source.protocolVersion,
-        source.instanceId,
-        source.launcherKind,
-        source.target,
-        source.artifactId,
-        source.executionMode,
-        source.developmentDirectory,
-        source.subsystemName,
-        source.subsystemVersion,
-        source.runtimeVersion,
-        source.baseUrl,
-        source.hostLabel,
-        source.startedAt,
-        source.lastSeenAt,
-        source.launcherState,
-        status,
-        s"$baseurl/web/system/dashboard",
-        s"$baseurl/web/system/admin"
+        protocolVersion = source.protocolVersion,
+        instanceId = source.instanceId,
+        launcherKind = source.launcherKind,
+        target = source.target,
+        artifactId = source.artifactId,
+        executionMode = source.executionMode,
+        developmentDirectory = source.developmentDirectory,
+        subsystemName = source.subsystemName,
+        subsystemVersion = source.subsystemVersion,
+        runtimeVersion = source.runtimeVersion,
+        baseUrl = source.baseUrl,
+        hostLabel = source.hostLabel,
+        startedAt = source.startedAt,
+        lastSeenAt = source.lastSeenAt,
+        launcherState = source.launcherState,
+        status = status,
+        dashboardUrl = s"$baseurl/web/system/dashboard",
+        systemAdminUrl = s"$baseurl/web/system/admin",
+        applicationUrl = source.applicationUrl
       ))
     }
   }
@@ -183,22 +188,23 @@ object SubsystemRegistry {
     receivedAt: Instant
   ): RegisteredSubsystem =
     RegisteredSubsystem(
-      input.protocolVersion,
-      input.instanceId,
-      input.launcherKind,
-      input.target,
-      input.artifactId,
-      input.executionMode,
-      input.developmentDirectory,
-      input.subsystemName,
-      input.subsystemVersion,
-      input.runtimeVersion,
-      input.baseUrl,
-      input.hostLabel,
-      input.startedAt,
-      receivedAt,
-      input.launcherState,
-      principalId
+      protocolVersion = input.protocolVersion,
+      instanceId = input.instanceId,
+      launcherKind = input.launcherKind,
+      target = input.target,
+      artifactId = input.artifactId,
+      executionMode = input.executionMode,
+      developmentDirectory = input.developmentDirectory,
+      subsystemName = input.subsystemName,
+      subsystemVersion = input.subsystemVersion,
+      runtimeVersion = input.runtimeVersion,
+      baseUrl = input.baseUrl,
+      hostLabel = input.hostLabel,
+      startedAt = input.startedAt,
+      lastSeenAt = receivedAt,
+      launcherState = input.launcherState,
+      registrationPrincipalId = principalId,
+      applicationUrl = input.applicationUrl
     )
 
   private def _validate_input(
@@ -215,6 +221,8 @@ object SubsystemRegistry {
       Left(RegistryError.Invalid("target is required"))
     } else if (!_is_http_url(input.baseUrl)) {
       Left(RegistryError.Invalid("baseUrl must be an absolute HTTP URL"))
+    } else if (!_valid_application_url(input)) {
+      Left(RegistryError.Invalid(_application_url_error(input)))
     } else if (!_is_nonempty(input.hostLabel)) {
       Left(RegistryError.Invalid("hostLabel is required"))
     } else if (input.launcherState != expectedState) {
@@ -272,9 +280,25 @@ object SubsystemRegistry {
     existing.exists(value => incoming.exists(_ != value))
 
   private def _is_http_url(value: String): Boolean = {
-    val uri = scala.util.Try(java.net.URI.create(value)).toOption
-    uri.exists(x => x.isAbsolute && Set("http", "https").contains(x.getScheme))
+    _http_uri(value).isDefined
   }
+
+  private def _valid_application_url(input: RegistrationInput): Boolean =
+    input.applicationUrl.forall(value => ApplicationUrlPolicy.sameOrigin(input.baseUrl, value).isRight)
+
+  private def _application_url_error(input: RegistrationInput): String =
+    input.applicationUrl.flatMap(value => ApplicationUrlPolicy.sameOrigin(input.baseUrl, value).left.toOption) match {
+      case Some("must have the same origin as baseUrl") => "applicationUrl must have the same origin as baseUrl"
+      case Some(ApplicationUrlPolicy.INVALID_PATH) => "applicationUrl must use a canonical /web application path"
+      case _ => "applicationUrl must be an absolute HTTP(S) URL"
+    }
+
+  private def _http_uri(value: String): Option[java.net.URI] =
+    scala.util.Try(java.net.URI.create(value)).toOption.filter { uri =>
+      uri.isAbsolute &&
+        Option(uri.getScheme).exists(scheme => Set("http", "https").contains(scheme.toLowerCase)) &&
+        Option(uri.getHost).exists(_.nonEmpty)
+    }
 
   private val _launcher_kinds = Set("textus", "cncf")
 }

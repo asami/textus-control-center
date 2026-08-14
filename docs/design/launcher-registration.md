@@ -80,12 +80,14 @@ detail operation obtains it only from the current Launcher evidence command.
 
 For a managed server invocation, the launcher performs the following sequence:
 
-1. Resolve the target, runtime, externally reachable base URL, and safe host
+1. Resolve the target, runtime, configured public base URL when present, and safe host
    label.
 2. Create one high-entropy `instanceId` for the invocation.
 3. Atomically record `startedAt`, `lastSeenAt`, and `launcherKind` in the
    launcher-owned shared evidence store.
-4. Send a bounded registration request with `launcherState = starting`.
+4. Wait for the framework's post-bind snapshot, whose base readiness is
+   published after its optional application path, then send a bounded
+   registration request with `launcherState = starting`.
 5. Start bounded daemon tasks for local evidence and, when configured, a
    Control Center heartbeat.
 6. Invoke the CNCF server.
@@ -143,7 +145,8 @@ specified alongside each launcher implementation. The logical group has these
 invariants:
 
 - `enabled` defaults to `false`.
-- `endpoint`, `token-env`, and `base-url` are required when enabled.
+- `endpoint` and `token-env` are required when enabled. `base-url` is optional;
+  when absent, the ready bound base becomes the required wire-payload `baseUrl`.
 - `token-env` names an environment variable; the credential value is never
   serialized into launcher configuration, registry records, logs, or UI.
 - `timeout` and `heartbeat-interval` must be positive and bounded by launcher
@@ -151,9 +154,21 @@ invariants:
 - `host-label` is an operator-supplied label; a launcher does not upload a full
   host environment, command line, or unrestricted system properties.
 
-`base-url` identifies the managed Subsystem, not Textus Control Center. Textus Control Center
-derives its navigation URLs from this value using the CNCF canonical System
-Dashboard and System Admin paths.
+`base-url` identifies the managed Subsystem, not Textus Control Center. When
+configured it remains the public registration base; when absent, the launcher
+uses the ready bound base. Textus Control Center derives its navigation URLs
+from the resulting required wire-payload base URL using the CNCF canonical
+System Dashboard and System Admin paths.
+
+The snapshot carries an optional canonical application path (`/web` or
+`/web/...`), not a bind-origin public URL. The launcher composes that path with
+the configured public base when supplied, otherwise with the ready bound base,
+and retains the resulting immutable URL for register, heartbeat, and
+deregister. This keeps public authority precedence intact and prevents a
+registration from mixing base and application values from different bind
+generations. Control Center validates the optional URL as same-origin with the
+registration base and presents it as **Open App**; Dashboard remains a distinct
+derived control.
 
 Textus Control Center holds the matching machine credential separately from this
 launcher group. For Phase 1, deployment configuration supplies

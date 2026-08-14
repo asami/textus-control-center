@@ -36,6 +36,7 @@ Every accepted registration record contains the following logical fields.
 | `subsystemVersion` | no | Resolved artifact or SAR version when known. |
 | `runtimeVersion` | no | Resolved CNCF runtime version when known. |
 | `baseUrl` | yes | Operator-reachable base URL of the managed Subsystem. |
+| `applicationUrl` | no | Optional, legacy-compatible same-origin canonical application route: `/web` or `/web/...`; it is never a Dashboard, System, userinfo, query, or fragment URL. |
 | `hostLabel` | yes | Operator-supplied safe host/environment label. |
 | `startedAt` | yes | Invocation start time reported by the launcher. |
 | `launcherState` | yes | `starting`, `running`, or `stopped`. |
@@ -131,8 +132,9 @@ The list query returns the safe instance projection, including:
 - instance identity and launcher kind;
 - target, known Subsystem/runtime version metadata, and host label;
 - base URL;
+- optional application URL, which drives **Open App** only when present;
 - derived status and `lastSeenAt`;
-- derived Dashboard and System Admin navigation URLs.
+- derived Dashboard and System Admin navigation URLs, which remain separate from Open App.
 
 The list must order results by descending `lastSeenAt`, then ascending
 `instanceId`, so ties are deterministic. Detail lookup uses `instanceId` and
@@ -168,9 +170,12 @@ response shape.
 
 ## 10. Launcher Failure Isolation
 
-When integration is enabled, a launcher attempts register before server
-invocation, heartbeat while the invocation is active, and deregister in its
-`finally` boundary.
+When integration is enabled, a launcher starts registration in pending mode,
+waits for the framework's coherent post-bind readiness snapshot, then attempts
+register; it heartbeats while the invocation is active and deregisters in its
+`finally` boundary. The snapshot publishes readiness last and therefore never
+mixes one bind generation's base URL with another generation's optional
+application path.
 
 If endpoint resolution, authentication, transport, timeout, or Textus Control Center
 Operation execution fails, the launcher:
