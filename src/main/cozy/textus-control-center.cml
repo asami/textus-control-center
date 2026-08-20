@@ -934,241 +934,241 @@ GetLifecycleRequestResult
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## LauncherKind
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## SubsystemTarget
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## ExecutionMode
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## DevelopmentDirectory
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 4096       |
 
 ## SubsystemName
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## SubsystemVersion
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## RuntimeVersion
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## LauncherEvidenceSnapshotPayload
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 65536      |
 
 ## LauncherState
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## RegistrationPrincipalId
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## ManagedCarArtifactId
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## ManagedCarComponentName
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## ManagedCarSourceId
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## ManagedCarSourceKind
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## ManagedCarRefreshState
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## ManagedCarVersion
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## ManagedCarDiagnostic
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 4096       |
 
 ## ManagedCarPrivateLocator
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 4096       |
 
 ## OperationalManagementState
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## LauncherEvidenceDecision
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## LifecycleRequestId
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## LifecycleAction
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## LifecycleRequestState
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## LifecycleIdempotencyKey
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## LifecycleLaunchProfileId
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## LifecycleDiagnosticCode
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## LifecycleDiagnostic
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 4096       |
 
 ## OperatorSubjectId
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 ## LifecycleSupervisorId
 
 ### ATTRIBUTE
 
-| name  | type   | multiplicity |
-|-------|--------|--------------|
-| value | string | 1            |
+| name  | type   | multiplicity | max-length |
+|-------|--------|--------------|------------|
+| value | string | 1            | 512        |
 
 # VALUE
 

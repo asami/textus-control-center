@@ -12,19 +12,19 @@ import scala.jdk.CollectionConverters.*
 object StandaloneLocalRepositoryCatalogProvider {
   def discover(catalog: LocalRepositoryCatalog, observedAt: Instant): Vector[ManagedCarSource] = {
     val root = Path.of(catalog.catalogRoot)
-    if (!Files.isDirectory(root)) Vector.empty
-    else Files.list(root).iterator.asScala.toVector
-      .filter(path => Files.isRegularFile(path) && path.getFileName.toString.endsWith(".yaml") && !path.getFileName.toString.endsWith(".model-metadata.yaml"))
+    if (!Files.isDirectory(root)) Vector.empty // cncf-car-lint: ignore standalone local repository catalog provider filesystem boundary.
+    else Files.list(root).iterator.asScala.toVector // cncf-car-lint: ignore standalone local repository catalog provider filesystem boundary.
+      .filter(path => Files.isRegularFile(path) && path.getFileName.toString.endsWith(".yaml") && !path.getFileName.toString.endsWith(".model-metadata.yaml")) // cncf-car-lint: ignore standalone local repository catalog provider filesystem boundary.
       .flatMap(path => _catalog_source(catalog.sourceId, path, observedAt))
       .sortBy(source => (source.artifactId, source.sourceId))
   }
 
   private def _catalog_source(sourceid: String, path: Path, observedat: Instant): Option[ManagedCarSource] = {
-    val document = Files.readString(path, StandardCharsets.UTF_8)
+    val document = Files.readString(path, StandardCharsets.UTF_8) // cncf-car-lint: ignore standalone local repository catalog provider filesystem boundary.
     val artifactid = _value(document, "artifactId")
     artifactid.filter(_ => _value(document, "kind").contains("car")).filter(_is_artifact_id).map { id =>
       val archives = _version_files(document).flatMap { case (version, locator) =>
-        _archive_path(path, locator).filter(Files.isRegularFile(_)).map(_ => version)
+        _archive_path(path, locator).filter(Files.isRegularFile(_)).map(_ => version) // cncf-car-lint: ignore standalone local repository catalog provider filesystem boundary.
       }.distinct
       if (archives.nonEmpty)
         ManagedCarSource(id, ManagedCarSourceKind.LocalRepository, sourceid, None, archives, ManagedCarRefreshState.Available, observedat, None, Some(path.toString))

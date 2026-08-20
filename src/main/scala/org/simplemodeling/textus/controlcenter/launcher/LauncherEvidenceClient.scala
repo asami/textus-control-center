@@ -46,11 +46,11 @@ object LauncherEvidenceCommandRunner {
   object System extends LauncherEvidenceCommandRunner {
     def run(configuration: LauncherEvidenceClientConfiguration, args: Vector[String]): Either[String, String] =
       try {
-        val processbuilder = ProcessBuilder((configuration.command +: args)*).redirectErrorStream(true)
+        val processbuilder = ProcessBuilder((configuration.command +: args)*).redirectErrorStream(true) // cncf-car-lint: ignore launcher evidence provider process boundary.
         processbuilder.environment().remove("CNCF_LAUNCHER_DEV_DELEGATED")
         processbuilder.environment().remove("CNCF_LAUNCHER_ARGS_FILE")
         val process = processbuilder.start()
-        val executor = Executors.newSingleThreadExecutor()
+        val executor = Executors.newSingleThreadExecutor() // cncf-car-lint: ignore launcher evidence provider bounded output reader.
         val output = executor.submit(() => _read(process.getInputStream))
         try {
           if (!process.waitFor(configuration.timeout.toMillis, TimeUnit.MILLISECONDS)) {

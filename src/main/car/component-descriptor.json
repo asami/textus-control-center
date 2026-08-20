@@ -3,7 +3,7 @@
   "component": {
     "namespace": "org.simplemodeling.textus",
     "id": "ControlCenter",
-    "version": "0.1.0-SNAPSHOT"
+    "version": "0.1.0"
   },
   "config": {
     "textus.server.default-port": "18000",

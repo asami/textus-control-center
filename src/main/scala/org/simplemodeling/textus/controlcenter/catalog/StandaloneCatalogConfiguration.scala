@@ -79,7 +79,7 @@ object StandaloneCatalogConfiguration {
     }
 
   def load(path: Path): Either[StandaloneCatalogConfigurationError, StandaloneCatalogConfiguration] =
-    scala.util.Try(Files.readString(path)).toEither.left.map(_ => StandaloneCatalogConfigurationError.Invalid("catalog configuration is unavailable")).flatMap(parseYaml)
+    scala.util.Try(Files.readString(path)).toEither.left.map(_ => StandaloneCatalogConfigurationError.Invalid("catalog configuration is unavailable")).flatMap(parseYaml) // cncf-car-lint: ignore standalone catalog provider configuration boundary.
 
   def configuredFile(explicit: Option[String], home: Option[String]): Option[Path] =
     explicit.map(_.trim).filter(_.nonEmpty).map(Path.of(_)).orElse(home.map(_.trim).filter(_.nonEmpty).map(value => Path.of(value, DEFAULT_CATALOG_FILENAME)))

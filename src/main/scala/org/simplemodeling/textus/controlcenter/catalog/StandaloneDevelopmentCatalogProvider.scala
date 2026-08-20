@@ -23,10 +23,10 @@ final case class StandaloneDevelopmentRuntimeObservation(
 object StandaloneDevelopmentCatalogProvider {
   def discover(root: DevelopmentRoot, observedAt: Instant): Vector[ManagedCarSource] = {
     val base = Path.of(root.path)
-    if (!Files.isDirectory(base)) Vector.empty
-    else Using.resource(Files.list(base)) { stream =>
+    if (!Files.isDirectory(base)) Vector.empty // cncf-car-lint: ignore standalone development catalog provider filesystem boundary.
+    else Using.resource(Files.list(base)) { stream => // cncf-car-lint: ignore standalone development catalog provider filesystem boundary.
       stream.iterator.asScala.toVector
-        .filter(path => Files.isDirectory(path) && path.getFileName.toString.startsWith(root.includePrefix))
+        .filter(path => Files.isDirectory(path) && path.getFileName.toString.startsWith(root.includePrefix)) // cncf-car-lint: ignore standalone development catalog provider filesystem boundary.
         .flatMap(path => _descriptor_source(root.sourceId, path, observedAt))
         .sortBy(source => (source.artifactId, source.sourceId))
     }
@@ -63,7 +63,7 @@ object StandaloneDevelopmentCatalogProvider {
     } yield StandaloneDevelopmentRuntimeObservation(projection.mavenArtifactId(), version, baseurl)
 
   private def _read_document(path: Path): Option[String] =
-    Try(Files.readString(path, StandardCharsets.UTF_8)).toOption
+    Try(Files.readString(path, StandardCharsets.UTF_8)).toOption // cncf-car-lint: ignore standalone development catalog provider filesystem boundary.
 
   private def _yaml_mapping(document: String): Option[Map[String, Any]] =
     Try(new Yaml().load[AnyRef](document)).toOption.collect {
@@ -90,7 +90,7 @@ object StandaloneDevelopmentCatalogProvider {
 
   private def _descriptor_source(sourceid: String, project: Path, observedat: Instant): Option[ManagedCarSource] = {
     val descriptor = project.resolve("project.yaml")
-    if (!Files.isRegularFile(descriptor)) None
+    if (!Files.isRegularFile(descriptor)) None // cncf-car-lint: ignore standalone development catalog provider filesystem boundary.
     else {
       for {
         document <- _read_document(descriptor)

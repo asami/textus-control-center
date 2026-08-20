@@ -10,7 +10,7 @@ Component:
 - CAR artifact: `textus-control-center`
 - component: `textus-control-center`
 - package: `org.simplemodeling.textus.controlcenter`
-- version: `0.1.0-SNAPSHOT`
+- version: `0.1.0`
 
 Typical workflow:
 - `sbt cozyGenerate`
