@@ -15,7 +15,8 @@
 
 ## HYG-CONTROL-CENTER-COMPONENT-FACTORY-SIZE
 
-- Status: `OPEN`
+- Status: `CLOSED`
+- Resolution: Moved the major service factories into `SubsystemInventoryServiceFactoryImpl.scala`, `CarCatalogServiceFactoryImpl.scala`, `OperationalManagementServiceFactoryImpl.scala`, `LauncherEvidenceServiceFactoryImpl.scala`, and `LifecycleControlServiceFactoryImpl.scala`, preserving their public FQNs and ComponentFactory service order. Required validation boundary: focused ComponentFactory/SubsystemInventory specs, then `test`, `cozyBuildCar`, and strict cncf-car-lint.
 - Discovered: 2026-08-28, `cncf-validated-commit` preparation
 - Repository: `textus-control-center`
 - Location: `src/main/scala/org/simplemodeling/textus/controlcenter/impl/ComponentFactory.scala`
