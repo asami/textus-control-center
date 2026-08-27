@@ -1,6 +1,6 @@
 /*
  *  version Jul. 28, 2026
- * @version Aug. 14, 2026
+ * @version Aug. 28, 2026
  */
 package org.simplemodeling.textus.controlcenter.impl
 
@@ -52,7 +52,7 @@ import org.simplemodeling.textus.controlcenter.entity.create.ManagedCar.given
 import org.simplemodeling.textus.controlcenter.entity.create.ManagedCarSource.given
 import org.simplemodeling.textus.controlcenter.entity.create.OperationalComponent.given
 import org.simplemodeling.textus.controlcenter.entity.create.LifecycleRequest.given
-import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCar as CatalogManagedCar, ManagedCarCatalog, ManagedCarSource as CatalogManagedCarSource, OperationalComponentManagement, OperationalManagementState, PublicRepositoryCatalog, RuntimeInstance, RuntimeInstanceStatus, StandaloneCatalogConfiguration, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
+import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCar as CatalogManagedCar, ManagedCarCatalog, ManagedCarRuntimeState, ManagedCarRuntimeSummary, ManagedCarSource as CatalogManagedCarSource, OperationalComponentManagement, OperationalManagementState, PublicRepositoryCatalog, RuntimeInstance, RuntimeInstanceStatus, StandaloneCatalogConfiguration, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
 import org.simplemodeling.textus.controlcenter.registry.{ApplicationUrlPolicy, RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
 import org.simplemodeling.textus.controlcenter.supervisor.{EmbeddedTextusSupervisor, LifecycleSupervisorProtocol, LifecycleSupervisorRequest, LifecycleSupervisorResult, TextusSupervisor}
 import org.simplemodeling.textus.controlcenter.launcher.{LauncherEvidenceClient, LauncherEvidenceClientConfiguration, LauncherEvidenceEntry}
@@ -578,7 +578,7 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
         text = action.record.getString("text").map(_.trim.toLowerCase).filter(_.nonEmpty)
         offset = action.record.getInt("offset").getOrElse(0).max(0)
         limit = action.record.getInt("limit").getOrElse(100).max(0)
-        filtered = latest_cars(cars).filter(car => text.forall(value => matches_text(car, value)))
+        filtered = operational_cars(cars).filter(car => text.forall(value => matches_text(car, value)))
         page = filtered.drop(offset).take(limit)
       } yield OperationResponse(Record.dataAuto(
         "data" -> page.map(car => safe_car_projection(car, latest_sources(sources).filter(_.artifactId == car.artifactId), false, runtime_summary(car, latest_cars(cars), registered, now))),
@@ -713,11 +713,16 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
       }
     protected final def latest_cars(sources: Vector[ManagedCarEntity]): Vector[ManagedCarEntity] =
       sources.groupBy(_.artifactId.value).valuesIterator.flatMap(_.sortBy(source => (source.lastObservedAt, source.id.print)).lastOption).toVector.sortBy(_.artifactId.value)
+    protected final def operational_cars(sources: Vector[ManagedCarEntity]): Vector[ManagedCarEntity] =
+      latest_cars(sources).sortBy(car => (if (_is_control_center_artifact(car.artifactId.value)) 0 else 1, car.artifactId.value))
     protected final def latest_sources(sources: Vector[ManagedCarSourceEntity]): Vector[ManagedCarSourceEntity] =
       sources.groupBy(source => (source.artifactId.value, source.sourceKind.value, source.sourceId.value)).valuesIterator.flatMap(_.sortBy(source => (source.snapshotAt, source.id.print)).lastOption).toVector.sortBy(source => (source.artifactId.value, source.sourceKind.value, source.sourceId.value))
     protected final def latest_registered_subsystems(sources: Vector[RegisteredSubsystemEntity]): Vector[RegisteredSubsystemEntity] =
       sources.groupBy(_.instanceId.value).valuesIterator.flatMap(_.sortBy(source => (source.lastSeenAt, source.id.print)).lastOption).toVector.sortBy(_.instanceId.value)
-    protected final def runtime_summary(car: ManagedCarEntity, cars: Vector[ManagedCarEntity], registered: Vector[RegisteredSubsystemEntity], now: Instant) = {
+    protected final def runtime_summary(car: ManagedCarEntity, cars: Vector[ManagedCarEntity], registered: Vector[RegisteredSubsystemEntity], now: Instant): ManagedCarRuntimeSummary = {
+      if (_is_control_center_artifact(car.artifactId.value))
+        ManagedCarRuntimeSummary(ManagedCarRuntimeState.Running, Vector.empty, Vector.empty)
+      else {
       val catalogcars = cars.map(source => CatalogManagedCar(source.artifactId.value, source.componentName.map(_.value), source.componentName.map(_.value).toSet, Vector.empty, Vector.empty))
       val instances = latest_registered_subsystems(registered).map { source =>
         val registry = RegistrySubsystem(
@@ -748,7 +753,9 @@ final class CarCatalogServiceFactoryImpl extends TextusControlCenterComponent.Ca
         RuntimeInstance(source.instanceId.value, source.artifactId.map(_.value), source.target.value, source.subsystemName.map(_.value), status)
       }
       ManagedCarCatalog.runtimeSummary(car.artifactId.value, instances, ManagedCarCatalog.linkRuntimeInstances(catalogcars, instances))
+      }
     }
+    private def _is_control_center_artifact(artifactid: String): Boolean = artifactid == "textus-control-center"
     protected final def safe_car_projection(car: ManagedCarEntity, sources: Vector[ManagedCarSourceEntity], detail: Boolean, runtime: org.simplemodeling.textus.controlcenter.catalog.ManagedCarRuntimeSummary): Record =
       Record.dataAuto("artifactId" -> car.artifactId.value, "componentName" -> car.componentName.map(_.value), "createdAt" -> car.firstObservedAt, "updatedAt" -> car.lastObservedAt, "runtimeState" -> (runtime.state match { case org.simplemodeling.textus.controlcenter.catalog.ManagedCarRuntimeState.NotRunning => "not-running"; case state => state.toString.toLowerCase }), "activeInstanceIds" -> runtime.activeInstanceIds, "staleInstanceIds" -> runtime.staleInstanceIds, "sources" -> sources.map(source => Record.dataAuto("sourceId" -> source.sourceId.value, "sourceKind" -> source.sourceKind.value, "refreshState" -> source.refreshState.value, "componentName" -> source.componentName.map(_.value), "recommendedVersion" -> source.recommendedVersion.map(_.value), "latestVersion" -> source.latestVersion.map(_.value), "snapshotAt" -> source.snapshotAt, "diagnostic" -> source.diagnostic.map(_.value), "privateLocator" -> (if (detail) source.privateLocator.map(_.value) else None))))
     protected final def matches_text(car: ManagedCarEntity, text: String): Boolean = Vector(car.artifactId.value).concat(car.componentName.map(_.value).toVector).exists(_.toLowerCase.contains(text))
@@ -853,7 +860,7 @@ final class OperationalManagementServiceFactoryImpl extends TextusControlCenterC
     protected final def find_registered_subsystems_all: ExecUowM[Vector[RegisteredSubsystemEntity]] =
       for { fields <- exec_pure(EntityQueryFieldResolver(core.component, "RegisteredSubsystem")); query = EntityQuery[RegisteredSubsystemEntity](RegisteredSubsystemQuery.collectionId, fields.rewrite(Query.fromRecord(Record.empty)), scope = EntitySearchScope.Store, visibilityScope = Some(EntityVisibilityScope.Admin)); result <- entity_search_internal[RegisteredSubsystemEntity](query) } yield result.data
     protected final def latest_operational_component(sources: Vector[OperationalComponentEntity]): Option[OperationalComponentEntity] = sources.sortBy(source => (source.lastObservedAt, source.id.print)).lastOption
-    protected final def latest_operational_components(sources: Vector[OperationalComponentEntity]): Vector[OperationalComponentEntity] = sources.groupBy(_.artifactId.value).valuesIterator.flatMap(latest_operational_component).toVector.sortBy(_.artifactId.value)
+    protected final def latest_operational_components(sources: Vector[OperationalComponentEntity]): Vector[OperationalComponentEntity] = sources.groupBy(_.artifactId.value).valuesIterator.flatMap(latest_operational_component).toVector.sortBy(source => (if (source.artifactId.value == "textus-control-center") 0 else 1, source.artifactId.value))
     protected final def latest_managed_sources(sources: Vector[ManagedCarSourceEntity]): Vector[ManagedCarSourceEntity] = sources.groupBy(source => (source.artifactId.value, source.sourceKind.value, source.sourceId.value)).valuesIterator.flatMap(source => source.sortBy(value => (value.snapshotAt, value.id.print)).lastOption).toVector
     protected final def operational_component_update(managementstate: String, now: Instant): Consequence[OperationalComponentUpdate] =
       new OperationalComponentUpdate.Builder().withManagementState(OperationalManagementStateValue(managementstate)).withLastObservedAt(now).buildC()

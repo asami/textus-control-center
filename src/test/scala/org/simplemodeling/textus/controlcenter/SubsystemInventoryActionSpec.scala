@@ -1,6 +1,6 @@
 /*
  *  version Jul. 28, 2026
- * @version Aug. 14, 2026
+ * @version Aug. 28, 2026
  */
 package org.simplemodeling.textus.controlcenter
 
@@ -390,6 +390,31 @@ final class SubsystemInventoryActionSpec extends AnyWordSpec with GivenWhenThen 
       Then("both declared roots contribute their direct CAR projects")
       refreshed.getInt("refreshedSourceCount") shouldBe Some(2)
       _records(listed).map(_.getString("artifactId")) shouldBe Vector(Some("textus-catalog-first"), Some("textus-catalog-second"))
+    }
+
+    "project the intrinsic Control Center as first and running without self-registration" in {
+      Given("a catalog containing the Control Center and one ordinary development CAR without registration records")
+      val root = Files.createTempDirectory("control-center-intrinsic-runtime")
+      _write_car_descriptor(root, "textus-control-center", "Textus Control Center")
+      _write_car_descriptor(root, "textus-runtime-order-spec", "runtime-order-spec-component")
+      val fixture = _fixture()
+      val component = _component(_catalog_configuration(root))
+      val operatorcontext = fixture.contextFor(SecurityContext.Privilege.ApplicationContentManager)
+
+      When("the Control Center refreshes then projects catalog and operational components")
+      _execute(component, operatorcontext, Request.ofService("CarCatalog", "refreshCarCatalog")).toOption should not be empty
+      val catalog = _execute(component, operatorcontext, Request.ofService("CarCatalog", "listManagedCars"))
+        .toOption.getOrElse(fail("intrinsic catalog list failed"))
+        .asInstanceOf[OperationResponse.RecordResponse].record
+      val operational = _execute(component, operatorcontext, Request.ofService("OperationalManagement", "listOperationalComponents"))
+        .toOption.getOrElse(fail("intrinsic operational list failed"))
+        .asInstanceOf[OperationResponse.RecordResponse].record
+
+      Then("the intrinsic root is first and running while the ordinary component remains observation-dependent")
+      _records(catalog).map(_.getString("artifactId")) shouldBe Vector(Some("textus-control-center"), Some("textus-runtime-order-spec"))
+      _records(catalog).head.getString("runtimeState") shouldBe Some("running")
+      _records(catalog)(1).getString("runtimeState") shouldBe Some("not-running")
+      _records(operational).map(_.getString("artifactId")) shouldBe Vector(Some("textus-control-center"), Some("textus-runtime-order-spec"))
     }
 
     "manage development CARs as operational targets while retaining an explicit exclusion" in {

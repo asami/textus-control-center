@@ -123,15 +123,7 @@
   }
   function timedOutLifecycleResult(result, requestId) { return { ...result, request_id: requestId, request_state: "timed-out", diagnostic: `Request ${requestId}: terminal status was not observed before timeout.` }; }
   function runtime(component) {
-    const values = invocations.filter((value) => value.artifactId === component.artifactId).map((value) => String(value.status || "").toLowerCase());
-    if (values.includes("running")) return "running";
-    if (values.includes("starting")) return "starting";
-    if (values.includes("stale")) return "stale";
-    if (values.includes("stopped")) return "stopped";
-    const observed = evidence.filter((value) => value.artifactId === component.artifactId && !value.stoppedAt).map((value) => String(value.decision || "").toLowerCase());
-    if (observed.includes("current-registered")) return "running";
-    if (observed.includes("current-evidence-only")) return "evidence-current";
-    return catalog.find((value) => value.artifactId === component.artifactId)?.runtimeState || "not-running";
+    return linkPolicy.runtimeState(component, invocations, evidence, catalog);
   }
   function applicationUrl(component) {
     return linkPolicy.applicationUrl(component, invocations);
@@ -218,7 +210,9 @@
       const observedCell = document.createElement("td"); observedCell.textContent = formatInstant(component.lastObservedAt);
       const actionsCell = document.createElement("td"); actionsCell.className = "operational-actions";
       const lifecycleControls = new Map();
-      [button("Start", "start", component, resolveCandidate), button("Stop", "stop", component, () => null), button("Restart", "restart", component, resolveCandidate)].forEach((value) => { lifecycleControls.set(value.dataset.lifecycleAction, value); actionsCell.append(value); });
+      if (!linkPolicy.isControlCenter(component)) {
+        [button("Start", "start", component, resolveCandidate), button("Stop", "stop", component, () => null), button("Restart", "restart", component, resolveCandidate)].forEach((value) => { lifecycleControls.set(value.dataset.lifecycleAction, value); actionsCell.append(value); });
+      }
       const openApp = appLink(component); const dashboard = dashboardLink(component); actionsCell.append(openApp, dashboard);
       const remove = document.createElement("button"); remove.type = "button"; remove.className = "button secondary operational-action"; remove.textContent = "Remove";
       remove.addEventListener("click", (event) => { event.stopPropagation(); removeComponent(component, remove); }); actionsCell.append(remove);
@@ -303,11 +297,13 @@
       } finally { clearTimeout(abortTimer); }
       await new Promise((resolve) => setTimeout(resolve, Math.min(runtimeObservationPollIntervalMs, Math.max(0, deadline - Date.now()))));
     }
-    updateRuntimeRow(component, "unknown", true);
-    setRowFeedback(component, `Supervisor ${acceptedState} ${actionLabel.toLowerCase()}, but runtime observation timed out after ${Math.round(runtimeObservationTimeoutMs / 1000)} seconds.`, "error");
+    const pendingState = action === "stop" ? "stopping" : "starting";
+    updateRuntimeRow(component, pendingState, true);
+    setRowFeedback(component, `Supervisor ${acceptedState} ${actionLabel.toLowerCase()}; registration observation remains pending after ${Math.round(runtimeObservationTimeoutMs / 1000)} seconds.`, "busy");
     return false;
   }
   async function requestLifecycle(action, component, candidate, control) {
+    if (linkPolicy.isControlCenter(component)) return;
     if (action !== "stop" && !candidate) {
       setRowFeedback(component, "No available launch source is selected.", "error");
       return;
