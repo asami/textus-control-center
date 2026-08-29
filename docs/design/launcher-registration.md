@@ -25,8 +25,9 @@ Control Center is reachable. The launcher retains ownership of the target
 process/JVM and continues server startup when Textus Control Center is
 unavailable.
 
-The Control Center does not read that local file directly. Reconciliation uses
-the CNCF Launcher one-shot JSON boundary:
+The Control Center application and inventory services do not read that local
+file directly. Inventory reconciliation uses the CNCF Launcher one-shot JSON
+boundary:
 
 ```text
 cncf launcher evidence list --format json
@@ -47,6 +48,15 @@ host state. The development directory is omitted from list rows and may be
 returned only by a protected evidence-detail projection for the local operator,
 because it is required for the requested detail view but is not generally safe
 to expose in a summary.
+
+The embedded standalone Supervisor process host is a separate privileged local
+consumer. After a Supervisor restart it may read the Launcher-owned evidence
+store only to recover lifecycle ownership. A live process-control handle
+requires an exact instance ID, artifact, execution mode, development directory,
+PID, and process start instant. A profile-only match may clear authoritative
+stopped evidence, but must never attach to or terminate a live process. This is
+not an inventory operation, and the privileged process fields remain excluded
+from Control Center list and detail projections.
 
 Launcher evidence is bounded local history, not an audit archive. Each shared
 writer retains fresh entries for 30 days and caps the file at 512 entries.
@@ -134,7 +144,7 @@ textus-control-center:
     enabled: false
     endpoint: https://admin.example.test/rest/...
     token-env: TEXTUS_CONTROL_CENTER_REGISTRATION_TOKEN
-    timeout: 2s
+    timeout: 5s
     heartbeat-interval: 30s
     host-label: production-a
     base-url: https://subsystem.example.test
@@ -151,6 +161,9 @@ invariants:
   serialized into launcher configuration, registry records, logs, or UI.
 - `timeout` and `heartbeat-interval` must be positive and bounded by launcher
   policy.
+- The standalone locator default is `5s`, which gives registration and heartbeat
+  requests headroom beyond normal local operation response latency while staying
+  below the `30s` heartbeat interval.
 - `host-label` is an operator-supplied label; a launcher does not upload a full
   host environment, command line, or unrestricted system properties.
 

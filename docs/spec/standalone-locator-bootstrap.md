@@ -20,12 +20,16 @@ Its schema version is `1` and it contains these logical fields:
 | `installationId` | yes | Stable local installation identity. |
 | `endpoint` | yes | Absolute loopback Control Center registration base URL. |
 | `credentialRef` | yes | Relative reference beneath the locator root. |
-| `timeout` | no | Positive duration; defaults to `2s`. |
+| `timeout` | no | Positive duration; defaults to `5s`. |
 | `heartbeatInterval` | no | Positive duration; defaults to `30s`. |
 | `hostLabel` | no | Safe local label; no environment dump. |
 
 The locator does not contain a token value, external endpoint configuration,
 or durable registry data.
+
+The `5s` default bounds each registration or heartbeat request with headroom
+beyond normal local operation response latency (normally about 2.1–2.3 seconds)
+while remaining below the `30s` heartbeat interval.
 
 ## 2. Credential Reference
 

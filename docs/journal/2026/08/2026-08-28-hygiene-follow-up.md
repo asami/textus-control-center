@@ -26,3 +26,16 @@
 - Priority: medium
 - Outside current boundary: a safe split crosses generated component factory integration and several existing service implementations, so it is not a local mechanical extraction.
 - Proposed task: split service-factory responsibilities under a dedicated compatibility-preserving maintenance task without changing generated ownership or public component contracts.
+
+## HYG-CONTROL-CENTER-TEST-SCRIPT-PLACEMENT
+
+- Status: `OPEN`
+- Discovered: 2026-08-29, `cncf-validated-commit` focused review
+- Repository: `textus-control-center`
+- Location: `scripts/check-standalone-bootstrap.sh`
+- Evidence: the script is a test-only standalone-bootstrap acceptance check but resides in the operational `scripts/` root; it is intentionally invoked through `bash` and is not installed as an executable operation script.
+- Category: repository organization
+- Risk: operators can mistake a test harness for an operational command, and future maintenance can apply the wrong script contract.
+- Priority: low
+- Outside current boundary: this commit changes the established launcher timeout and validates its bootstrap contract; moving the test harness is unrelated structural cleanup.
+- Proposed task: move the acceptance check under `scripts/test/` and update its callers without changing the tested bootstrap behavior.

@@ -210,7 +210,7 @@ scopeId: $scope_id
 installationId: $installation_id
 endpoint: $canonical_inventory_endpoint
 credentialRef: credentials/launcher-registration.token
-timeout: 2s
+timeout: 5s
 heartbeatInterval: 30s
 hostLabel: $host_label
 EOF
