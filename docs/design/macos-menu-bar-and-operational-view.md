@@ -34,3 +34,12 @@ Start/stop/restart, configuration editing, log browsing and notifications may fo
 ## Distribution
 
 The built .app is a platform-specific Presentation Subcomponent. It may be bundled in textus-control-center.car or distributed in a separate CAR. Logical Subcomponent identity does not depend on the physical packaging choice.
+
+## Host Profiles
+
+Middleware observation is configuration/profile driven, not mandatory on every host.
+
+- Mac mini server profile: PostgreSQL is enabled with separate `ops` and `dev` instances; OpenTelemetry/observability services are enabled.
+- MacBook Air development/client profile: PostgreSQL and OpenTelemetry are not used and therefore are not expected or reported as failures.
+
+Model middleware as service plus named instance/profile rather than hard-coding a single PostgreSQL process. Disabled/not-applicable services must be distinguished from stopped/unhealthy services.
