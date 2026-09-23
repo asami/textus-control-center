@@ -48,3 +48,11 @@ Extend Textus Control Center into a compact operational entry point for the loca
 - Consume CNCF Dashboard/Admin operational APIs/views rather than reimplementing runtime administration.
 - Use CNCF Service Bus authoritative journal information for richer timelines and diagnosis.
 - CNCF UI remains mechanism-oriented; Control Center is system-oriented and combines CNCF with infrastructure and AI/automation resources.
+
+## Development operations integration
+
+- Add development status to development-CAR views using sm-workflow current state plus authoritative Service Bus journal events.
+- Keep detailed development control in sm-workflow; provide deep links rather than duplicating its UI.
+- Treat future smartphone/watch monitoring and simple admission approval as a Control Center remote-interface scenario.
+- Monitoring uses persistent events for temporal decoupling; user decisions return through authenticated operations, with resulting events journaled by the producer.
+- Remote Service Bus exposure is not part of the design; future remote clients use a secured Control Center API and push notifications only as hints.
