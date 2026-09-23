@@ -42,3 +42,9 @@ Extend Textus Control Center into a compact operational entry point for the loca
 - Pixel Watch client using Wear OS native presentation where appropriate.
 - Reuse common Operational API/JSON and server-side Detail/Compact/Glance projections rather than forcing watch UI through Flutter.
 - Keep wearable clients thin; monitoring and health interpretation remain server-side.
+
+## CNCF operational boundary
+
+- Consume CNCF Dashboard/Admin operational APIs/views rather than reimplementing runtime administration.
+- Use CNCF Service Bus authoritative journal information for richer timelines and diagnosis.
+- CNCF UI remains mechanism-oriented; Control Center is system-oriented and combines CNCF with infrastructure and AI/automation resources.
