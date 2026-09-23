@@ -15,3 +15,7 @@ The native application is a platform-specific Presentation Subcomponent and part
 ## Initial boundary
 
 Phase 5 covers read-only status, middleware observation, Dashboard launch and packaging/integration. Mutating controls such as start/stop/restart can be added later.
+
+## Host profile clarification
+
+The Mac mini is the server-oriented host: PostgreSQL runs as separate `ops` and `dev` instances and OpenTelemetry/observability is enabled. The MacBook Air does not use local PostgreSQL or OpenTelemetry. Control Center therefore treats middleware monitoring as host-profile/configuration driven; absence on the MacBook Air is not an unhealthy state.
