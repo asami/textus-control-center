@@ -28,3 +28,9 @@ Extend Textus Control Center into a compact operational entry point for the loca
 - Configuration editing.
 - Log browsing.
 - Native notifications and richer alerting.
+
+## Host profiles
+
+- Mac mini: monitor PostgreSQL `ops` and `dev` independently and monitor configured OpenTelemetry/observability services.
+- MacBook Air: PostgreSQL and OpenTelemetry are disabled/not applicable and must not produce unhealthy status.
+- Represent middleware as configurable service instances rather than assuming one global instance.
