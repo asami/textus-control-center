@@ -34,3 +34,11 @@ Extend Textus Control Center into a compact operational entry point for the loca
 - Mac mini: monitor PostgreSQL `ops` and `dev` independently and monitor configured OpenTelemetry/observability services.
 - MacBook Air: PostgreSQL and OpenTelemetry are disabled/not applicable and must not produce unhealthy status.
 - Represent middleware as configurable service instances rather than assuming one global instance.
+
+## Future presentation targets (out of Phase 5 implementation)
+
+- Flutter Control Center application for iPhone and Android.
+- Apple Watch client using watchOS native presentation where appropriate.
+- Pixel Watch client using Wear OS native presentation where appropriate.
+- Reuse common Operational API/JSON and server-side Detail/Compact/Glance projections rather than forcing watch UI through Flutter.
+- Keep wearable clients thin; monitoring and health interpretation remain server-side.
