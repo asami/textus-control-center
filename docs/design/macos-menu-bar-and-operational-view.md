@@ -43,3 +43,16 @@ Middleware observation is configuration/profile driven, not mandatory on every h
 - MacBook Air development/client profile: PostgreSQL and OpenTelemetry are not used and therefore are not expected or reported as failures.
 
 Model middleware as service plus named instance/profile rather than hard-coding a single PostgreSQL process. Disabled/not-applicable services must be distinguished from stopped/unhealthy services.
+
+## Presentation Roadmap
+
+Control Center presentations share the same server-side Operational Model and read APIs while keeping device-specific UI thin.
+
+- Web Dashboard: Control Center Web application.
+- macOS Menu Bar: Swift/SwiftUI compact presentation.
+- Mobile: future Flutter application shared by iPhone and Android.
+- Wearables: future Apple Watch and Pixel Watch targets.
+
+Apple Watch and Pixel Watch are not forced through one Flutter UI implementation. Watch-specific presentation uses native stacks where appropriate: Swift/SwiftUI for watchOS and Kotlin/Compose for Wear OS. Commonality lives primarily in the Control Center API, JSON contracts, use cases and server-side read models.
+
+Introduce presentation-oriented projections from the same Operational Model, for example Detail View, Compact View and Glance View. Wearable clients should be close to display/interaction adapters: health interpretation, resource monitoring and decision logic remain in Control Center. Watch scope should emphasize glanceable overall health, important alerts, active jobs/workflows and later carefully selected quick actions/notifications.
