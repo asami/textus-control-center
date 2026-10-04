@@ -113,3 +113,88 @@ If the experiment demonstrates strong context continuity and design understandin
 If persistent context quality or allowance economics are insufficient, retain the same Semantic Management Agent boundary and use OpenClaw with on-demand Sol/Astra reasoning instead.
 
 The experiment must not create a Dot dependency in Control Center, sm-workflow, TEAI, or repository authority.
+
+
+## First practical use case: Phase / Plan review PR
+
+The initial Dot experiment should prioritize design-management work over direct program modification.
+
+The first practical workflow is continuous review of project planning artifacts using the broad project context available from GitHub and, where connected, Google Drive and Slack.
+
+Conceptual flow:
+
+```text
+GitHub + Google Drive + Slack + Control Center
+                    |
+                    v
+                  Dot
+                    |
+        cross-source context review
+                    |
+        Phase / Plan / notes / journal proposal
+                    |
+                    v
+              GitHub pull request
+                    |
+                    v
+              Human review
+                    |
+              approve / revise / reject
+                    |
+                    v
+          repository authority
+                    |
+                    v
+              sm-workflow
+                    |
+                    v
+          Codex / implementation worker
+```
+
+### Why Phase / Plan PR first
+
+Phase/Plan work uses the capabilities that make a persistent Astra-class agent particularly attractive: broad context comprehension, historical design continuity, cross-repository impact analysis, and synthesis of source material into an implementation-ready plan.
+
+It also creates a safer initial boundary than autonomous code modification. Dot produces a candidate proposal; GitHub PR review provides an explicit human admission point before the proposal becomes authoritative.
+
+This is an application of the Candidate-Admission principle:
+
+```text
+Dot understanding
+  -> proposal
+  -> GitHub PR candidate
+  -> Human admission
+  -> durable repository state
+```
+
+Dot memory and conversation remain non-authoritative.
+
+### Initial trial scope
+
+Use sm-workflow as the primary project while allowing the Dot to inspect relevant related repositories and connected source material needed to understand cross-project effects.
+
+The Dot should look for, among other things:
+
+- Phase plans that no longer match current architecture or decisions;
+- journal/notes decisions not yet reflected in Phase plans;
+- new requirements or source documents that imply plan changes;
+- cross-repository dependencies or required companion Phases;
+- plans that are too ambiguous for bounded implementation;
+- stale assumptions, contradictions, and missing executable acceptance information.
+
+Where the correction is sufficiently understood, Dot should prepare a Phase/Plan-oriented GitHub PR. Where genuine design authority is still required, it should present the unresolved decision to the human rather than silently choosing it.
+
+### Evaluation
+
+In addition to the general Dot adoption signals, record the disposition of Dot-generated planning PRs:
+
+- approved without substantive change;
+- approved after minor revision;
+- approved after major revision;
+- rejected.
+
+This provides a practical first-pass admission measure for Dot's architecture/planning work.
+
+Also record useful issues discovered before a human noticed them, especially cross-repository or cross-source inconsistencies. These discoveries may be a more important value signal than raw PR count.
+
+Direct coding can be evaluated later. The initial experiment should determine whether persistent Astra-class understanding materially improves planning quality and reduces human coordination work before expanding Dot's authority or scope.
