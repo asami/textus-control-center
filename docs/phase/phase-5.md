@@ -37,17 +37,23 @@ Extend Textus Control Center into a compact operational entry point for the loca
 
 ## Future presentation targets (out of Phase 5 implementation)
 
-- Flutter Control Center application for iPhone and Android.
+- Flutter Control Center application for iPhone and Android as a Presentation Subcomponent.
+- The same Flutter application supports policy-selected Mobile, Dashboard, Stand and Ambient presentation modes rather than separate device applications.
+- Dashboard is the persistent tablet/large-surface form; Stand is the compact charging-stand form; Ambient is the unattended low-information form.
+- Charging/power state is only one mode-resolution input together with usable display geometry, orientation, inactivity, capabilities and explicit preference. Do not equate charging with a presentation mode.
+- Ambient presentation may use dark/black background, reduced information density/brightness and bounded position shifting for burn-in mitigation; wake-lock and burn-in mechanics remain client/framework concerns.
 - Apple Watch client using watchOS native presentation where appropriate.
 - Pixel Watch client using Wear OS native presentation where appropriate.
 - Reuse common Operational API/JSON and server-side Detail/Compact/Glance projections rather than forcing watch UI through Flutter.
-- Keep wearable clients thin; monitoring and health interpretation remain server-side.
+- Keep mobile/wearable clients thin; monitoring and health interpretation remain server-side.
+- Allocate raw power/display observations to textus-flutter-core and reusable mode/Ambient policy to TFAF; keep CNCF Display Model target-neutral.
 
 ## CNCF operational boundary
 
 - Consume CNCF Dashboard/Admin operational APIs/views rather than reimplementing runtime administration.
 - Use CNCF Service Bus authoritative journal information for richer timelines and diagnosis.
 - CNCF UI remains mechanism-oriented; Control Center is system-oriented and combines CNCF with infrastructure and AI/automation resources.
+- CNCF Display Model may carry semantic role/priority needed by constrained clients, but must not carry Flutter-specific charging, inactivity, wake-lock or burn-in state.
 
 ## Development operations integration
 
