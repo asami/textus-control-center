@@ -56,3 +56,13 @@ Control Center presentations share the same server-side Operational Model and re
 Apple Watch and Pixel Watch are not forced through one Flutter UI implementation. Watch-specific presentation uses native stacks where appropriate: Swift/SwiftUI for watchOS and Kotlin/Compose for Wear OS. Commonality lives primarily in the Control Center API, JSON contracts, use cases and server-side read models.
 
 Introduce presentation-oriented projections from the same Operational Model, for example Detail View, Compact View and Glance View. Wearable clients should be close to display/interaction adapters: health interpretation, resource monitoring and decision logic remain in Control Center. Watch scope should emphasize glanceable overall health, important alerts, active jobs/workflows and later carefully selected quick actions/notifications.
+
+## Flutter persistent dashboard direction
+
+The Flutter mobile Presentation Subcomponent is one application codebase with policy-selected presentation modes: Mobile, Dashboard, Stand and Ambient. These are presentation modes rather than device classes.
+
+Mode resolution combines local environment facts such as usable display geometry, orientation, charging/power state, inactivity and capabilities with explicit application/user policy. Charging is a useful signal for desk/stand use but is not itself authority to enter Dashboard or Stand mode.
+
+Ambient is the unattended persistent-display realization. It minimizes continuously illuminated content and may use a dark/black background, reduced information density/brightness and bounded position shifting. Interaction restores an interactive mode. Wake-lock, inactivity timing and burn-in mitigation remain Flutter/framework runtime responsibilities rather than server or domain logic.
+
+The dependency boundary is: textus-flutter-core observes low-level device/power/display facts; TFAF resolves reusable presentation policy; the Control Center Flutter application supplies application composition/defaults; CNCF Display Model remains target-neutral and supplies semantic display information/priority where applicable.
