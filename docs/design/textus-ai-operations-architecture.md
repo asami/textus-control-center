@@ -2,10 +2,17 @@
 
 This document records the current component-placement view for Textus AI operations.
 
-## Artifacts
+## Knowledge Lake Material
 
-- `textus-ai-operations-architecture.svg` — semantic reference diagram. Use this as the authoritative source for component relationships and Message Flow semantics.
-- `textus-ai-operations-architecture-infographic.png` — explanatory infographic. It is an effort-target visualization and may simplify Message Flow notation, but it should preserve the component relationship set.
+The non-Git assets for this architecture are managed as a TKL Material Package:
+
+```text
+textus:material:simplemodeling.org:components/textus-control-center/journal/2026/10/2026-10-09-ai-operations-architecture
+```
+
+The Material contains the semantic reference diagram and the explanatory infographic. The Material ID is the canonical cross-system reference; Google Drive URLs and folder IDs are provider-specific resolver details and are not recorded here.
+
+The repository keeps the version-controlled architecture model and documentation. The Knowledge Lake Material keeps the corresponding non-Git/derived assets and self-describing provenance.
 
 ## Current boundaries
 
