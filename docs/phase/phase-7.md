@@ -71,3 +71,20 @@ tolerant.
 Multi-AZ/site status is future scope. Phase 7 must not invent AZ topology or
 cross-region controls before the CNCF/system-wide availability architecture
 defines them.
+
+## Deployment Transaction operations
+
+Control Center presents CAR update as a Deployment Transaction rather than a
+single deploy button/event. It should show candidate/admission, warming/probe,
+switch, probationary Active, fallback-retention deadline, deployment commit or
+switch-back, and final retirement/rebuild.
+
+During the retention window, show both the new probationary Active and the
+known-good retained former Active, including their CAR versions. Operators
+should be able to see why an automatic-compatible update was admitted and which
+compatibility limitation prevents automation.
+
+A normal production profile should make this operation largely declarative:
+selecting the standard availability/release policy should enable automatic
+compatible CAR replacement and the configured fallback window without requiring
+operators to author deployment/rollback scripts.
