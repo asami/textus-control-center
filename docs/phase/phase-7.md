@@ -56,3 +56,18 @@ Standby query policy.
 
 Rotation history records the trigger/reason (scheduled, release, failure,
 security or operator) while presenting one common replacement lifecycle.
+
+## Failure-boundary presentation
+
+Control Center must show the availability actually achieved by layer instead of
+collapsing everything into one HA indicator. At minimum distinguish Domain
+Subsystem runtime placement from DataStore/stateful dependency availability.
+
+For example, runtime local-ha with a single-host DataStore is not system-wide
+host HA. Runtime host-ha also requires compatible availability from required
+stateful dependencies before the whole system can be described as host-failure
+tolerant.
+
+Multi-AZ/site status is future scope. Phase 7 must not invent AZ topology or
+cross-region controls before the CNCF/system-wide availability architecture
+defines them.
