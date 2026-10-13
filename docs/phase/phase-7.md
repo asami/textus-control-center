@@ -88,3 +88,38 @@ A normal production profile should make this operation largely declarative:
 selecting the standard availability/release policy should enable automatic
 compatible CAR replacement and the configured fallback window without requiring
 operators to author deployment/rollback scripts.
+
+## CAR security and update posture
+
+Consume CNCF Phase 109 CAR Security/Vulnerability Metadata and present it
+together with DataStore ABI and Deployment Transaction state.
+
+For each managed Subsystem, show at least:
+
+- Active and Standby CAR identity/version;
+- known applicable CAR/dependency security advisories and severity;
+- advisory/SBOM evidence freshness and explicit Unknown/unscanned state;
+- known fixed CAR/release when available;
+- runtime/dependency/configuration admission status relevant to the update;
+- DataStore ABI compatibility;
+- resulting Normal Update / Maintenance Update classification;
+- automatic-compatible eligibility and current fallback/deployment state.
+
+The primary operator path should connect detection to action:
+
+```text
+vulnerable deployed CAR
+ -> fixed release
+ -> compatibility/admission
+ -> DataStore ABI
+ -> Normal Update eligible?
+      yes: ordinary Deployment Transaction
+      no: Maintenance Update decision
+```
+
+Control Center must not maintain its own CVE truth or rescan arbitrary container
+files. It presents attributable CNCF/provider evidence and links update action
+to the existing authorized runtime operations.
+
+A dashboard must not equate "no known finding" with "secure" when advisory or
+SBOM evidence is stale, missing or unscanned.
