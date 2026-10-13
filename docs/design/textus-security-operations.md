@@ -25,3 +25,19 @@ A suspected compromised runtime should be representable as untrusted,
 isolated/replaced, and recovered from authoritative state. Future work should
 define a Textus security-event taxonomy, incident timeline and subsystem
 containment/recovery operations.
+
+
+## Availability / replaceable-runtime relationship
+
+CNCF's canonical Subsystem Runtime Architecture and Availability Architecture
+own Active/Standby, readiness, rotation, drain and takeover semantics. Control
+Center projects those semantics and uses the same ordinary replacement route for
+security containment.
+
+A recent successful real Active rotation is stronger operational evidence than
+an indefinitely idle Standby health check. Security views should therefore show
+rotation/takeover history and readiness, while avoiding any claim that rotation
+proves persistent state or credentials uncompromised.
+
+Standby mutation authority is never inferred from availability. Promotion is an
+authorized CNCF transition; read-only/cache service remains separately bounded.
