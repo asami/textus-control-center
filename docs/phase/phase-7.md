@@ -41,3 +41,18 @@ An operator can distinguish a healthy-but-not-ready Standby from a takeover-read
 one, see when each instance last successfully served as Active, request an
 authorized planned rotation, observe switch/drain/recovery, and identify a
 failed takeover without a separate emergency-only UI path.
+
+## Declarative profile operations
+
+Control Center presents the configured availability profile and its effective
+runtime state. Operators may select/adjust authorized profile policy, but
+Control Center does not translate that into its own A/B orchestration script;
+CNCF/Launcher remains the lifecycle owner.
+
+The UI should make the common case simple: selecting the standard profile is
+enough to request managed Active/Standby operation and automatic rotation.
+Advanced fields expose only meaningful overrides such as rotation cadence or
+Standby query policy.
+
+Rotation history records the trigger/reason (scheduled, release, failure,
+security or operator) while presenting one common replacement lifecycle.
