@@ -3,9 +3,8 @@
 Stage Status:
 
 - Current status: REOPENED
-- Current step: Replace the provisional Launcher-owned lifecycle authority
-  with `textus-supervisor`, embedded by Control Center for standalone
-  operation and deployable separately by a later distributed control plane.
+- Current step: Complete packaged lifecycle, panel, and separate-JVM restart
+  acceptance after the accepted shared Service/process Step CC4-S6.
 - Owner: Textus Control Center Phase 4
 - Update rule: Update this block and `phase-4-checklist.md` whenever a stable
   checklist state changes. Do not begin implementation before the lifecycle

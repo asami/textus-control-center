@@ -162,6 +162,26 @@ Planned implementation sequence:
 - [ ] Revalidate lifecycle requests, panel actions, restart recovery, and the
   unchanged canonical launcher commands against embedded and external placement.
 
+Accepted shared Service/process boundary (CC4-S6, Oct. 17, 2026):
+
+- Both Launchers preserve optional native process identity in the existing
+  common evidence format, retain legacy reads, and keep the safe list free of
+  private process and development-path fields.
+- Launcher report and evidence retain the Supervisor-provided opaque instance
+  identity; reserved correlation metadata is withheld from runtime arguments.
+- CNCF Launcher acceptance passed 22 cases. Textus Launcher acceptance passed
+  20 cases, including the two refreshed correlation cases. Each correlation
+  property completed 50 generated rounds with zero discarded inputs.
+- Eight real-child scenarios passed across embedded and external shared
+  Service entry points. Each placement completed three generated Start,
+  reconstruct, Restart, and Stop lifecycles with no discarded inputs.
+- Deliberate primary-failure scenarios preserved the original exception and
+  released the case-owned children and ports. The Supervisor accumulator
+  passed all 50 cases across six suites.
+- This Step does not close the remaining panel, packaged deployment,
+  Textus repository launch, separate-JVM restart, Java 17/default dependency
+  graph, full Phase review, or final validation requirements.
+
 ## OC-06: Operating Panel and Documentation
 
 Status: REVALIDATE
