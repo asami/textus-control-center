@@ -1,7 +1,8 @@
 # Phase 4 local source development
 
 This guide describes the opt-in build setup for developing Control Center,
-Textus Supervisor, CNCF, sbt-cozy, Cozy, and SimpleModeler together. It is non-normative development guidance.
+Textus Supervisor, CNCF, goldenport-core, sbt-cozy, Cozy, and SimpleModeler
+together. It is non-normative development guidance.
 Real placement and runtime validation follow in later work; these commands do
 not establish Phase or Step closure.
 
@@ -38,6 +39,7 @@ machine-specific checkout paths.
 | Environment variable | Consumer | Selected source |
 | --- | --- | --- |
 | `TEXTUS_CNCF_SOURCE_ROOT` | Control Center and Textus Supervisor, built separately | CNCF checkout with `build.sbt` and `src/main/scala/org/goldenport/cncf/spi/supervisor/Supervisor.scala` |
+| `TEXTUS_GOLDENPORT_CORE_CNCF_SOURCE_ROOT` | CNCF, built standalone or as the selected source dependency of a consumer | Core checkout with `build.sbt` and `src/main/scala/org/goldenport/http/HttpResponse.scala` |
 | `TEXTUS_SBT_COZY_CNCF_SOURCE_ROOT` | Each consumer's SBT meta-build | sbt-cozy checkout with `build.sbt` and `src/main/scala/org/goldenport/cozy/CozyPlugin.scala` |
 | `TEXTUS_COZY_CNCF_SOURCE_ROOT` | Each consumer's generation delegate | Cozy checkout with `build.sbt` and `src/main/scala/cozy/Cozy.scala` |
 | `TEXTUS_SIMPLEMODELER_CNCF_SOURCE_ROOT` | Cozy backend preparation | SimpleModeler checkout with `build.sbt` and `src/main/scala/org/simplemodeling/SimpleModeler/SimpleModeler.scala` |
@@ -53,7 +55,9 @@ export TEXTUS_COZY_CNCF_SOURCE_ROOT="/absolute/path/to/dedicated/cozy"
 
 Export only these three consumer selectors. The SimpleModeler selector is
 producer-only: select it with a command-local environment prefix on the Cozy
-preparation command below.
+preparation command below. Select core with a command-local
+`TEXTUS_GOLDENPORT_CORE_CNCF_SOURCE_ROOT` prefix on the standalone CNCF or
+source-consumer command; the selected CNCF build consumes it.
 
 The builds independently read and canonicalize each selected path before
 constructing the CNCF or plugin SBT `RootProject`, or selecting the Cozy
@@ -71,9 +75,10 @@ Selecting `TEXTUS_CNCF_SOURCE_ROOT` requires both
 A Cozy source selection also requires both CNCF and plugin selections.
 The meta-build rejects every partial set involving CNCF or Cozy at load time,
 so source generation cannot silently use an older published plugin or runtime.
-That consumer meta-build contract still validates exactly its three selectors.
-The fourth selector is consumed by Cozy backend preparation; it adds no new
-partial-set requirement to either consumer.
+That consumer meta-build contract still validates exactly its original three
+selectors. The SimpleModeler selector is consumed by Cozy backend preparation.
+The core selector is consumed by the nested CNCF build. Neither adds a new
+partial-set requirement to either consumer meta-build.
 Each meta-build
 depends on the selected plugin `RootProject` through `compile->compile` and
 omits the published sbt-cozy module, exposing the source plugin classes without
@@ -90,15 +95,16 @@ Plugin-source-only development is supported: set
 `TEXTUS_SBT_COZY_CNCF_SOURCE_ROOT` and unset both `TEXTUS_CNCF_SOURCE_ROOT` and
 `TEXTUS_COZY_CNCF_SOURCE_ROOT` to develop the plugin while retaining the
 consumer's default CNCF and Cozy metadata.
-With all four selectors unset, both existing `project.yaml` dependency graphs remain
+With all five selectors unset, both existing `project.yaml` dependency graphs remain
 in effect, including the direct `goldenport-cncf` dependency at `0.5.2` and Cozy
 `0.3.2.2`. The published plugin defaults to `0.1.16`; its existing version
 override precedence is the `sbt.cozy.version` system property, then
 `SBT_COZY_VERSION`, then that default.
 Setting `TEXTUS_CNCF_SOURCE_ROOT` replaces only that unscoped direct compile
 dependency with the selected CNCF source project through `compile->compile`.
-All other dependencies and test scopes remain. These are the three explicit
-consumer source selectors; the fourth selects Cozy's backend preparation.
+All other dependencies and test scopes remain. The original three selectors
+belong to the consumer meta-build; the additional selectors belong to Cozy
+backend preparation and the selected CNCF build respectively.
 There are no environment aliases or implicit alternatives.
 
 Build Textus Supervisor in its own source checkout and Control Center in its
@@ -109,6 +115,44 @@ and its standard SPI provider are placed in the later assembly. The current
 development selection uses CNCF `0.5.3-SNAPSHOT`, Cozy `0.3.3-SNAPSHOT`, and
 sbt-cozy `0.1.18-SNAPSHOT`. Supervisor and Control Center remain
 `0.1.1-SNAPSHOT`.
+
+## Select core inside the CNCF source build
+
+Use a dedicated core checkout at the unchanged `org.goldenport:goldenport-core`
+`0.4.3-SNAPSHOT` coordinate with Scala `3.3.8`. The core selector must name a
+canonical disjoint root or a direct lexical and canonical child of the owning
+CNCF checkout's `.codex-workflow/checkouts/`, under the same legal-leaf rule
+above. Both exact source markers must remain inside that source even through
+symlinks. A blank, relative, overlapping, escaping, or incomplete explicit
+selection fails without an artifact fallback.
+
+CNCF exposes `cncfCoreDevelopmentDirectory` and
+`validateCncfCoreDevelopment`. The latter validates the actual loaded core
+`organization`, `moduleName`, `version`, and `scalaVersion` against
+`org.goldenport`, `goldenport-core`, `0.4.3-SNAPSHOT`, and `3.3.8` during build
+settings initialization. Editing a version string in source text does not
+substitute for that loaded-project validation.
+
+The selected core is an ordinary source `RootProject` dependency of CNCF with
+`compile->compile;runtime->runtime`. CNCF omits its direct core binary edge and
+excludes transitive `org.goldenport:goldenport-core_3` only in this mode. The
+actual classpath must contain the selected core target classes, exactly one
+`HttpStatus` class resource, and no competing core artifact JAR. The logical
+core ModuleID remains input to runtime descriptor generation, runtime catalog
+generation, and catalog export, so `baseProvided` continues to include
+`org.goldenport:goldenport-core_3`. No source or JAR copying and no publication
+are required. With the core selector unset, CNCF retains its original direct
+`0.4.3-SNAPSHOT` artifact, exclusions, versions, and runtime graph. The normative
+contracts are CNCF's `docs/spec/core-development-source.md` and core's
+`docs/spec/http-no-content.md` in their respective source checkouts.
+
+Control Center and Supervisor continue to depend on the selected CNCF project.
+Their meta-builds do not interpret the core selector or add a separate direct
+core source dependency. Their nested CNCF build uses the same explicit core
+selection. Cozy preparation and SimpleModeler provenance retain their existing
+producer ownership.
+
+## Consumer generation and metadata
 
 In CNCF source mode, each consumer projects its loaded `CozyProjectConfig`
 immutably in memory. It requires exactly one compile coordinate with the exact
@@ -152,7 +196,7 @@ Cozy `simplemodelerVersion`, and the exact Cozy Scala version. It omits only the
 direct published SimpleModeler dependency and excludes transitive
 `simplemodeler_2.12`, so the running generator has one selected source owner.
 This directory is build input; it changes neither generation target nor Cozy
-generator coordinate and supplies no compatibility proof. When the fourth
+generator coordinate and supplies no compatibility proof. When the SimpleModeler
 selector is unset, Cozy retains its published backend and existing
 `simplemodeler.version` > `SIMPLEMODELER_VERSION` > `1.1.26-SNAPSHOT`
 version precedence.
@@ -170,7 +214,7 @@ sbt --batch cozyExportRuntimeClasspath
 For agents, the parent routes this producer command through the registered
 `cncf_command_runner` and shared SBT serialization wrapper with its admitted
 Cozy root and output scope. It must finish before a consumer is dispatched.
-With the fourth selector set, its typed source dependency also names the
+With the SimpleModeler selector set, its typed source dependency also names the
 canonical selected SimpleModeler root, `TEXTUS_SIMPLEMODELER_CNCF_SOURCE_ROOT`,
 and that checkout's `target`, `project/target`, and `project/project/target`
 output roots. The producer's classpath and export receipts must contain the
@@ -203,16 +247,21 @@ caches and resolvers continue to be used; global plugin changes and cache
 workarounds are not part of this setup.
 
 After Cozy preparation, the standalone CNCF generation/provenance prefix uses
-its existing Cozy-directory selector and the prepared backend export. From
+its existing Cozy-directory selector and the prepared backend export. To also
+develop core from source, prefix that command with the core selector. From
 the dedicated CNCF source checkout, the human CLI command is:
 
 ```sh
 cd /absolute/path/to/dedicated/goldenport-cncf
 unset TEXTUS_SIMPLEMODELER_CNCF_SOURCE_ROOT
 TEXTUS_COZY_CNCF_SOURCE_ROOT="/absolute/path/to/dedicated/cozy" \
+TEXTUS_GOLDENPORT_CORE_CNCF_SOURCE_ROOT="/absolute/path/to/dedicated/goldenport-core-source" \
 sbt --batch 'show cncfCozyDevelopmentDirectory' \
+  'show cncfCoreDevelopmentDirectory' 'show validateCncfCoreDevelopment' \
+  'show Runtime / fullClasspath' 'show libraryDependencies' 'show excludeDependencies' \
+  exportTextusRuntimeCatalog \
   verifyInformationCmlGenerationDeterminism \
-  'testOnly org.goldenport.cncf.phase51.build.CncfCozyDevelopmentRuntimeSpec org.goldenport.cncf.phase51.build.Phase51Cv03BuildIntegrationSpec org.goldenport.cncf.phase51.build.Phase51Cv05BuildProvenanceSpec'
+  'testOnly org.goldenport.cncf.phase51.build.CncfCoreDevelopmentRuntimeSpec org.goldenport.cncf.phase51.build.CncfCozyDevelopmentRuntimeSpec org.goldenport.cncf.phase51.build.Phase51Cv03BuildIntegrationSpec org.goldenport.cncf.phase51.build.Phase51Cv05BuildProvenanceSpec'
 ```
 
 The actual generated Scala must compile and the provenance specifications must
@@ -221,10 +270,14 @@ Supervisor and Control Center builds below then consume the same exported
 Cozy runtime. Neither consumer adds a SimpleModeler source-project dependency
 or starts a producer bootstrap.
 
-For agent execution, standalone CNCF owns only the selected Cozy directory
-binding, `TEXTUS_COZY_CNCF_SOURCE_ROOT`, and that checkout's `target` output
-binding. It reads the prepared export after successful Cozy producer
-compilation and specifications. SimpleModeler remains transitive read-only
+For agent execution, standalone CNCF owns the selected Cozy directory binding,
+`TEXTUS_COZY_CNCF_SOURCE_ROOT`, and that checkout's `target` output binding. If
+the core selector is selected, the typed command also carries an explicit
+`SourceBuildDependency` for the canonical core root,
+`TEXTUS_GOLDENPORT_CORE_CNCF_SOURCE_ROOT`, and that checkout's `target`,
+`project/target`, and `project/project/target` output roots. With core selection
+absent, omit that binding. It reads the prepared Cozy export after successful
+Cozy producer compilation and specifications. SimpleModeler remains transitive read-only
 provenance through the preceding producer receipt; this command consumes no
 SimpleModeler selector, adds no SimpleModeler source dependency, grants no
 SimpleModeler output write authority, and starts no nested bootstrap.
@@ -239,7 +292,14 @@ CNCF root and `TEXTUS_CNCF_SOURCE_ROOT`, the canonical sbt-cozy root and
 own checkout's `target`, `project/target`, and `project/project/target` output
 roots. The Cozy binding names its `target` output and consumes the prepared
 export; it does not start Cozy SBT inside the consumer. The command binding
-retains exactly these three source bindings for Supervisor and Control Center.
+retains these three source bindings for Supervisor and Control Center. If
+`TEXTUS_GOLDENPORT_CORE_CNCF_SOURCE_ROOT` is selected, it additionally carries
+the explicit core `SourceBuildDependency`, its canonical root and exact
+selector, and that core checkout's `target`, `project/target`, and
+`project/project/target` output roots. This conditional fourth binding covers
+the source project loaded by CNCF; it does not change the three-selector
+consumer meta-build contract. When core selection is absent, omit the core
+binding and output authority.
 The preceding Cozy producer alone owns the SimpleModeler source dependency,
 its selector, and its three target outputs above. A downstream receipt may
 reference that producer receipt for transitive SimpleModeler provenance; it
@@ -253,10 +313,12 @@ serialization wrapper. Commands run sequentially and require terminal
 lock-release evidence. An environment export or prefix alone is not an agent
 execution binding; agents must not invoke SBT directly.
 
-From the dedicated Textus Supervisor checkout, with all three selectors set:
+From the dedicated Textus Supervisor checkout, with the three consumer
+selectors set and core selected for this command:
 
 ```sh
 unset TEXTUS_SIMPLEMODELER_CNCF_SOURCE_ROOT
+TEXTUS_GOLDENPORT_CORE_CNCF_SOURCE_ROOT="/absolute/path/to/dedicated/goldenport-core-source" \
 sbt --batch 'set cozyWebDescriptorSync := false' \
   'show cozyProjectMetadata' 'show cozyDelegateProjectDir' \
   'show cozyDelegateCommand' 'show cozyDelegateCoursierVersion' \
@@ -264,10 +326,12 @@ sbt --batch 'set cozyWebDescriptorSync := false' \
   'testOnly org.simplemodeling.textus.supervisor.impl.TextusSupervisorProviderSpec'
 ```
 
-From the Control Center checkout, with the same three canonical source roots set:
+From the Control Center checkout, with the same three canonical source roots
+set and the same core selection:
 
 ```sh
 unset TEXTUS_SIMPLEMODELER_CNCF_SOURCE_ROOT
+TEXTUS_GOLDENPORT_CORE_CNCF_SOURCE_ROOT="/absolute/path/to/dedicated/goldenport-core-source" \
 sbt --batch 'set cozyWebDescriptorSync := false' \
   'show cozyProjectMetadata' 'show cozyDelegateProjectDir' \
   'show cozyDelegateCommand' 'show cozyDelegateCoursierVersion' \
@@ -289,18 +353,23 @@ show `Some(0.3.3-SNAPSHOT)`. Generation must execute that exact runtime with a
 matching actual executing version and valid provenance. Generation receipts
 must confirm descriptor preparation and the coherent source version pair.
 Both classpath receipts should identify the selected CNCF classes and contain
-no duplicate released CNCF jar. The separate Supervisor build compiles the real
+no duplicate released CNCF jar. With core selected, both classpaths must also
+identify the selected core target classes with no competing core JAR; the
+generated CNCF descriptor and exported catalog must retain the logical
+`org.goldenport:goldenport-core_3` identity. The standalone core-origin
+specification exercises the actual public 204 mapping. The separate Supervisor build compiles the real
 provider source; Control Center's classpath remains provider-neutral. The
 existing specifications cover the provider and adapter behavior; the build
 observations establish source selection.
 
-For the default graph, disable all four selectors and inspect each consumer separately:
+For the default graph, disable all five selectors and inspect each consumer separately:
 
 ```sh
 unset TEXTUS_CNCF_SOURCE_ROOT
 unset TEXTUS_SBT_COZY_CNCF_SOURCE_ROOT
 unset TEXTUS_COZY_CNCF_SOURCE_ROOT
 unset TEXTUS_SIMPLEMODELER_CNCF_SOURCE_ROOT
+unset TEXTUS_GOLDENPORT_CORE_CNCF_SOURCE_ROOT
 sbt --batch 'show cozyProjectMetadata' 'show cozyDelegateProjectDir' \
   'show cozyDelegateCommand' 'show cozyDelegateCoursierVersion' \
   'show libraryDependencies'
