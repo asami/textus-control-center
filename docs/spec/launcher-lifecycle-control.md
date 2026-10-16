@@ -28,6 +28,17 @@ operation structure, validation, authorization context, CallTree and diagnostic
 participation. The CNCF SPI owns provider-neutral selection and the stable
 `SupervisorRequest` and `SupervisorResult` contract.
 
+Both `submit` and `lookup` require an authenticated administrative caller in
+the actual execution context before the application Service accesses its
+backend. This applies equally to generated Operations and the standard SPI.
+The allowed grants are the `.name` values of
+`SecurityContext.Privilege.ApplicationContentManager` (`application_content_manager`),
+`Operator` (`operator`), `System` (`system`), and `Internal` (`internal`).
+Each is accepted as a privilege, capability, or role, matching Control Center.
+Unauthenticated or unspecified callers and authenticated ordinary users are
+denied with a structured permission failure; launcher registration credentials
+alone do not authorize lifecycle work or disclose durable lookup results.
+
 ## 2. Placement
 
 Standalone assembly includes the `textus-supervisor` CAR and installs its local
@@ -39,6 +50,11 @@ An external placement installs a proxy provider into the same socket. The
 proxy invokes the remotely placed Supervisor Service and maps its typed result
 to the CNCF SPI. Control Center lifecycle request code does not change between
 local and external placement.
+
+An external provider must carry trusted authenticated administrative service
+context to the Supervisor Service. That service may represent an operator
+whose identity differs from the authenticated caller. The request's
+`operatorSubjectId` is audit data and never establishes caller authority.
 
 Neither placement requires an operator to run
 `cncf launcher supervisor serve`. Launchers do not host lifecycle authority.
@@ -73,7 +89,7 @@ Every request contains:
 | `targetId` | Opaque managed component identity. |
 | `deploymentId` | Optional placement identity. |
 | `action` | `start`, `stop`, or `restart`. |
-| `operatorSubjectId` | Authenticated operator identity. |
+| `operatorSubjectId` | Represented operator identity for audit, never caller authority. |
 | `deadlineAt` | Absolute bounded deadline. |
 
 The request contains no filesystem locator, shell command, environment,
@@ -126,6 +142,8 @@ Executable Specifications must prove:
 - the Supervisor CML contains `submit` and `lookup`, a provided standard SPI,
   and no dummy status Service or Componentlet;
 - generated Operations and the SPI provider use one application Service;
+- submit and lookup enforce the same authenticated administrative context
+  before backend access, regardless of the payload's operator identity;
 - idempotent retries start at most one child;
 - Stop and Restart affect only provider-owned children;
 - durable lookup survives provider reconstruction while stale ownership fails
