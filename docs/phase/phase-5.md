@@ -62,3 +62,19 @@ Extend Textus Control Center into a compact operational entry point for the loca
 - Treat future smartphone/watch monitoring and simple admission approval as a Control Center remote-interface scenario.
 - Monitoring uses persistent events for temporal decoupling; user decisions return through authenticated operations, with resulting events journaled by the producer.
 - Remote Service Bus exposure is not part of the design; future remote clients use a secured Control Center API and push notifications only as hints.
+
+
+## Docker OPS observation profile
+
+The Mac mini operational profile is moving to a Docker Compose deployment boundary. Phase 5 must therefore keep the Operational View independent of whether a service is a CAR or ordinary infrastructure.
+
+- Observe Docker-deployed Control Center dependencies and infrastructure services such as PostgreSQL, OpenTelemetry, Prometheus, Grafana, Jaeger and `cloudflared` when configured.
+- Represent service category, named instance/profile and execution environment without assuming every observed service is a Textus Subsystem.
+- Keep these states distinct:
+  - Docker/container deployment state;
+  - Launcher registration/heartbeat lease state;
+  - CNCF Subsystem health/readiness;
+  - external endpoint reachability.
+- Do not infer application health from Docker `running` or Launcher `running`.
+- Do not parse Docker Compose as the Control Center runtime registry. Compose is desired deployment topology; Control Center projects observed state.
+- Phase 5 remains primarily observational. Docker-backed start/stop/restart belongs to Phase 8.
