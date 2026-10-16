@@ -3,6 +3,8 @@
 Status: PLANNED
 Planned: 2026-10-16
 Depends on: Phase 5
+Upstream: goldenport-cncf Phase 113
+Downstream: textus-launcher Phase 3, cncf-launcher Phase 3, development-workstation Phase 3
 Related: Phase 4 standalone operational control, Phase 7 runtime operations
 
 ## Goal
