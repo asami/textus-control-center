@@ -349,3 +349,22 @@ termination behavior covered by executable specifications.
 
 Completion of Phase 1 does not imply that Textus Control Center can control server
 lifecycle or replace the managed Subsystem's own administration surfaces.
+
+
+## 10. Docker Compose Operational Profile
+
+For the Mac mini OPS profile, long-lived Textus/CNCF services are deployed through Docker Compose, including Control Center and the initial Textus Supervisor.
+
+This does not replace the existing Launcher registration contract. Launchers inside CAR containers continue to register, heartbeat and deregister with Control Center over the internal Docker network. Compose service DNS may be used for the Control Center registration endpoint, while the registered Subsystem `baseUrl` remains the operator-reachable canonical URL.
+
+Responsibility split:
+
+- Docker Compose: desired deployment topology, network, volumes, restart policy and container configuration.
+- Launcher: invocation identity, evidence, registration, heartbeat and deregistration.
+- Textus Supervisor: lifecycle execution authority through an execution provider.
+- Control Center: operational model, health/state projection and authorized lifecycle request surface.
+- Managed Subsystem: authoritative detailed runtime health/readiness and diagnostics.
+
+Control Center must not use the Compose file as its runtime registry and must not receive direct Docker socket authority.
+
+Phase 8 introduces the Docker execution boundary/provider. Its model must permit a later native/host Supervisor on the same physical Mac mini. The initial implementation is Docker-only; host/native process control is planned extension scope.
