@@ -3,7 +3,7 @@
 Status: PLANNED
 Planned: 2026-10-16
 Depends on: Phase 5
-Upstream: goldenport-cncf Phase 113
+Upstream: goldenport-cncf Phase 113, textus-supervisor Phase 1
 Downstream: textus-launcher Phase 3, cncf-launcher Phase 3, development-workstation Phase 3
 Related: Phase 4 standalone operational control, Phase 7 runtime operations
 
@@ -30,9 +30,9 @@ Compose defines desired deployment topology. Control Center owns observed operat
 
 ## Work
 
-1. Introduce an execution-boundary/provider model for Supervisor lifecycle execution.
-2. Implement the Docker execution provider for the initial Mac mini profile.
-3. Support authorized start, stop, restart and status for Supervisor-owned CAR containers.
+1. Consume the execution-boundary/provider contract implemented by textus-supervisor Phase 1.
+2. Integrate the separately deployed Docker Supervisor with the Control Center lifecycle request/result model.
+3. Support authorized start, stop, restart and status projections for Supervisor-owned CAR containers.
 4. Keep Docker authority out of Control Center; Control Center submits typed lifecycle requests and projects results.
 5. Preserve the existing Launcher registration/heartbeat/deregistration protocol inside Docker networks.
 6. Add only the minimum execution-context metadata needed to distinguish Docker execution from native execution; do not turn Launchers into Docker API clients.
@@ -90,7 +90,7 @@ A Docker `running` container is not sufficient evidence of a healthy Subsystem.
 ## Security
 
 - Do not mount the Docker socket into Control Center.
-- Limit Docker lifecycle authority to the Supervisor execution provider.
+- Limit Docker lifecycle authority to textus-supervisor; Control Center consumes its typed protocol.
 - Do not expose credentials, Compose environment secrets, Tunnel tokens or unrestricted container metadata through operational projections.
 - Lifecycle requests remain authenticated/authorized Control Center operations.
 - One runtime instance has one lifecycle authority even when multiple observers can report health.
