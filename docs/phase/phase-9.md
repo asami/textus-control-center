@@ -3,10 +3,11 @@
 Status: PLANNED
 Planned: future
 Depends on: Phase 8
+Upstream: textus-supervisor Phase 2
 
 ## Goal
 
-Extend the Supervisor execution-boundary model proven by Docker operation so a Supervisor running outside Docker can observe and, where explicitly authorized, control native host services without moving Textus Control Center out of Docker.
+Integrate the native host execution boundary provided by textus-supervisor Phase 2 so Control Center can observe and, where explicitly authorized, control native host services without moving Textus Control Center out of Docker.
 
 ## Scope direction
 
