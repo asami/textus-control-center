@@ -59,6 +59,76 @@ whose identity differs from the authenticated caller. The request's
 Neither placement requires an operator to run
 `cncf launcher supervisor serve`. Launchers do not host lifecycle authority.
 
+### External provider configuration and trust
+
+The production `textus-supervisor` provider retains the local branch when all
+external selectors are absent. Presence of any of
+`textus-supervisor.external.endpoint`,
+`textus-supervisor.external.authentication.token`, or
+`textus-supervisor.external.timeout` selects external mode. Explicit empty,
+invalid, object/list or incomplete values fail closed behind the same Service;
+they never initialize a local backend, register local launch profiles or fall
+back to local execution. Control Center home configuration may coexist for
+consumer storage without establishing remote process ownership.
+
+The exact keys use normal `ConfigurationAccess` resolution. Endpoint and
+outgoing token are required. The endpoint is an absolute HTTPS origin with a
+nonempty host, or HTTP only on literal `127.0.0.1` or `[::1]`; DNS-based
+loopback exceptions are excluded. It has an empty or `/` path and no user
+information, query or fragment. Tokens are trimmed, nonempty and contain no
+whitespace or control characters. Timeout is an ISO duration with integral
+milliseconds in the inclusive 1ms–30s range and defaults to `PT5S`.
+Nonpositive, sub-millisecond, overflowing and out-of-range values are invalid.
+No environment aliases or credential provisioning are introduced.
+
+Incoming authentication is independently configured by
+`textus-supervisor.service.authentication.token` and optional
+`textus-supervisor.service.authentication.principal-id`, whose default is
+`textus-supervisor-control-center`. Invalid explicit principal configuration
+leaves the authenticator unavailable. A valid principal is trimmed, nonempty,
+at most 64 characters and contains no control characters. The component-owned
+normal `AuthenticationProvider`, named `textus-supervisor-service`, compares
+UTF-8 bytes with `MessageDigest.isEqual`. Only a matching incoming credential
+establishes a Service principal, level `service`, with exactly the
+`Operator.name` capability through normal ingress provenance. Missing, invalid
+and mismatched credentials are non-matches. Launcher registration tokens,
+outgoing tokens, payload identity and privilege claims confer no authority.
+Credentials never enter request, result or audit values, and configuration
+representations redact tokens and endpoints.
+
+### Normal external Operation transport
+
+The proxy invokes generated `POST
+/rest/v1/org.simplemodeling.textus.Supervisor/Supervisor/submit` and `GET
+/rest/v1/org.simplemodeling.textus.Supervisor/Supervisor/lookup`, with the lookup
+`requestId` UTF-8 URL-encoded. Both carry `textus.format=json`,
+`textus.output.shape=data`, `textus.command.execution-mode=sync`, bearer
+outgoing service authentication and JSON acceptance. Submit carries JSON
+content type and the exact existing opaque request fields, lowercase action
+and ISO deadline.
+
+Only `UnitOfWorkOp.HttpPost`/`HttpGet` through the current execution context's
+UoW interpreter perform outbound work. Every call declares positive integral
+`http.total-timeout-ms`, `http.max-response-bytes=32768`, and
+`http.follow-redirects=false`. Runtime-selected `HttpDriver` owns transport,
+CallTree, cancellation, whole-exchange timeout, bounded materialization and
+driver substitution. Submit uses the lesser of configured bound and remaining
+request deadline, without rounding up; expired or sub-millisecond remaining
+deadlines fail before dispatch. Lookup uses the configured bound. The existing
+shared Service guard denies unauthorized callers before outbound dispatch.
+There is no application retry, credential forwarding or local fallback.
+
+Only status 200 is decoded. Status 401/403 yields
+`securityPermissionDenied`; all other statuses, redirects, transport and
+timeout failures yield `serviceUnavailable`. Malformed, empty, mistyped,
+missing-required, overlength, unknown-state, invalid-instant or mismatched-ID
+JSON yields `operationInvalid`. Constant safe diagnostics discard original
+transport Conclusions, exceptions, response bodies, endpoints and tokens.
+Existing CML field constraints and result optionals are preserved. Lookup is
+an object wrapper whose absent/null `result` means unknown request; a present
+result must echo the requested ID. No synthetic success or update to another
+request is permitted.
+
 ## 3. Standalone Ownership
 
 The standalone `textus-supervisor` deployment resolves a selected development
@@ -152,3 +222,14 @@ Executable Specifications must prove:
   lifecycle commands;
 - registration and launcher evidence remain observational and available when a
   lifecycle request fails.
+
+The Supervisor source specifications are
+[ExternalTextusSupervisorSpec](../../.codex-workflow/checkouts/textus-supervisor/src/test/scala/org/simplemodeling/textus/supervisor/impl/ExternalTextusSupervisorSpec.scala)
+for explicit selection, credential admission, UoW substitution, bounded wire
+failures and generated correlation properties (XP1/2/3/6/7), and
+[ExternalSupervisorServiceSpec](../../.codex-workflow/checkouts/textus-supervisor/src/test/scala/org/simplemodeling/textus/supervisor/impl/ExternalSupervisorServiceSpec.scala)
+for actual protected generated HTTP Operations, durable idempotency and
+reconstructed remote request evidence (XP2/4/5). The latter substitutes only
+the OS child boundary with a recording process host. Canonical Launcher child,
+packaged embedded/external placement, panel, restart and complete Phase
+validation remain separate acceptance obligations.
