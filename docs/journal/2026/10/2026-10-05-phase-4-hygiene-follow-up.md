@@ -117,3 +117,17 @@ Nonblocking inherited target-program naming debt: CncfLocalServerEvidenceStore d
 <!-- cncf-phase-finding:HYG-CC4-S6B-TEXTUS-EVIDENCE-LEGACY-NAMING-002:begin -->
 Nonblocking inherited target-program naming debt: LocalServerEvidenceStore declares private val lock, whereas RULE.md requires private member values to use _snake_case. The same declaration exists at the Step base; the observational tuple change preserves the existing monitor and common file-lock behavior. No current behavior or validation failure results. In a separate naming-maintenance boundary, rename this private member and its references while preserving monitor identity, lock ordering, persistence and public/schema contracts. This review does not authorize that maintenance.
 <!-- cncf-phase-finding:HYG-CC4-S6B-TEXTUS-EVIDENCE-LEGACY-NAMING-002:end -->
+
+<!-- cncf-phase-finding:HYG-CC4-S7-TEXTUS-LEGACY-API-NAMING-001:begin -->
+### HYG-CC4-S7-TEXTUS-LEGACY-API-NAMING-001
+
+- Status: OPEN.
+- Discovery: REVIEW / CC4-S7 / 2026-10-17.
+- Source review: phase4-CC4-S7-step-review-r1.
+- Category/priority: Hygiene / P3.
+- Owner: Textus Launcher maintainer.
+- Evidence: TextusLauncher.scala:21-25 retains public constructor parameter labels runtimeresolver, cncfinvoker, launcherdevinvoker and registrationreporter; all exist unchanged at Step base 9d11f8b. RULE.md requires public parameter camelCase. They are distinct from existing HYG-CC4-S6B-TEXTUS-EVIDENCE-LEGACY-NAMING-002, which concerns the private evidence-store lock.
+- Impact: Source naming inconsistency; no changed runtime behavior or introduced naming defect. Existing named-argument clients make an incidental rename a public source compatibility change.
+- Disposition: Nonblocking inherited debt, outside the frozen local CAR activation delta.
+- Follow-up: Plan a separate public-parameter migration covering named-argument clients and explicit compatibility requirements; preserve current constructor behavior and do not extend CC4-S7.
+<!-- cncf-phase-finding:HYG-CC4-S7-TEXTUS-LEGACY-API-NAMING-001:end -->

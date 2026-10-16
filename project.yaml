@@ -39,6 +39,7 @@ packaging:
         excluded: []
         tested:
           - "0.5.2"
+          - "0.5.3-SNAPSHOT"
 
 warehouse:
   repository_artifacts:

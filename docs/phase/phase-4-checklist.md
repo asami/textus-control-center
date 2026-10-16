@@ -157,7 +157,7 @@ Planned implementation sequence:
   assembly binding without a dummy Componentlet or status Service.
 - [x] Replace launcher-private authority hosting and `supervisor.yaml` as the
   normal lifecycle authority path.
-- [ ] Make CNCF Launcher and Textus Launcher write common evidence and issue
+- [x] Make CNCF Launcher and Textus Launcher write common evidence and issue
   best-effort supervisor notification without lifecycle ownership.
 - [ ] Revalidate lifecycle requests, panel actions, restart recovery, and the
   unchanged canonical launcher commands against embedded and external placement.
@@ -181,6 +181,29 @@ Accepted shared Service/process boundary (CC4-S6, Oct. 17, 2026):
 - This Step does not close the remaining panel, packaged deployment,
   Textus repository launch, separate-JVM restart, Java 17/default dependency
   graph, full Phase review, or final validation requirements.
+
+Accepted cross-Launcher boundary (CC4-S7, Oct. 17, 2026):
+
+- Source-build packaging explicitly selects the native runtime JAR and its
+  paired Snapshot CNCF/Cozy versions, retaining default published inputs and
+  descriptor, ABI, provenance, and compatibility admission.
+- Textus local CAR activation preserves the selected regular archive and
+  passes its exact path through the native component-file interface. The CAR
+  descriptor and ABI remain authoritative for component identity.
+- Focused acceptance passed 25 sbt-cozy cases, 33 Cozy cases, and 72 Textus
+  Launcher cases. Three local-activation properties each completed 50 generated
+  rounds with zero discarded inputs. The native Supervisor CAR build passed.
+- Separate production CNCF and Textus Launcher JVMs wrote the same common
+  evidence while Supervisor notification was unavailable. Three current reads,
+  the Textus-only stopped read, and the both-stopped read preserved the same
+  two invocation identities through the production safe projection.
+- Both server children and all five readers were reaped, with case-owned
+  ports reusable and no cleanup diagnostics. Earlier failed attempts remain
+  historical failures; independent complete-Step review accepted this boundary.
+- This Step used Java 25 with explicit development source inputs. Protected
+  Control Center Operations and panel actions, both packaged placements,
+  separate-JVM restart/recovery, Java 17 with the default dependency graph,
+  final full validation, and the comprehensive Phase review remain open.
 
 ## OC-06: Operating Panel and Documentation
 
