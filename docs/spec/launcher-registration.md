@@ -171,7 +171,8 @@ response shape.
 ## 10. Launcher Failure Isolation
 
 When integration is enabled, a launcher starts registration in pending mode,
-waits for the framework's coherent post-bind readiness snapshot, then attempts
+returns from reporter start without HTTP on the startup caller and checks the
+framework's coherent post-bind readiness snapshot asynchronously, then attempts
 register; it heartbeats while the invocation is active and deregisters in its
 `finally` boundary. The snapshot publishes readiness last and therefore never
 mixes one bind generation's base URL with another generation's optional
@@ -181,7 +182,9 @@ If endpoint resolution, authentication, transport, timeout, or Textus Control Ce
 Operation execution fails, the launcher:
 
 - emits a sanitized warning with no credential value;
-- bounds each request by the configured timeout;
+- rounds positive connect/read timeout values up to 1 ms and caps each at
+  5000 ms, with no redirects and at most one connect and one read phase (at most
+  10 seconds combined at the caps);
 - continues server startup and preserves the server's original exit result;
 - does not retain a non-daemon task that prevents process exit.
 
@@ -191,6 +194,39 @@ a heartbeat failure does not make the invocation unregistered and must not send 
 new `starting` registration. The launcher continues sending `running` heartbeats;
 while communication remains unavailable, Textus Control Center derives `stale` from
 the last accepted report.
+
+One daemon scheduled executor serializes all notification work for each session.
+It checks readiness at intervals of at most 50 ms, even when a public base URL is
+configured. Only the coherent `textus.server.bound-snapshot` v1 origin and
+optional canonical application path activate notification; legacy bound-base
+and application properties cannot supply partial readiness. A valid configured
+public origin takes precedence only after readiness. The captured origin and
+optional application URL remain immutable throughout the session; without a
+selected application path the wire payload omits `applicationUrl`.
+
+Retries and heartbeats use fixed delay after completion, so there are no
+catch-up bursts. Positive submillisecond heartbeat intervals round up to 1 ms.
+Close is idempotent, stops periodic work, and creates no executor or retry loop.
+Before activation it emits no HTTP. After acknowledgment it attempts terminal
+`deregister-subsystem`/`stopped` exactly once. If close races an in-flight initial
+register, its bounded completion may make that sole terminal attempt on the
+existing daemon worker; close never waits indefinitely, and no later register
+or heartbeat runs.
+
+Canonical shutdown hook and `finally` close durable shared evidence first, then
+registration, isolating each nonfatal failure and preserving the original
+server exit or exception. Warnings omit tokens, query payloads, and unrestricted
+endpoint details.
+
+Notification keeps the existing protocol-version-1 GET selectors
+`register-subsystem`, `heartbeat-subsystem`, and `deregister-subsystem`, machine
+subject, and invocation identity. This observation surface creates no Supervisor
+Operation, process-control authority, or Launcher daemon prerequisite.
+`textus-supervisor` owns lifecycle execution through the standard Supervisor
+socket and protected Control Center Operations. Legacy CNCF `launcher supervisor
+serve` and `launcher lifecycle ensure|submit|lookup` are safe retired diagnostics
+with code `launcher-lifecycle-authority-retired`; submit preserves its safe
+rejected response and request identity.
 
 The launcher must not use deprecated `cncf dev server` state or arbitrary PID
 inspection as a fallback registration source.
@@ -217,7 +253,17 @@ The implementation must provide Given/When/Then executable specifications for:
 - Textus and canonical CNCF launcher registration, normal termination, and
   management-plane outage isolation.
 - transient heartbeat failure followed by recovery without a
-  `running -> starting` registration regression.
+  `running -> starting` registration regression;
+- startup returning with a withheld response, coherent/public-origin snapshot
+  parity, pending-close and in-flight-close races, finite submillisecond timeout,
+  durable stopped evidence and original exit under close failure;
+- at least 50 generated real-wire identity/target/public-origin correlations;
+- all four retired CNCF authority routes avoiding host, ensure, network, and
+  lifecycle-state work.
+
+The Launcher executable surfaces are each repository's
+`src/test/scala/{cncf,textus}/launcher/CanonicalServerNotificationSpec.scala`
+and existing Launcher specification accumulator.
 
 ## 13. Shared Evidence Reconciliation
 

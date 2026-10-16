@@ -21,9 +21,9 @@ identity and first persists start, last-seen, and normal-termination evidence in
 the shared launcher store, `~/.cncf/launcher/server-evidence.json`. Both CNCF
 Launcher and Textus Launcher use the same schema and serialize updates with the
 same store lock. It then sends registration and heartbeat requests when a
-Control Center is reachable. The launcher retains ownership of the target
-process/JVM and continues server startup when Textus Control Center is
-unavailable.
+Control Center is reachable. The launcher drives the canonical server invocation and preserves its runtime
+exit result when Textus Control Center is unavailable. These observation facts
+do not create durable lifecycle or child ownership.
 
 The Control Center application and inventory services do not read that local
 file directly. Inventory reconciliation uses the CNCF Launcher one-shot JSON
@@ -95,14 +95,16 @@ For a managed server invocation, the launcher performs the following sequence:
 2. Create one high-entropy `instanceId` for the invocation.
 3. Atomically record `startedAt`, `lastSeenAt`, and `launcherKind` in the
    launcher-owned shared evidence store.
-4. Wait for the framework's post-bind snapshot, whose base readiness is
-   published after its optional application path, then send a bounded
-   registration request with `launcherState = starting`.
-5. Start bounded daemon tasks for local evidence and, when configured, a
-   Control Center heartbeat.
-6. Invoke the CNCF server.
-7. In a `finally` boundary, stop both tasks, record `stoppedAt`, and send a best-effort
-   deregistration request with `launcherState = stopped`.
+4. Start one daemon scheduled notification executor and return without HTTP
+   on the startup caller. It checks the coherent post-bind snapshot at intervals
+   of at most 50 ms, including when a public base is configured.
+5. Invoke the CNCF server while the daemon tasks maintain local evidence and,
+   after coherent readiness, bounded Control Center notification.
+6. Capture one valid readiness snapshot and send `register`/`starting` on the
+   notification worker, then schedule fixed-delay retries or running heartbeats.
+7. In the shared shutdown-hook/`finally` cleanup, close local evidence first to
+   record `stoppedAt`, then close registration. Isolate each nonfatal close
+   failure so the invocation's original return or exception is preserved.
 
 After server invocation begins, heartbeat requests report
 `launcherState = running`. A launcher may omit registration/heartbeat/exit
@@ -116,10 +118,25 @@ fact: later intervals continue the `running` heartbeat path. Control Center then
 exposes an extended outage as `stale` from lease age, without a fresh `starting`
 report overwriting the last running fact.
 
-The registration client has no retry loop that can delay process shutdown or
-outlive the launcher invocation. Each request uses the configured bounded
-timeout. Failures are emitted as sanitized launcher warnings and do not alter
-the target server's exit status. A local-evidence write failure is likewise a
+One session retains a closed flag, acknowledged-registration flag, terminal
+notification flag, and immutable captured readiness snapshot. All regular
+register/heartbeat work serializes on its one daemon scheduled executor. Fixed
+delay after each completed request avoids catch-up bursts; positive
+submillisecond heartbeat intervals round up to 1 ms. Initial acquisition retries
+only on later heartbeat intervals. Acknowledgment survives heartbeat failure.
+
+Close stops periodic work and creates no executor or retry loop. It returns
+without waiting for an in-flight initial register. Before activation it emits
+no HTTP; after acknowledgment it attempts `deregister`/`stopped` once. If initial
+acknowledgment races close, bounded completion may perform that sole terminal
+attempt on the existing worker. No later register or heartbeat can run.
+
+Effective connect and read timeouts each round positive submillisecond values
+up to 1 ms and cap at 5000 ms. Redirects are disabled, so one attempt has at
+most one connect and one read phase, at most 10 seconds combined at the caps.
+No notification task keeps the JVM alive. Nonfatal request errors produce
+sanitized warnings without tokens, query payloads, or unrestricted endpoint
+details and do not alter the target server's exit status. A local-evidence write failure is likewise a
 sanitized warning and does not block `cncf server` or `textus <artifact> server`.
 
 ## Canonical Launcher Coverage
@@ -159,8 +176,9 @@ invariants:
   when absent, the ready bound base becomes the required wire-payload `baseUrl`.
 - `token-env` names an environment variable; the credential value is never
   serialized into launcher configuration, registry records, logs, or UI.
-- `timeout` and `heartbeat-interval` must be positive and bounded by launcher
-  policy.
+- `timeout` and `heartbeat-interval` must be positive. Effective connect/read
+  timeout is 1..5000 ms for each phase, and the effective heartbeat interval is
+  at least 1 ms.
 - The standalone locator default is `5s`, which gives registration and heartbeat
   requests headroom beyond normal local operation response latency while staying
   below the `30s` heartbeat interval.
@@ -198,12 +216,22 @@ credential. An absent token disables the built-in machine authentication match.
 
 For Phase 4 reopening, launcher registration remains an observation channel,
 not a lifecycle authority. Both Launchers first persist the common evidence
-record below `~/.cncf/launcher/`; a bounded notification to
-`textus-supervisor` or Control Center is best effort and cannot block canonical
-server startup. `textus-supervisor` owns lifecycle request, child ownership,
+record below `~/.cncf/launcher/`; notification uses the existing protocol-version-1
+Control Center GET registration Operations and remains best effort. It cannot
+block canonical server startup. No new Supervisor Operation or transport is
+introduced. `textus-supervisor` owns lifecycle request, child ownership,
 and result persistence. Standalone Control Center embeds it, while a later
 distributed deployment uses the same authenticated protocol from a separately
 placed supervisor.
+
+The legacy CNCF `launcher supervisor serve` and `launcher lifecycle
+ensure|submit|lookup` parser shapes remain compatibility diagnostics only.
+Serve/ensure/lookup fail with `launcher-lifecycle-authority-retired`; submit
+returns the existing safe rejected result and request identity with exit code
+`0`. They cannot read supervisor configuration or credentials, ensure/host an
+authority, contact it, or create lifecycle state. Historical prototype classes
+and specifications do not give these routes current authority. Operators use
+protected Control Center Operations backed by `textus-supervisor`.
 
 Registration mutation is machine-facing and uses a credential distinct from
 human browser administration. Textus Control Center must authenticate the launcher
