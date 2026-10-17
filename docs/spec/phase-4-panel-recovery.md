@@ -31,6 +31,16 @@ wrapper JVMs, so the native Launcher writer and Supervisor reader use the same
 private evidence root. The inherited separate launcher-home directory may remain
 unused. Native cache, read/write roots, launch timing and cleanup are preserved.
 
+Immediately after inherited preparation, the freshly generated private
+`bin/cncf` wrapper gains a POSIX case on `${1-}:${2-}` after its shebang.
+Only `launcher:evidence` executes the existing native Java command followed by
+the exact unchanged `"$@"`, without appended runtime or server-only options.
+Every other invocation falls through to the inherited server exec body,
+preserved verbatim; the wrapper retains its executable mode. Evidence list and
+show therefore use the genuine native Launcher parser, private home,
+configuration and classpath. No evidence is fabricated or injected, and no
+production source or inherited packaged-Operations driver is changed.
+
 An accepted native fixture may be reused read-only when its relevant inputs
 have not changed. Reuse is recorded as reuse, without fresh native producer
 execution credit. All native preparation belongs to the parent workflow.
@@ -91,10 +101,26 @@ page with native handlers and protected automatic REST:
 
 1. Given exactly one `tr[data-artifact-id="textus-supervisor"]`, require
    stopped or not-running state, Start enabled, Stop and Restart disabled, and
-   no visible operational error.
+   no visible operational error. The initial actual Launcher evidence refresh
+   must return HTTP success and complete inventory loading. Require visible
+   `#operational-evidence-status` text beginning `Launcher evidence reconciled at `
+   with no `unavailable` class, retaining its actual text in the local receipt.
 2. When actual Start is clicked, observe disabled busy lifecycle controls.
    Then require running state, `Start succeeded` feedback, Start disabled and
-   Stop and Restart enabled. Save the running screenshot.
+   Stop and Restart enabled. Click actual Refresh before the running screenshot
+   and detail checks, attaching evidence refresh, evidence list and inventory
+   response waits before the click. Then require HTTP success, completed
+   inventory loading, the same healthy visible reconciliation status, and the
+   target still running with correct lifecycle controls. The actual
+   `list-launcher-evidence` response consumed by that reload must contain a
+   `data` array with a `textus-supervisor` record, nonempty opaque instance ID
+   and Launcher kind `cncf`. Accept the declared public camelCase or REST
+   snake_case spellings for artifact, instance and Launcher kind. Every safe
+   list record must omit `processId`, `process_id`, `processStartedAt`,
+   `process_started_at`, `developmentDirectory` and `development_directory`;
+   public `startedAt` is permitted. Retain only safe artifact/opaque instance,
+   Launcher kind and decision correlation, without copying full responses.
+   Save the running screenshot.
 3. Given that running row, click the row itself. Then inspect the actual
    dialog's artifact, runtime, management and DEV source fields and close it
    through its Close button.
@@ -104,8 +130,18 @@ page with native handlers and protected automatic REST:
    `Stop succeeded` feedback and the initial enabled-control arrangement.
 5. Given the stopped managed target, click actual Remove and require its row
    absent. When actual Refresh completes, require exclusion retained and save
-   the excluded screenshot. Restore is subsequently a protected Operation;
+   the excluded screenshot. Require actual evidence refresh HTTP success,
+   completed inventory loading and the healthy visible reconciliation status
+   again, retaining its actual text. Restore is subsequently a protected Operation;
    there is no claim that the panel has a Restore button.
+
+Successful evidence reconciliation and safe list consumption establish
+observation only. Artifact-identified evidence may still retain an adopted
+operating target under the existing registration contract. Such management
+adoption grants no lifecycle or process-control authority; lifecycle execution
+remains with `textus-supervisor` through protected Operations.
+An unavailable evidence fallback fails this scenario even when inventory rows
+remain usable. Existing browser and session deadlines remain unchanged.
 
 Each setup, action and expectation is narrated with Given, When and Then
 adjacent to its boundary. No direct REST action substitutes for a UI action;

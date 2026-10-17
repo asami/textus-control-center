@@ -1,6 +1,7 @@
 /*
  * @since   Jul. 22, 2026
- * @version Aug.  9, 2026
+ *  version Aug.  9, 2026
+ * @version Oct. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 package org.simplemodeling.textus.controlcenter.launcher
@@ -46,7 +47,7 @@ object LauncherEvidenceCommandRunner {
   object System extends LauncherEvidenceCommandRunner {
     def run(configuration: LauncherEvidenceClientConfiguration, args: Vector[String]): Either[String, String] =
       try {
-        val processbuilder = ProcessBuilder((configuration.command +: args)*).redirectErrorStream(true) // cncf-car-lint: ignore launcher evidence provider process boundary.
+        val processbuilder = ProcessBuilder((configuration.command +: args)*).redirectErrorStream(false).redirectError(ProcessBuilder.Redirect.DISCARD) // cncf-car-lint: ignore launcher evidence provider process boundary.
         processbuilder.environment().remove("CNCF_LAUNCHER_DEV_DELEGATED")
         processbuilder.environment().remove("CNCF_LAUNCHER_ARGS_FILE")
         val process = processbuilder.start()

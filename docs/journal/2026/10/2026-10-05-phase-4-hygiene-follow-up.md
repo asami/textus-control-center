@@ -145,3 +145,45 @@ Nonblocking inherited target-program naming debt: LocalServerEvidenceStore decla
 - Disposition: Nonblocking maintenance, distinct from the26existing accepted Hygiene identities in ledger39. The same unaccepted candidate in parent mechanical evidence is not a second record.
 - Follow-up: Separately admit public-method naming migration with caller and source compatibility assessment. Do not rename these APIs or expand the synchronized-map repair during CC4-S8.
 <!-- cncf-phase-finding:HYG-CC4-S8-CNCF-RESOLVED-PARAMETER-NAMING-001:end -->
+
+<!-- cncf-phase-finding:HYG-CC4-S10-EVIDENCE-PROTOCOL-SPEC-GWT-002:begin -->
+### HYG-CC4-S10-EVIDENCE-PROTOCOL-SPEC-GWT-002
+
+- Status: OPEN.
+- Discovery: REVIEW / CC4-S10 / 2026-10-17.
+- Source review: phase4-CC4-S10-step-review-r1.
+- Category/priority: Hygiene / P3.
+- Owner: textus-control-center maintainer.
+- Evidence: Supporting LauncherEvidenceProtocolSpec.scala:11,21,28 retains three behavior scenarios without GivenWhenThen or adjacent Given/When/Then clauses. The complete file is unchanged against Step base c2ebd8f3a70ef2ec42175c01242622aa981462bc. Its existing should assertions remain useful and the selected actual focused run passed.
+- Impact: Inherited executable-documentation conformance debt; it neither weakens the new real-process regression specification nor invalidates the observed transport results.
+- Disposition: Nonblocking supporting-spec maintenance, distinct from ledger revision 42's 27 accepted Hygiene identities.
+- Follow-up: In a separately admitted specification-maintenance task, add semantic setup/action/expectation narration while preserving the three protocol/identity/fixed-command contracts. Do not expand the CC4-S10 blocker repair to perform this maintenance.
+<!-- cncf-phase-finding:HYG-CC4-S10-EVIDENCE-PROTOCOL-SPEC-GWT-002:end -->
+
+<!-- cncf-phase-finding:HYG-CC4-S10-EVIDENCE-SPEC-WORK-ARTIFACT-003:begin -->
+### HYG-CC4-S10-EVIDENCE-SPEC-WORK-ARTIFACT-003
+
+- Status: OPEN.
+- Discovery: REVIEW / CC4-S10 / 2026-10-17.
+- Source review: phase4-CC4-S10-step-review-r1.
+- Category/priority: Hygiene / P3.
+- Owner: textus-control-center maintainer.
+- Evidence: The unchanged supporting evidence-reconciliation scenario in SubsystemInventoryActionSpec.scala:507 allocates Files.createTempDirectory("control-center-launcher-evidence") without a repository target parent. Shared RULE.md requires local verification work artifacts under target. The source file is unchanged against Step base c2ebd8f3a70ef2ec42175c01242622aa981462bc; the newly introduced LauncherEvidenceCommandRunnerSpec uses target/launcher-evidence-process-spec and explicit cleanup.
+- Impact: Existing test fixture placement/retention debt outside the owned delta; no current transport or packaged runtime defect results.
+- Disposition: Nonblocking inherited supporting-spec maintenance, distinct from the accepted Hygiene ledger identities.
+- Follow-up: Separately admit fixture-work-area maintenance for this scenario, retaining the external-command option and existing behavioral assertions, and use repository target-owned fixture allocation with appropriate cleanup. Do not widen the current Step repair.
+<!-- cncf-phase-finding:HYG-CC4-S10-EVIDENCE-SPEC-WORK-ARTIFACT-003:end -->
+
+<!-- cncf-phase-finding:HYG-CC4-S10-EVIDENCE-SUPPORTING-API-NAMING-001:begin -->
+### HYG-CC4-S10-EVIDENCE-SUPPORTING-API-NAMING-001
+
+- Status: OPEN.
+- Discovery: REVIEW / CC4-S10 / 2026-10-17.
+- Source review: phase4-CC4-S10-step-review-r1.
+- Category/priority: Hygiene / P3.
+- Owner: textus-control-center maintainer.
+- Evidence: Unchanged supporting LauncherEvidenceProtocol.scala:70 declares the public detail parameter instanceid. LauncherEvidenceServiceFactoryImpl.scala:148,154,183 declares protected parameters artifactid, registeredids and observedat. Shared RULE.md requires public/protected parameter camelCase. The ordinary diff against Step base c2ebd8f3a70ef2ec42175c01242622aa981462bc for both supporting files is empty.
+- Impact: Existing source naming inconsistency; no introduced signature or transport behavior defect. New CC4-S10 Scala declarations satisfy their visibility-specific naming rules.
+- Disposition: Nonblocking inherited supporting-file debt, distinct from all 27 accepted Hygiene identities in ledger revision 42.
+- Follow-up: Separately admit an evidence-consumer parameter-naming maintenance task, inspect named-argument clients and any explicit compatibility contract, and preserve protocol fields, failure behavior and service semantics. Do not incidentally rename these parameters in the current Step.
+<!-- cncf-phase-finding:HYG-CC4-S10-EVIDENCE-SUPPORTING-API-NAMING-001:end -->

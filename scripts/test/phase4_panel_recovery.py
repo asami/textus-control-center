@@ -7,6 +7,7 @@
 import json
 import os
 from pathlib import Path
+import shlex
 import socket
 import sys
 import tempfile
@@ -95,6 +96,11 @@ class PanelCase(native.Case):
 
     def prepare(self):
         super().prepare()
+        wrapper = self.directory / "bin/cncf"
+        shebang, serverbody = wrapper.read_text(encoding="utf-8").split("\n", 1)
+        wrapper.write_text(shebang + '\ncase "${1-}:${2-}" in\n'
+                           '  launcher:evidence)\n    exec ' + shlex.join(self.java_command()) +
+                           ' "$@"\n    ;;\nesac\n' + serverbody, encoding="utf-8")
         # Append after the inherited CC/target/external indices, never insert.
         reservation = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.reservations.append(reservation)

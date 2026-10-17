@@ -35,6 +35,7 @@ async function main(argv) {
   let receipt, browser, context, page, watchdog;
   const result = { success: false, error: null, actions: [], screenshots: [],
     pageErrors: [], consoleErrors: [], optionalApplicationDiagnostics: [],
+    evidenceReconciliations: [],
     blockedRequests: [], cleanupErrors: [], terminal: false };
   function save() {
     const temporary = `${receipt}.${randomUUID()}.tmp`;
@@ -112,6 +113,22 @@ async function main(argv) {
       return await button("start").isEnabled() === !running &&
         await button("stop").isEnabled() === running && await button("restart").isEnabled() === running;
     }
+    function evidenceRefresh() {
+      return page.waitForResponse((response) => response.url().includes("/refresh-launcher-evidence?") &&
+        response.request().method() === "GET", { timeout: 25000 });
+    }
+    async function reconciled(response, boundary) {
+      should(response.ok(), `${boundary} must refresh actual Launcher evidence successfully`);
+      await eventually(`${boundary} inventory loading must finish`, async () =>
+        await page.locator("#operational-loading").isHidden());
+      const status = page.locator("#operational-evidence-status");
+      const text = await status.textContent();
+      result.evidenceReconciliations.push({ boundary, status: text });
+      save();
+      should(await status.isVisible() && text.startsWith("Launcher evidence reconciled at ") &&
+        !(await status.getAttribute("class") || "").split(/\s+/).includes("unavailable"),
+        `${boundary} must expose successful visible Launcher reconciliation: ${text}`);
+    }
     async function settled(action, running) {
       await eventually(`${action} must settle with authoritative runtime and restored controls`, async () => {
         const state = await row.getAttribute("data-runtime-state");
@@ -139,12 +156,47 @@ async function main(argv) {
     }
     async function exercise() {
       clause("When", "the actual packaged /web/textus-control-center page is opened");
+      const initialevidence = evidenceRefresh();
       await page.goto(`${base}/web/textus-control-center`, { waitUntil: "domcontentloaded" });
+      clause("Then", "the initial inventory reconciles actual native Launcher evidence successfully");
+      await reconciled(await initialevidence, "initial load");
       clause("Then", "one stopped target has Start enabled and Stop/Restart disabled");
       await eventually("exactly one stopped target row must be ready", async () =>
         await row.count() === 1 && ["stopped", "not-running"].includes(await row.getAttribute("data-runtime-state")) &&
         await controls(false));
       await lifecycle("Start", true);
+      clause("When", "the actual Refresh button reloads the running target and native Launcher evidence");
+      const runningevidence = evidenceRefresh();
+      const runninglist = page.waitForResponse((response) => response.url().includes("/list-launcher-evidence?") &&
+        response.request().method() === "GET", { timeout: 25000 });
+      const runninginventory = page.waitForResponse((response) => response.url().includes("/list-operational-components?") &&
+        response.request().method() === "GET", { timeout: 25000 });
+      await page.locator("#refresh").click();
+      const [evidenceresponse, listresponse, inventoryresponse] = await Promise.all([
+        runningevidence, runninglist, runninginventory]);
+      clause("Then", "successful native evidence reconciliation and safe list preserve the running target controls");
+      should(inventoryresponse.ok() && listresponse.ok(), "running Refresh must load inventory and native evidence successfully");
+      await reconciled(evidenceresponse, "after Start Refresh");
+      const observed = await listresponse.json();
+      const privatefields = ["processId", "process_id", "processStartedAt", "process_started_at",
+        "developmentDirectory", "development_directory"];
+      should(Array.isArray(observed.data) && observed.data.every((record) => record &&
+        typeof record === "object" && !Array.isArray(record) &&
+        privatefields.every((field) => !Object.hasOwn(record, field))),
+        "safe Launcher list records must omit private process and development-directory fields");
+      const matching = observed.data.find((record) =>
+        (record.artifact_id || record.artifactId) === args.artifact &&
+        (record.launcher_kind || record.launcherKind) === "cncf" &&
+        typeof (record.instance_id || record.instanceId) === "string" &&
+        (record.instance_id || record.instanceId).trim().length > 0);
+      should(Boolean(matching), "native Launcher list must identify the started Supervisor with a nonempty opaque instance");
+      result.launcherEvidence = { artifactId: matching.artifact_id || matching.artifactId,
+        instanceId: matching.instance_id || matching.instanceId,
+        launcherKind: matching.launcher_kind || matching.launcherKind,
+        decision: matching.evidence_decision || matching.decision };
+      save();
+      await eventually("the refreshed target must remain running with correct lifecycle controls", async () =>
+        await row.count() === 1 && await row.getAttribute("data-runtime-state") === "running" && await controls(true));
       await screenshot("panel-running.png");
       clause("Given", "the target row is running after its actual Start");
       clause("When", "the exact target row is clicked to open protected detail");
@@ -176,9 +228,11 @@ async function main(argv) {
       clause("When", "the actual Refresh button is clicked");
       const refreshed = page.waitForResponse((response) => response.url().includes("/list-operational-components?") &&
         response.request().method() === "GET", { timeout: 25000 });
+      const finalevidence = evidenceRefresh();
       await page.locator("#refresh").click();
       clause("Then", "Refresh preserves exclusion; Restore remains a protected Operation");
       should((await refreshed).ok(), "actual Refresh must complete its management request successfully");
+      await reconciled(await finalevidence, "final Refresh");
       await eventually("Refresh must finish and preserve exclusion", async () =>
         await page.locator("#operational-loading").isHidden() && await row.count() === 0);
       await screenshot("panel-excluded.png");

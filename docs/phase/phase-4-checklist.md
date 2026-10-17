@@ -257,6 +257,29 @@ Accepted panel and separate-JVM recovery boundary (CC4-S9, Oct. 17, 2026):
   shared-workflow partitions, the sole comprehensive Phase review and final
   closure remain open.
 
+Accepted native evidence and panel recovery boundary (CC4-S10, Oct. 17, 2026):
+
+- Native evidence list/show retain their exact command arguments while server
+  commands retain their runtime configuration. Command JSON uses stdout only;
+  diagnostic stderr cannot corrupt the safe projection or block its reader.
+- Focused acceptance passed all 26 cases across three suites, including 50
+  generated diagnostic samples with zero discarded inputs and bounded large
+  stderr, malformed stdout, and nonzero-exit behavior. Native CAR packaging
+  passed with Java 17 and explicit development source inputs.
+- Actual Java 25 packaged browser execution passed healthy initial, post-Start,
+  and final evidence reconciliation and safe list consumption in both embedded
+  and external placements, together with the accepted lifecycle, audit,
+  management exclusion/restore, and independent-JVM recovery behavior. All ten
+  acquired groups were reaped and every case port was reusable.
+- Independent complete-Step review and focused closure accepted the corrected
+  distinction between evidence-based management adoption and Supervisor-owned
+  lifecycle authority. The later one-line panel authority wording correction
+  passed static checks; the existing runtime screenshots predate that copy.
+- Retained shared-workflow Steps CC4-S0H and CC4-S0I are closed. Earlier failed
+  attempts and the consumed deliberate-failure run remain history. Final fresh
+  packaging/Web acceptance, Java 17/default-graph runtime evidence, full affected
+  suites, the sole comprehensive Phase review and release closure remain open.
+
 ## OC-06: Operating Panel and Documentation
 
 Status: REVALIDATE

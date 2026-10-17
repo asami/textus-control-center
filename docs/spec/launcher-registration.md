@@ -274,6 +274,17 @@ running the bounded one-shot command
 `~/.cncf/launcher/server-evidence.json` itself and does not require a
 supervisor service.
 
+Machine JSON is read from stdout only. Diagnostic stderr is discarded separately
+so it cannot contaminate the projection or block the command through an undrained
+diagnostic pipe. Invalid stdout, a nonzero exit, or a timeout keeps the existing
+structured failure behavior and previously retained evidence and inventory data;
+stderr is never used as a fallback projection.
+
+This stream contract is specified by
+[`LauncherEvidenceCommandRunnerSpec`](../../src/test/scala/org/simplemodeling/textus/controlcenter/launcher/LauncherEvidenceCommandRunnerSpec.scala),
+including generated diagnostics, diagnostic volume beyond a pipe buffer,
+invalid stdout, and nonzero exit.
+
 The response schema is `cncf.launcher.evidence-projection.v1`. List entries
 contain identity, target/artifact, launcher kind, execution mode, safe version
 facts, and lifecycle timestamps. They omit the development directory. The

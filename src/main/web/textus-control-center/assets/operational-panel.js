@@ -236,7 +236,7 @@
       }
       try {
         const refresh = await request(evidenceEndpoint, "refresh-launcher-evidence?refresh=true");
-        showEvidenceStatus(`Launcher evidence reconciled at ${formatInstant(refresh.observed_at || refresh.observedAt)}. Current evidence is observation only; lifecycle actions remain Launcher-authorized.`, false);
+        showEvidenceStatus(`Launcher evidence reconciled at ${formatInstant(refresh.observed_at || refresh.observedAt)}. Current evidence is observation only; lifecycle actions remain authorized by textus-supervisor.`, false);
       } catch (error) {
         showEvidenceStatus("Launcher evidence is temporarily unavailable. Retained inventory and management rows remain usable; no lifecycle authority is inferred from unavailable evidence.", true);
       }

@@ -3,10 +3,11 @@
 Stage Status:
 
 - Current status: REOPENED
-- Current step: Panel actions and separate-JVM restart/recovery accepted in
-  CC4-S9 for Java 25 with development source inputs; complete Java 17/default
-  dependency graph, retained shared-workflow partitions and final Phase
-  validation/review obligations.
+- Current step: CC4-S10 accepts healthy native Launcher evidence, isolated
+  command diagnostics, panel actions and separate-JVM recovery in both
+  Supervisor placements. Retained shared-workflow Steps are closed. Complete
+  final full validation, Java 17/default-graph runtime acceptance, the sole
+  comprehensive Phase review and release closure.
 - Owner: Textus Control Center Phase 4
 - Update rule: Update this block and `phase-4-checklist.md` whenever a stable
   checklist state changes. Do not begin implementation before the lifecycle
