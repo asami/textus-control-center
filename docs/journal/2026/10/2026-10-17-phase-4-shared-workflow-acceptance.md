@@ -23,3 +23,25 @@ obligation using the original independent acceptance and applicable validation.
 It adds no source behavior or acceptance of the separately owned changes.
 Original Step repair count zero, Phase repair history and failures are retained.
 It supplies no operational, full-suite or full-Phase acceptance credit.
+
+## CC4-S0I: preserve-only nested Git repositories
+
+The original independent protected Step review accepted restricting nested
+gitlink observation to selected stage paths. Preserve-only nested repositories
+retain their complete parent index/status representation without requiring a
+clean nested worktree. Selected gitlinks still require actual nested identity,
+cleanliness and index checks. Four connected preservation scenarios and three
+existing native-commit safety cases passed; no new Hygiene was found.
+
+The source and specifications were subsequently saved by the same external
+development-workstation commit identified above. The original membership
+repair remains in the current source. Later portability edits to fixture paths
+are separately owned context. This Phase preserves them and the unrelated
+dirty closure change without staging, reverting or accepting those changes.
+
+This distinct exact local acceptance-record commit completes the retained S0I
+commit obligation using its original independent acceptance and applicable
+focused validation. The external checkpoint remains external source context;
+it is not relabelled as this Phase's acceptance commit. The Step repair count
+remains zero and all Phase history remains. Operational, Java 17/default-graph,
+full-suite, comprehensive Phase review and final release gates stay separate.
