@@ -37,17 +37,23 @@ Extend Textus Control Center into a compact operational entry point for the loca
 
 ## Future presentation targets (out of Phase 5 implementation)
 
-- Flutter Control Center application for iPhone and Android.
+- Flutter Control Center application for iPhone and Android as a Presentation Subcomponent.
+- The same Flutter application supports policy-selected Mobile, Dashboard, Stand and Ambient presentation modes rather than separate device applications.
+- Dashboard is the persistent tablet/large-surface form; Stand is the compact charging-stand form; Ambient is the unattended low-information form.
+- Charging/power state is only one mode-resolution input together with usable display geometry, orientation, inactivity, capabilities and explicit preference. Do not equate charging with a presentation mode.
+- Ambient presentation may use dark/black background, reduced information density/brightness and bounded position shifting for burn-in mitigation; wake-lock and burn-in mechanics remain client/framework concerns.
 - Apple Watch client using watchOS native presentation where appropriate.
 - Pixel Watch client using Wear OS native presentation where appropriate.
 - Reuse common Operational API/JSON and server-side Detail/Compact/Glance projections rather than forcing watch UI through Flutter.
-- Keep wearable clients thin; monitoring and health interpretation remain server-side.
+- Keep mobile/wearable clients thin; monitoring and health interpretation remain server-side.
+- Allocate raw power/display observations to textus-flutter-core and reusable mode/Ambient policy to TFAF; keep CNCF Display Model target-neutral.
 
 ## CNCF operational boundary
 
 - Consume CNCF Dashboard/Admin operational APIs/views rather than reimplementing runtime administration.
 - Use CNCF Service Bus authoritative journal information for richer timelines and diagnosis.
 - CNCF UI remains mechanism-oriented; Control Center is system-oriented and combines CNCF with infrastructure and AI/automation resources.
+- CNCF Display Model may carry semantic role/priority needed by constrained clients, but must not carry Flutter-specific charging, inactivity, wake-lock or burn-in state.
 
 ## Development operations integration
 
@@ -56,3 +62,19 @@ Extend Textus Control Center into a compact operational entry point for the loca
 - Treat future smartphone/watch monitoring and simple admission approval as a Control Center remote-interface scenario.
 - Monitoring uses persistent events for temporal decoupling; user decisions return through authenticated operations, with resulting events journaled by the producer.
 - Remote Service Bus exposure is not part of the design; future remote clients use a secured Control Center API and push notifications only as hints.
+
+
+## Docker OPS observation profile
+
+The Mac mini operational profile is moving to a Docker Compose deployment boundary. Phase 5 must therefore keep the Operational View independent of whether a service is a CAR or ordinary infrastructure.
+
+- Observe Docker-deployed Control Center dependencies and infrastructure services such as PostgreSQL, OpenTelemetry, Prometheus, Grafana, Jaeger and `cloudflared` when configured.
+- Represent service category, named instance/profile and execution environment without assuming every observed service is a Textus Subsystem.
+- Keep these states distinct:
+  - Docker/container deployment state;
+  - Launcher registration/heartbeat lease state;
+  - CNCF Subsystem health/readiness;
+  - external endpoint reachability.
+- Do not infer application health from Docker `running` or Launcher `running`.
+- Do not parse Docker Compose as the Control Center runtime registry. Compose is desired deployment topology; Control Center projects observed state.
+- Phase 5 remains primarily observational. Docker-backed start/stop/restart belongs to Phase 8.

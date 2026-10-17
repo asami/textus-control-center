@@ -1,0 +1,4 @@
+schema: textus.knowledge-lake-binding/1
+knowledgeLake:
+  id: textus:klake:simplemodeling.org
+  base: components/textus-control-center
