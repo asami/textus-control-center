@@ -314,3 +314,35 @@ Status: REOPENED
   directory and no user-facing foreground-supervisor command is required.
 - [x] Verify the same lifecycle behavior with Control Center's embedded
   `textus-supervisor` and with an externally placed supervisor contract.
+
+## CC4-S11: Configured Job Audit Read Boundary
+
+Status: ACCEPTED_PENDING_COMMIT (Oct. 17, 2026)
+
+Approved scope preserves the existing configured Production Web `audit_viewer`
+jobs read contract through canonical Audit admission, without granting
+`job_admin`/`content_admin` or changing Operator admission.
+
+- [x] Admit Audit list/bounded detail only with explicitly supplied Production
+  policy, actual Production context, enabled administration, trusted provider
+  authentication, system privilege and configured jobs roles.
+- [x] Preserve canonical filtering/pagination and subject/scope/filter/snapshot
+  cursor binding within the existing subsystem engine.
+- [x] Deny payload/task/timeline reads, diagnostics, controls and polling for
+  Audit, including mixed-capability subjects; retain manual Web refresh.
+- [x] Select Audit only after actual Operator Web context resolution when
+  Operator capabilities are absent; preserve outer Web checks, no-store and
+  opaque denials, ordinary scopes, Operator controls and original constructors.
+- [x] Prove default protocol/REST `scope=audit` cannot grant access and preserve
+  the unchanged original failing Web authorization oracle.
+- [x] Complete parent-selected focused executable specifications and independent
+  acceptance review; the sole Given/When/Then marker finding is resolved under
+  the parent M0 waiver.
+- [ ] Execute the exact local Step commit.
+
+All original nineteen accepted Steps, prior epoch review histories, consumed
+counters and failure histories remain retained. The failed final validation
+remains unresolved in the retained history. CC4-S11 implementation, focused
+validation and independent acceptance are complete under the parent M0 waiver
+for the sole Given/When/Then marker finding. Exact local Step commit, final full
+validation, the epoch-2 comprehensive Phase review and Phase closure remain pending.

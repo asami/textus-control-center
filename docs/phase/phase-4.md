@@ -3,11 +3,12 @@
 Stage Status:
 
 - Current status: REOPENED
-- Current step: CC4-S10 accepts healthy native Launcher evidence, isolated
-  command diagnostics, panel actions and separate-JVM recovery in both
-  Supervisor placements. Retained shared-workflow Steps are closed. Complete
-  final full validation, Java 17/default-graph runtime acceptance, the sole
-  comprehensive Phase review and release closure.
+- Current step: CC4-S11 implementation, focused validation and independent Step
+  acceptance are complete; the sole Given/When/Then marker finding is resolved
+  under the parent M0 waiver. Exact local Step commit remains pending execution.
+  CC4-S10 and the other accepted Steps remain retained. Final
+  CNCF/Cozy/workflow validation, the epoch-2 comprehensive Phase review and
+  release closure remain pending.
 - Owner: Textus Control Center Phase 4
 - Update rule: Update this block and `phase-4-checklist.md` whenever a stable
   checklist state changes. Do not begin implementation before the lifecycle
@@ -114,3 +115,28 @@ its sources, and its runtime invocations.
   dependency inputs, full affected suites and the final Phase review.
 
 Detailed progress and acceptance evidence belong in `phase-4-checklist.md`.
+
+## 6. Approved CC4-S11 Audit Read Scope
+
+Status: ACCEPTED_PENDING_COMMIT (Oct. 17, 2026)
+
+The resolved Phase-control decision preserves configured Production Web jobs
+reads for `audit_viewer` through a dedicated canonical Audit scope. Operator
+continues to require `job_admin` or `content_admin`. Audit requires the existing
+enabled Production jobs policy, trusted provider authentication, system
+privilege and configured jobs roles. It grants no management capability.
+
+Acceptance requires canonical bounded list/detail, subject/scope-bound cursors,
+no result payload/task/timeline reads, no diagnostics/control effects even with
+mixed capabilities, manual refresh, default REST Audit denial, preserved
+Operator behavior and original JVM constructors. The existing failing
+`StaticFormAppRendererAuthorizationSpec` oracle remains unchanged.
+
+The original nineteen accepted Steps and all prior epoch review histories
+remain retained. Failed final validation remains recorded and unresolved;
+CC4-S11 implementation, focused validation and independent Step acceptance are
+complete; the sole Given/When/Then marker finding is resolved under the parent
+M0 waiver. Exact local Step commit remains pending execution. Phase closure,
+final full validation and the epoch-2 comprehensive Phase review remain pending under the
+same Goal, original bases, counters, ledger and failure history. Phase 5/6,
+publication, deployment and push remain excluded.

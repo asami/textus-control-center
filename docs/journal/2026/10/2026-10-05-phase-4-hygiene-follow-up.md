@@ -187,3 +187,31 @@ Nonblocking inherited target-program naming debt: LocalServerEvidenceStore decla
 - Disposition: Nonblocking inherited supporting-file debt, distinct from all 27 accepted Hygiene identities in ledger revision 42.
 - Follow-up: Separately admit an evidence-consumer parameter-naming maintenance task, inspect named-argument clients and any explicit compatibility contract, and preserve protocol fields, failure behavior and service semantics. Do not incidentally rename these parameters in the current Step.
 <!-- cncf-phase-finding:HYG-CC4-S10-EVIDENCE-SUPPORTING-API-NAMING-001:end -->
+
+<!-- cncf-phase-finding:HYG-CC4-S11-HTTP-LEGACY-HELPER-NAMING-002:begin -->
+### HYG-CC4-S11-HTTP-LEGACY-HELPER-NAMING-002
+
+- Status: OPEN.
+- Discovery: REVIEW / CC4-S11 / 2026-10-17.
+- Source review: phase4-CC4-S11-step-review-r1.
+- Category/priority: Hygiene / P3.
+- Owner: goldenport-cncf maintainer.
+- Evidence: src/main/scala/org/goldenport/cncf/http/Http4sHttpServer.scala:6275 declares class-level private[http] def _session_id_. The trailing-underscore helper form is reserved for method-local helpers by shared RULE.md and repository-rules.md. The identical declaration exists at Step base e4f4d97d96f3db95a21c92ea11dc224419d97220:6265.
+- Impact: Inherited helper naming/scope inconsistency; current session extraction and Audit changes do not introduce or change this helper.
+- Disposition: Nonblocking pre-existing target-program naming debt, distinct from the accepted HTTP-server source-size item HYG-CC4-S5A-CNCF-HTTP-SERVER-SIZE-001 and the other 29 ledger revision 46 Hygiene identities.
+- Follow-up: Separately admit a package-helper naming task, inspect package callers and existing visibility conventions, and preserve exact session-source priority and validation. Do not incidentally rename authentication helpers in CC4-S11.
+<!-- cncf-phase-finding:HYG-CC4-S11-HTTP-LEGACY-HELPER-NAMING-002:end -->
+
+<!-- cncf-phase-finding:HYG-CC4-S11-STATIC-AUTH-LEGACY-GWT-001:begin -->
+### HYG-CC4-S11-STATIC-AUTH-LEGACY-GWT-001
+
+- Status: OPEN.
+- Discovery: REVIEW / CC4-S11 / 2026-10-17.
+- Source review: phase4-CC4-S11-step-review-r1.
+- Category/priority: Hygiene / P3.
+- Owner: goldenport-cncf maintainer.
+- Evidence: The untouched system-admin scenario in src/test/scala/org/goldenport/cncf/http/StaticFormAppRendererAuthorizationSpec.scala:765-807 performs response and performance requests at 786-795 before its When at 796; only the assembly request follows When. Ordinary git show at Step base e4f4d97d96f3db95a21c92ea11dc224419d97220 contains the same complete scenario and placement. The untouched static-template UX scenario likewise computes apphtml before its When.
+- Impact: Existing executable-documentation action-boundary debt; no changed authorization behavior or unreliable observed runtime outcome was found in these untouched scenarios.
+- Disposition: Nonblocking inherited same-file debt, separate from the materially modified audit scenario covered by CPB-CC4-S11-AUDIT-SPEC-WHEN-001. None of the 30 accepted Hygiene identities in ledger revision 46 covers this source/scenario root cause.
+- Follow-up: Separately admit a bounded specification-narration maintenance task for untouched scenarios, preserving requests, assertions and fixture behavior; do not sweep those cases into the current one-scenario repair.
+<!-- cncf-phase-finding:HYG-CC4-S11-STATIC-AUTH-LEGACY-GWT-001:end -->
