@@ -290,19 +290,32 @@ Both CNCF Launcher and Textus Launcher write the shared, Launcher-owned
 `~/.cncf/launcher/server-evidence.json` schema. The file records launch kind,
 identity, target, execution mode, and lifecycle timestamps before best-effort
 Control Center notification. Control Center does not read the file directly;
-it uses a future safe Launcher projection to reconcile current and historical
+it uses the bounded safe Launcher projection to reconcile current and historical
 evidence. `cncf server` remains the current-directory public start interface;
 `cncf launcher supervisor serve` is not a required user workflow.
 
-Lifecycle authority remains Launcher-owned. Textus Control Center submits
-structured requests and projects their results, but never scans for or signals
-arbitrary PIDs. See `docs/phase/phase-4.md`.
+The accepted Phase 4 contract assigns lifecycle authority to
+`textus-supervisor`, embedded in standalone Control Center or placed externally
+behind the same bounded contract. Both Launchers retain common evidence and
+bounded notification responsibilities. Textus Control Center submits
+structured requests and projects their results without scanning for or
+signalling arbitrary PIDs. See `docs/phase/phase-4.md`.
 
-Closure (Jul. 22, 2026): Phase 4 is complete. Its black-box acceptance starts
+Historical closure (Jul. 22, 2026), superseded by the reopened Phase acceptance:
+its black-box acceptance starts
 both canonical Launcher server forms before Control Center, then reconciles one
 current and one normally stopped shared-evidence record through the bounded
 Launcher projection. The isolated state-home option belongs only to that test;
 ordinary operator commands remain `cncf server` and `textus <artifact> server`.
+
+Current closure (Oct. 17, 2026): the canonical Phase 4 document and checklist
+close the twenty accepted Steps, embedded/external Supervisor lifecycle and
+panel boundary, approved Job Audit read boundary, final validation and the sole
+epoch-2 comprehensive review with focused blocker closure. Current shared
+workflow main is the development/validation owner; the old checkout and its
+failed validation remain historical under the explicit human decision. The
+original bases and repair/review/failure history and canonical nonblocking
+follow-ups remain retained. This closure does not start Phase 5 or Phase 6.
 
 ### Phase 5: Runtime Health and Observability Summary
 

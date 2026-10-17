@@ -45,3 +45,26 @@ focused validation. The external checkpoint remains external source context;
 it is not relabelled as this Phase's acceptance commit. The Step repair count
 remains zero and all Phase history remains. Operational, Java 17/default-graph,
 full-suite, comprehensive Phase review and final release gates stay separate.
+
+## Final-validation owner decision
+
+The human decision is to use the current shared-workflow main for development
+and validation and preserve the old checkout for history only. The legacy
+checkout retains its original base, the accepted CC4-S0C eight-path change and
+CC4-S0D integration lineage, and its actual failed validation history. That
+failed legacy validation is explicitly excluded from the current release gate;
+it is not recorded as a pass and does not authorize deleting, resetting or
+repairing the historical checkout. Selected final full Scala and canonical
+shared-workflow validation are complete. All thirteen roots and original bases,
+all twenty accepted Steps, the same Goal and epoch-2, review history, consumed
+counters and failures remain retained. Canonical/Scala/runtime requirements
+remain in force; the sole epoch-2 independent comprehensive Phase review and
+exact release remain pending, and Phase 4 remains reopened.
+
+The final Phase 4 closure supersedes that pending summary. The canonical main's
+full validation and the sole epoch-2 comprehensive review with independent
+focused closure are accepted. The same current-main/legacy-history decision,
+original bases, accepted Step lineage, cumulative counters and actual failures
+remain preserved. The final local release binds the Phase/checklist/strategy
+status and existing canonical follow-up dispositions; it grants no acceptance
+to the failed legacy execution.

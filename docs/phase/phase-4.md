@@ -2,20 +2,28 @@
 
 Stage Status:
 
-- Current status: REOPENED
-- Current step: CC4-S11 implementation, focused validation and independent Step
-  acceptance are complete; the sole Given/When/Then marker finding is resolved
-  under the parent M0 waiver. Exact local Step commit remains pending execution.
-  CC4-S10 and the other accepted Steps remain retained. Final
-  CNCF/Cozy/workflow validation, the epoch-2 comprehensive Phase review and
-  release closure remain pending.
+- Current status: CLOSED
+- Current step: All twenty declared Steps have accepted exact local commits.
+  The checklist is complete. Final validation and the sole epoch-2
+  comprehensive review with focused blocker closure are accepted. The final
+  release binds this canonical status and the retained follow-up journal.
 - Owner: Textus Control Center Phase 4
 - Update rule: Update this block and `phase-4-checklist.md` whenever a stable
   checklist state changes. Do not begin implementation before the lifecycle
   contracts are accepted by Textus Control Center, CNCF launcher, and Textus
   launcher.
 
-status = reopened
+status = closed
+
+Approved final-validation owner disposition (Oct. 17, 2026): the current
+shared-workflow main is the development and executable-validation owner; the
+old checkout is retained for history only. The actual human decision explicitly
+excludes its failed legacy validation from the current release gate without
+claiming a pass. Its original base and accepted CC4-S0C eight-path/CC4-S0D
+integration lineage, all thirteen roots and original bases, all twenty accepted
+Steps, the same Goal and epoch-2, review history, counters and failures remain
+retained. Canonical/Scala/runtime acceptance, the sole independent epoch-2
+comprehensive review and exact release requirements remain in force.
 
 ## 1. Purpose
 
@@ -105,20 +113,20 @@ its sources, and its runtime invocations.
   launcher-kind facts.
 - D (RETAINED): OC-04 - Implement the approved `cncf launcher evidence list
   --format json` safe list/detail projection and Control Center reconciliation.
-- E (REOPENED): OC-05 - Replace the provisional launcher-private supervisor
+- E (DONE): OC-05 - Replace the provisional launcher-private supervisor
   with `textus-supervisor`, while preserving `cncf server` and
   `textus <artifact> server` as public start interfaces.
-- F (REVALIDATE): OC-06 - Complete operating-panel and operator-guide
+- F (DONE): OC-06 - Complete operating-panel and operator-guide
   acceptance around `textus-supervisor`, launcher evidence and canonical
   commands; CC4-S9 accepts the actual panel actions in both placements.
-- G (REOPENED): OC-07 - Complete standalone acceptance with Java 17/default
+- G (DONE): OC-07 - Complete standalone acceptance with Java 17/default
   dependency inputs, full affected suites and the final Phase review.
 
 Detailed progress and acceptance evidence belong in `phase-4-checklist.md`.
 
 ## 6. Approved CC4-S11 Audit Read Scope
 
-Status: ACCEPTED_PENDING_COMMIT (Oct. 17, 2026)
+Status: CLOSED (Oct. 17, 2026)
 
 The resolved Phase-control decision preserves configured Production Web jobs
 reads for `audit_viewer` through a dedicated canonical Audit scope. Operator
@@ -136,7 +144,27 @@ The original nineteen accepted Steps and all prior epoch review histories
 remain retained. Failed final validation remains recorded and unresolved;
 CC4-S11 implementation, focused validation and independent Step acceptance are
 complete; the sole Given/When/Then marker finding is resolved under the parent
-M0 waiver. Exact local Step commit remains pending execution. Phase closure,
-final full validation and the epoch-2 comprehensive Phase review remain pending under the
-same Goal, original bases, counters, ledger and failure history. Phase 5/6,
+M0 waiver. Exact local Step commits are complete: CNCF
+`5c092bedaecab39a27bf3fb1397d1d889d297423` and primary
+`c2492598beb91f8d6083114c68f420c4e5c1cdbe`. At that Step acceptance, Phase closure,
+final full validation and the epoch-2 comprehensive Phase review remained pending;
+the current final-validation disposition is recorded above. The same Goal,
+original bases, counters, ledger and failure history remain retained. Phase 5/6,
 publication, deployment and push remain excluded.
+
+## 7. Final Closure
+
+All OC-01 through OC-07 checklist obligations and the approved CC4-S11 scope
+are complete. The final independent review's normal Launcher test-selection
+finding is closed by the prescribed selector changes and independent focused
+acceptance. The current canonical shared-workflow main remains the development
+and validation owner; the legacy checkout and its failed validation remain
+historical under the human-approved exclusion above.
+
+Earlier pending/reopened summaries are retained history and are superseded by
+this closure and the current checklist. The original thirteen repository bases,
+twenty accepted Steps, same Goal and epoch-2, review and repair histories remain
+retained. The thirty-two nonblocking Hygiene records retain their exact
+dispositions in `../journal/2026/10/2026-10-05-phase-4-hygiene-follow-up.md`;
+there are no Development Candidate entries or unpersisted accepted findings.
+Phase 5 and Phase 6 have not started under this invocation.

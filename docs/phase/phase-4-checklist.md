@@ -1,5 +1,12 @@
 # Phase 4 - Standalone Operational Component Control Checklist
 
+Stage Status:
+
+- Current status: CLOSED
+- Owner: Textus Control Center Phase 4
+- Update rule: Keep this status and `phase-4.md` aligned with the checked
+  obligations below; preserve earlier acceptance history and explicit deferrals.
+
 This checklist is the authoritative Phase 4 progress ledger. The summary
 dashboard is `phase-4.md`.
 
@@ -105,7 +112,7 @@ Status: DONE
 
 ## OC-05: Canonical Launcher Lifecycle Authority
 
-Status: REOPENED
+Status: DONE
 
 Decision `P4-TEXTUS-SUPERVISOR-01` (Jul. 24, 2026): `textus-supervisor` is the
 lifecycle authority. Standalone Control Center embeds its local deployment;
@@ -159,7 +166,7 @@ Planned implementation sequence:
   normal lifecycle authority path.
 - [x] Make CNCF Launcher and Textus Launcher write common evidence and issue
   best-effort supervisor notification without lifecycle ownership.
-- [ ] Revalidate lifecycle requests, panel actions, restart recovery, and the
+- [x] Revalidate lifecycle requests, panel actions, restart recovery, and the
   unchanged canonical launcher commands against embedded and external placement.
 
 Accepted shared Service/process boundary (CC4-S6, Oct. 17, 2026):
@@ -282,7 +289,7 @@ Accepted native evidence and panel recovery boundary (CC4-S10, Oct. 17, 2026):
 
 ## OC-06: Operating Panel and Documentation
 
-Status: REVALIDATE
+Status: DONE
 
 - [x] Replace the top-page invocation-first layout with an
   operational-component-first panel backed by protected Operations.
@@ -299,7 +306,7 @@ Status: REVALIDATE
 
 ## OC-07: Standalone Acceptance
 
-Status: REOPENED
+Status: DONE
 
 - [x] Verify development discovery, exclusion, restore, and refresh behavior.
 - [x] Verify first-use adoption for repository CARs.
@@ -317,7 +324,7 @@ Status: REOPENED
 
 ## CC4-S11: Configured Job Audit Read Boundary
 
-Status: ACCEPTED_PENDING_COMMIT (Oct. 17, 2026)
+Status: CLOSED (Oct. 17, 2026)
 
 Approved scope preserves the existing configured Production Web `audit_viewer`
 jobs read contract through canonical Audit admission, without granting
@@ -338,11 +345,47 @@ jobs read contract through canonical Audit admission, without granting
 - [x] Complete parent-selected focused executable specifications and independent
   acceptance review; the sole Given/When/Then marker finding is resolved under
   the parent M0 waiver.
-- [ ] Execute the exact local Step commit.
+- [x] Execute the exact local Step commits: CNCF
+  `5c092bedaecab39a27bf3fb1397d1d889d297423` and primary
+  `c2492598beb91f8d6083114c68f420c4e5c1cdbe`.
 
 All original nineteen accepted Steps, prior epoch review histories, consumed
 counters and failure histories remain retained. The failed final validation
 remains unresolved in the retained history. CC4-S11 implementation, focused
 validation and independent acceptance are complete under the parent M0 waiver
-for the sole Given/When/Then marker finding. Exact local Step commit, final full
-validation, the epoch-2 comprehensive Phase review and Phase closure remain pending.
+for the sole Given/When/Then marker finding. Exact local Step commits are complete:
+CNCF `5c092bedaecab39a27bf3fb1397d1d889d297423` and primary
+`c2492598beb91f8d6083114c68f420c4e5c1cdbe`. Final full validation, the epoch-2
+comprehensive Phase review and Phase closure remain pending.
+
+Current final-validation owner decision (Oct. 17, 2026): this paragraph
+supersedes the earlier final-validation-pending summaries while retaining them
+as historical statements. The actual human choice makes the current canonical
+shared-workflow main the development and executable-validation owner and keeps
+the old checkout for history only. Selected final full Scala and canonical
+shared-workflow validation are complete. The failed legacy validation is
+explicitly excluded from the current release gate by that choice; it is not a
+pass, deletion, reset or compatibility repair. Its original base, accepted
+CC4-S0C eight-path/CC4-S0D integration lineage and actual failure history remain
+retained, as do all thirteen roots and original bases, all twenty accepted
+Steps, the same Goal and epoch-2, prior reviews and consumed counters. No
+canonical/Scala/runtime acceptance requirement is waived. The sole epoch-2
+independent comprehensive Phase review and exact release remain pending;
+Phase 4 remains REOPENED.
+
+Final closure (Oct. 17, 2026): all checklist obligations are satisfied. Native
+Java 17 lifecycle, panel, idempotency and independent restart recovery support
+both embedded and external placement with unchanged canonical commands. That
+runtime acceptance applies to the unchanged lifecycle boundary; CC4-S11 has its
+separate accepted source/specification boundary and is not a new Job Audit
+runtime claim. Current executable owners have final full validation. The sole
+epoch-2 comprehensive review's Launcher normal-test selection finding has
+independent focused closure. Earlier pending/reopened summaries above are
+historical and superseded by this paragraph and the current Stage Status.
+
+The approved current-main/legacy-history disposition, original thirteen bases,
+twenty accepted Step commits, Goal, epoch and cumulative repair/failure history
+are preserved. The thirty-two nonblocking Hygiene dispositions remain in
+`../journal/2026/10/2026-10-05-phase-4-hygiene-follow-up.md`; no Development
+Candidate or unpersisted accepted finding remains. This release closes only
+Phase 4 and does not start Phase 5 or Phase 6.
