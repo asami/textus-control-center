@@ -3,9 +3,10 @@
 Stage Status:
 
 - Current status: REOPENED
-- Current step: Complete panel actions and separate-JVM restart/recovery after
-  packaged protected Operations Step CC4-S8; retain Java 17/default-graph and
-  final Phase validation/review obligations.
+- Current step: Panel actions and separate-JVM restart/recovery accepted in
+  CC4-S9 for Java 25 with development source inputs; complete Java 17/default
+  dependency graph, retained shared-workflow partitions and final Phase
+  validation/review obligations.
 - Owner: Textus Control Center Phase 4
 - Update rule: Update this block and `phase-4-checklist.md` whenever a stable
   checklist state changes. Do not begin implementation before the lifecycle
@@ -105,11 +106,10 @@ its sources, and its runtime invocations.
 - E (REOPENED): OC-05 - Replace the provisional launcher-private supervisor
   with `textus-supervisor`, while preserving `cncf server` and
   `textus <artifact> server` as public start interfaces.
-- F (REVALIDATE): OC-06 - Rebind Control Center records,
-  Operations, authorization, and projections.
-- G (REVALIDATE): OC-07 - Revise the operating-panel Web UI and operator guide
-  around `textus-supervisor`, launcher evidence, and the canonical commands.
-- H (REOPENED): OC-08 - Run standalone and future-placement acceptance after
-  the new authority replaces the provisional one.
+- F (REVALIDATE): OC-06 - Complete operating-panel and operator-guide
+  acceptance around `textus-supervisor`, launcher evidence and canonical
+  commands; CC4-S9 accepts the actual panel actions in both placements.
+- G (REOPENED): OC-07 - Complete standalone acceptance with Java 17/default
+  dependency inputs, full affected suites and the final Phase review.
 
 Detailed progress and acceptance evidence belong in `phase-4-checklist.md`.

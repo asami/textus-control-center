@@ -231,6 +231,32 @@ Accepted packaged Operations boundary (CC4-S8, Oct. 17, 2026):
   independent-JVM restart/recovery, Java 17/default-graph execution, full
   affected suites and the sole comprehensive Phase review remain open.
 
+Accepted panel and separate-JVM recovery boundary (CC4-S9, Oct. 17, 2026):
+
+- Actual packaged browser actions passed Start, protected detail, Restart,
+  Stop, Remove and Refresh in both embedded and external placements. Exactly
+  three new protected audit records independently corroborated lifecycle
+  correlation, instance transitions and target port reuse. Protected Restore
+  readmitted the excluded target before reconstruction.
+- The embedded combined JVM was replaced once. External Control Center and
+  Supervisor JVMs were replaced independently while the other service and
+  target remained live. Original request lookup and exact Start retry retained
+  request, Supervisor and instance identities, the running projection and safe
+  audit. Subsequent idempotent Restart and Stop passed in both placements.
+- Native Launcher evidence was read from the same private home used by its
+  writer and Supervisor reader. The harness signals only retained acquired
+  parents; final cleanup reaped all ten acquired processes/groups and released
+  every case port without diagnostics.
+- Independent complete four-path Step review passed without blockers or new
+  Hygiene. Actual screenshots retain the unavailable Launcher reconciliation
+  banner and optional Open App URL diagnostic; acceptance does not claim these
+  unavailable projections were repaired. Earlier failures remain history, and
+  the consumed deliberate-failure run was not repeated.
+- This accepts Java 25 with development source inputs and reused native
+  fixtures. Java 17/default dependency graph, full affected suites, retained
+  shared-workflow partitions, the sole comprehensive Phase review and final
+  closure remain open.
+
 ## OC-06: Operating Panel and Documentation
 
 Status: REVALIDATE
