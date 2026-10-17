@@ -205,6 +205,32 @@ Accepted cross-Launcher boundary (CC4-S7, Oct. 17, 2026):
   separate-JVM restart/recovery, Java 17 with the default dependency graph,
   final full validation, and the comprehensive Phase review remain open.
 
+Accepted packaged Operations boundary (CC4-S8, Oct. 17, 2026):
+
+- Genuine Control Center and Supervisor CARs passed native admission. Both
+  embedded and external Supervisor placements completed three generated
+  Start/Restart/Stop rounds through protected Control Center Operations.
+- Exact retries preserved request, instance and Supervisor correlation and
+  added one audit record. Accepted ownership was checked separately from the
+  exact running-instance projection and actual target TCP readiness.
+- Invalid Bearer denial preserved audit and target state. Remove, refresh,
+  rejected excluded Stop and Restore preserved the existing management policy.
+- Normal acceptance released every acquired group and case-owned port without
+  cleanup diagnostics. The one approved injected-failure run retained its
+  actual failure and successful physical cleanup; its nonconformant outer
+  submission receives no execution-conformance or Phase acceptance credit.
+- Shared configuration usage tracking now protects insert and detached snapshot
+  traversal with the same private monitor. Focused CNCF acceptance passed all
+  three cases, including 50 generated sequential samples and 2,000 bounded
+  eight-worker rounds. The affected Control Center suites passed all 25 cases.
+- Independent Step review and focused closure resolved the selected deadline
+  and specification narration findings. Four local deadline checks passed.
+  All earlier failures remain history; the earlier HTTP500 caller is still
+  unconfirmed and is not claimed repaired by this result.
+- This is Java 25/source-graph Step acceptance. Panel/browser actions,
+  independent-JVM restart/recovery, Java 17/default-graph execution, full
+  affected suites and the sole comprehensive Phase review remain open.
+
 ## OC-06: Operating Panel and Documentation
 
 Status: REVALIDATE
@@ -237,5 +263,5 @@ Status: REOPENED
   Control Center reconciliation when the Control Center starts after servers.
 - [x] Verify that normal `cncf server` remains sufficient for a development
   directory and no user-facing foreground-supervisor command is required.
-- [ ] Verify the same lifecycle behavior with Control Center's embedded
+- [x] Verify the same lifecycle behavior with Control Center's embedded
   `textus-supervisor` and with an externally placed supervisor contract.

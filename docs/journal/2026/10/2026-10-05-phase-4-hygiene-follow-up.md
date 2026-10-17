@@ -131,3 +131,17 @@ Nonblocking inherited target-program naming debt: LocalServerEvidenceStore decla
 - Disposition: Nonblocking inherited debt, outside the frozen local CAR activation delta.
 - Follow-up: Plan a separate public-parameter migration covering named-argument clients and explicit compatibility requirements; preserve current constructor behavior and do not extend CC4-S7.
 <!-- cncf-phase-finding:HYG-CC4-S7-TEXTUS-LEGACY-API-NAMING-001:end -->
+
+<!-- cncf-phase-finding:HYG-CC4-S8-CNCF-RESOLVED-PARAMETER-NAMING-001:begin -->
+### HYG-CC4-S8-CNCF-RESOLVED-PARAMETER-NAMING-001
+
+- Status: OPEN.
+- Discovery: REVIEW / CC4-S8 / 2026-10-17.
+- Source review: phase4-CC4-S8-step-review-r1.
+- Category/priority: Hygiene / P3.
+- Owner: goldenport-cncf maintainer.
+- Evidence: ResolvedParameter.scala:44 and57 retain public format_value and origin_label declarations. Ordinary base-to-working-tree diff against86f2c413 shows these public names and their callers are inherited unchanged.
+- Impact: Existing public naming differs from shared RULE.md camelCase requirements; no introduced naming or behavioral defect.
+- Disposition: Nonblocking maintenance, distinct from the26existing accepted Hygiene identities in ledger39. The same unaccepted candidate in parent mechanical evidence is not a second record.
+- Follow-up: Separately admit public-method naming migration with caller and source compatibility assessment. Do not rename these APIs or expand the synchronized-map repair during CC4-S8.
+<!-- cncf-phase-finding:HYG-CC4-S8-CNCF-RESOLVED-PARAMETER-NAMING-001:end -->

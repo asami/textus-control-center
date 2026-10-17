@@ -3,8 +3,9 @@
 Stage Status:
 
 - Current status: REOPENED
-- Current step: Complete protected Operations, panel actions, both packaged
-  placements, and separate-JVM restart acceptance after cross-Launcher Step CC4-S7.
+- Current step: Complete panel actions and separate-JVM restart/recovery after
+  packaged protected Operations Step CC4-S8; retain Java 17/default-graph and
+  final Phase validation/review obligations.
 - Owner: Textus Control Center Phase 4
 - Update rule: Update this block and `phase-4-checklist.md` whenever a stable
   checklist state changes. Do not begin implementation before the lifecycle
