@@ -40,6 +40,38 @@ Human-facing Subsystem inventory administration participant.
 
 # SERVICE
 
+## OperationalSummary
+
+### DESCRIPTION
+
+Protected compact read model shared by Web and native Control Center presentations.
+
+### OPERATION
+
+#### getSummary
+
+##### DESCRIPTION
+
+Reads current Control Center metadata and health with bounded safe registered runtime lease summaries.
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetSummary
+
+##### OUTPUT
+
+###### TYPE
+
+GetSummaryResult
+
+# SERVICE
+
 ## SubsystemInventory
 
 ### DESCRIPTION
@@ -838,6 +870,14 @@ GetLifecycleRequestResult
 
 # QUERY
 
+## GetSummary
+
+### ATTRIBUTE
+
+| name  | type | multiplicity |
+|-------|------|--------------|
+| limit | int  | ?            |
+
 ## ListSubsystems
 
 ### ATTRIBUTE
@@ -1171,6 +1211,12 @@ GetLifecycleRequestResult
 | value | string | 1            | 512        |
 
 # VALUE
+
+## GetSummaryResult
+
+### EXTENDS
+
+OperationResult
 
 ## RegisterSubsystemResult
 

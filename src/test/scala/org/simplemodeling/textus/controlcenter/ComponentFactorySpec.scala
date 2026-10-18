@@ -1,5 +1,6 @@
 /*
- * @version Jul. 22, 2026
+ *  version Jul. 22, 2026
+ * @version Oct. 18, 2026
  */
 package org.simplemodeling.textus.controlcenter
 
@@ -25,21 +26,22 @@ class ComponentFactorySpec extends AnyWordSpec with GivenWhenThen with Matchers 
       primary shouldBe impl.TextusControlCenterPrimaryFactory
     }
 
-    "publish inventory, catalog, operational management, launcher evidence, and lifecycle control services rather than generic Entity operations" in {
+    "publish inventory, catalog, operational management, launcher evidence, lifecycle control, and operational summary services" in {
       Given("a Textus Control Center component assembled into a subsystem")
       val component = _component()
 
       When("CNCF projects the component service boundary")
       val services = component.protocol.services.services.map(_.name)
 
-      Then("the five administrative domain services are published")
+      Then("the six administrative domain services are published")
       services.filterNot(name => Set("meta", "system").contains(name)) shouldBe
         Vector(
           TextusControlCenterComponent.SubsystemInventoryService.name,
           TextusControlCenterComponent.CarCatalogService.name,
           TextusControlCenterComponent.OperationalManagementService.name,
           TextusControlCenterComponent.LauncherEvidenceService.name,
-          TextusControlCenterComponent.LifecycleControlService.name
+          TextusControlCenterComponent.LifecycleControlService.name,
+          TextusControlCenterComponent.OperationalSummaryService.name
         )
     }
 

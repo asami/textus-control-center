@@ -1,61 +1,15 @@
 /*
  *  version Jul. 28, 2026
- * @version Aug. 28, 2026
+ *  version Aug. 28, 2026
+ * @version Oct. 18, 2026
  */
 package org.simplemodeling.textus.controlcenter.impl
 
-import java.net.{URI, URL}
-import java.time.{Duration, Instant}
-import scala.util.control.NonFatal
-
-import cats.syntax.all.*
-import org.goldenport.Consequence
-import org.goldenport.datatype.I18nLabel
-import org.goldenport.cncf.action.ActionCall
 import org.goldenport.cncf.component.{Component, ComponentCreate, ComponentId}
-import org.goldenport.cncf.directive.Query
-import org.goldenport.cncf.entity.{EntityQuery, EntitySearchScope, EntityVisibilityScope}
-import org.goldenport.cncf.entity.runtime.EntityQueryFieldResolver
-import org.goldenport.cncf.context.SecurityContext
-import org.goldenport.cncf.event.{CmlEventCategory, CmlEventDefinition, CmlSubscriptionDefinition, DispatchRoute, EventOriginBoundary, EventReceptionCondition, EventReceptionExecutionPolicy, EventReceptionRule, ReceptionDomainEvent}
+import org.goldenport.cncf.event.{CmlEventCategory, CmlEventDefinition, CmlSubscriptionDefinition, DispatchRoute, EventOriginBoundary, EventReceptionCondition, EventReceptionExecutionPolicy, EventReceptionRule}
 import org.goldenport.cncf.security.AuthenticationProvider
-import org.goldenport.cncf.security.SecuritySubject
 import org.goldenport.cncf.spi.supervisor.SupervisorSocket
-import org.goldenport.cncf.unitofwork.ExecUowM
-import org.goldenport.protocol.{Property, Request}
-import org.goldenport.protocol.operation.OperationResponse
-import org.goldenport.record.Record
-import org.goldenport.schema.XString
 import org.simplemodeling.textus.controlcenter.TextusControlCenterComponent
-import org.simplemodeling.model.directive.Update
-import org.simplemodeling.textus.controlcenter.launcher.LauncherEvidenceSnapshotCodec
-import org.simplemodeling.textus.controlcenter.entity.{RegisteredSubsystem as RegisteredSubsystemEntity}
-import org.simplemodeling.textus.controlcenter.entity.{ManagedCar as ManagedCarEntity, ManagedCarSource as ManagedCarSourceEntity}
-import org.simplemodeling.textus.controlcenter.entity.{OperationalComponent as OperationalComponentEntity}
-import org.simplemodeling.textus.controlcenter.entity.{LifecycleRequest as LifecycleRequestEntity}
-import org.simplemodeling.textus.controlcenter.entity.{LauncherEvidenceSnapshot as LauncherEvidenceSnapshotEntity}
-import org.simplemodeling.textus.controlcenter.entity.create.{RegisteredSubsystem as RegisteredSubsystemCreate}
-import org.simplemodeling.textus.controlcenter.entity.create.RegisteredSubsystem.given
-import org.simplemodeling.textus.controlcenter.entity.query.{RegisteredSubsystem as RegisteredSubsystemQuery}
-import org.simplemodeling.textus.controlcenter.entity.query.{ManagedCar as ManagedCarQuery, ManagedCarSource as ManagedCarSourceQuery}
-import org.simplemodeling.textus.controlcenter.entity.query.{OperationalComponent as OperationalComponentQuery}
-import org.simplemodeling.textus.controlcenter.entity.query.{LifecycleRequest as LifecycleRequestQuery}
-import org.simplemodeling.textus.controlcenter.entity.query.{LauncherEvidenceSnapshot as LauncherEvidenceSnapshotQuery}
-import org.simplemodeling.textus.controlcenter.entity.create.{ManagedCar as ManagedCarCreate, ManagedCarSource as ManagedCarSourceCreate}
-import org.simplemodeling.textus.controlcenter.entity.create.{OperationalComponent as OperationalComponentCreate}
-import org.simplemodeling.textus.controlcenter.entity.create.{LifecycleRequest as LifecycleRequestCreate}
-import org.simplemodeling.textus.controlcenter.entity.create.{LauncherEvidenceSnapshot as LauncherEvidenceSnapshotCreate}
-import org.simplemodeling.textus.controlcenter.entity.update.{LauncherEvidenceSnapshot as LauncherEvidenceSnapshotUpdate}
-import org.simplemodeling.textus.controlcenter.entity.update.{LifecycleRequest as LifecycleRequestUpdate, ManagedCar as ManagedCarUpdate, OperationalComponent as OperationalComponentUpdate}
-import org.simplemodeling.textus.controlcenter.datatype.{DevelopmentDirectory as DevelopmentDirectoryValue, ExecutionMode as ExecutionModeValue, LauncherEvidenceDecision as LauncherEvidenceDecisionValue, LauncherEvidenceSnapshotPayload as LauncherEvidenceSnapshotPayloadValue, LauncherKind as LauncherKindValue, LauncherState as LauncherStateValue, LifecycleAction as LifecycleActionValue, LifecycleDiagnostic as LifecycleDiagnosticValue, LifecycleDiagnosticCode as LifecycleDiagnosticCodeValue, LifecycleIdempotencyKey as LifecycleIdempotencyKeyValue, LifecycleLaunchProfileId as LifecycleLaunchProfileIdValue, LifecycleRequestId as LifecycleRequestIdValue, LifecycleRequestState as LifecycleRequestStateValue, LifecycleSupervisorId as LifecycleSupervisorIdValue, ManagedCarArtifactId as ManagedCarArtifactIdValue, ManagedCarComponentName as ManagedCarComponentNameValue, ManagedCarDiagnostic as ManagedCarDiagnosticValue, ManagedCarPrivateLocator as ManagedCarPrivateLocatorValue, ManagedCarRefreshState as ManagedCarRefreshStateValue, ManagedCarSourceId as ManagedCarSourceIdValue, ManagedCarSourceKind as ManagedCarSourceKindValue, ManagedCarVersion as ManagedCarVersionValue, OperationalManagementState as OperationalManagementStateValue, OperatorSubjectId as OperatorSubjectIdValue, RegistrationPrincipalId as RegistrationPrincipalIdValue, RuntimeVersion as RuntimeVersionValue, SubsystemInstanceId as SubsystemInstanceIdValue, SubsystemName as SubsystemNameValue, SubsystemTarget as SubsystemTargetValue, SubsystemVersion as SubsystemVersionValue}
-import org.simplemodeling.textus.controlcenter.entity.create.ManagedCar.given
-import org.simplemodeling.textus.controlcenter.entity.create.ManagedCarSource.given
-import org.simplemodeling.textus.controlcenter.entity.create.OperationalComponent.given
-import org.simplemodeling.textus.controlcenter.entity.create.LifecycleRequest.given
-import org.simplemodeling.textus.controlcenter.catalog.{DevelopmentRoot, LocalRepositoryCatalog, ManagedCar as CatalogManagedCar, ManagedCarCatalog, ManagedCarRuntimeState, ManagedCarRuntimeSummary, ManagedCarSource as CatalogManagedCarSource, OperationalComponentManagement, OperationalManagementState, PublicRepositoryCatalog, RuntimeInstance, RuntimeInstanceStatus, StandaloneCatalogConfiguration, StandaloneDevelopmentCatalogProvider, StandaloneLocalRepositoryCatalogProvider, StandalonePublicRepositoryCatalogProvider}
-import org.simplemodeling.textus.controlcenter.registry.{ApplicationUrlPolicy, RegisteredSubsystem as RegistrySubsystem, RegistryError, RegistrationInput, SubsystemRegistry}
-import org.simplemodeling.textus.controlcenter.supervisor.{EmbeddedTextusSupervisor, LifecycleSupervisorProtocol, LifecycleSupervisorRequest, LifecycleSupervisorResult, TextusSupervisor}
-import org.simplemodeling.textus.controlcenter.launcher.{LauncherEvidenceClient, LauncherEvidenceClientConfiguration, LauncherEvidenceEntry}
 
 final class ComponentFactory extends Component.BundleFactory {
   def primaryFactory: Component.PrimaryComponentFactory =
@@ -73,13 +27,14 @@ abstract class TextusControlCenterParticipantFactoryBase extends TextusControlCe
       , TextusControlCenterComponent.OperationalManagementService
       , TextusControlCenterComponent.LauncherEvidenceService
       , TextusControlCenterComponent.LifecycleControlService
+      , TextusControlCenterComponent.OperationalSummaryService
     )
 
   protected final def component_core(
     name: String,
-    componentid: ComponentId
+    componentId: ComponentId
   ): Component.Core =
-    spec_create(name, componentid, shared_services)
+    spec_create(name, componentId, shared_services)
 
   override val SubsystemInventory: TextusControlCenterComponent.SubsystemInventoryServiceFactory =
     SubsystemInventoryServiceFactoryImpl()
@@ -91,6 +46,8 @@ abstract class TextusControlCenterParticipantFactoryBase extends TextusControlCe
     LauncherEvidenceServiceFactoryImpl()
   override val LifecycleControl: TextusControlCenterComponent.LifecycleControlServiceFactory =
     LifecycleControlServiceFactoryImpl()
+  override val OperationalSummary: TextusControlCenterComponent.OperationalSummaryServiceFactory =
+    OperationalSummaryServiceFactoryImpl()
   override val aggregate: TextusControlCenterComponent.AggregateServiceFactory =
     AggregateServiceFactoryImpl()
   override val view: TextusControlCenterComponent.ViewServiceFactory =
