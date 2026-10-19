@@ -10,17 +10,20 @@ import org.goldenport.Consequence
 import org.goldenport.configuration.{Configuration, ConfigurationTrace, ConfigurationValue, ResolvedConfiguration}
 import org.goldenport.cncf.action.{Action, ActionCall}
 import org.goldenport.cncf.component.{Component, ComponentCreate, ComponentOrigin}
+import org.goldenport.cncf.cli.RunMode
 import org.goldenport.cncf.config.RuntimeConfig
 import org.goldenport.cncf.context.{Capability, DataStoreContext, EntityStoreContext, ExecutionContext, ExecutionProfileResolver, GlobalRuntimeContext, Principal, PrincipalId, RuntimeContext, ScopeContext, ScopeKind, SecurityContext}
 import org.goldenport.cncf.datastore.{DataStore, DataStoreSpace}
 import org.goldenport.cncf.entity.EntityStoreSpace
 import org.goldenport.cncf.event.EventEngine
 import org.goldenport.cncf.path.AliasResolver
+import org.goldenport.cncf.protocol.OperationResponseFormatter
 import org.goldenport.cncf.subsystem.Subsystem
 import org.goldenport.cncf.unitofwork.{CommitRecorder, UnitOfWork, UnitOfWorkInterpreter, UnitOfWorkOp}
-import org.goldenport.protocol.{Property, Request}
+import org.goldenport.protocol.{Property, Request, Response}
 import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
+import org.goldenport.record.io.RecordDecoder
 import org.simplemodeling.textus.controlcenter.impl.{OperationalSummaryServiceFactoryImpl, TextusControlCenterLauncherRegistrationAuthenticationProvider}
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
@@ -80,6 +83,87 @@ final class OperationalSummaryActionSpec extends AnyWordSpec with GivenWhenThen 
           .foreach(name => entry.getAny(name) shouldBe empty)
         summary.getString("dashboardUrl") shouldBe Some("/web/textus-control-center")
         summary.getInt("refreshAfterSeconds") shouldBe Some(15)
+      }
+
+      "preserve the fixed business JSON through normal data and envelope formatting" in {
+        Given("real components with known and unknown versions, an operator, and a launcher registration containing private fields")
+        val fixture = new Fixture()
+        val component = _component(Configuration(Map(
+          "component.version" -> ConfigurationValue.StringValue("7.8.9-summary-wire-spec")
+        )))
+        val unknowncomponent = _component(Configuration(Map(
+          "component.version" -> ConfigurationValue.StringValue("unknown")
+        )))
+        val launcher = fixture.contextFor(SecurityContext.Privilege.Internal, launcher = true)
+        val operator = fixture.contextFor(SecurityContext.Privilege.Operator)
+        val request = _summary_request()
+        val datarequest = request.copy(properties = request.properties ++ List(
+          Property("textus.format", "json", None), Property("textus.output.shape", "data", None)
+        ))
+        val enveloperequest = datarequest.copy(properties = datarequest.properties :+
+          Property("textus.output.shape", "envelope", None))
+
+        When("the launcher registers and the generated Summary action feeds the normal formatter in data and envelope shapes")
+        val registered = _execute(component, launcher, _registration_request("registerSubsystem"))
+        val result = _execute(component, operator, request)
+        val unknownresult = _execute(unknowncomponent, operator, request)
+        val operationresponse = result.toOption.getOrElse(fail(s"Summary operation failed: $result"))
+        val unknownresponse = unknownresult.toOption.getOrElse(fail(s"Summary operation failed: $unknownresult"))
+        val dataresponse = OperationResponseFormatter.toResponse(datarequest, operationresponse, RunMode.Command)
+        val enveloperesponse = OperationResponseFormatter.toResponse(enveloperequest, operationresponse, RunMode.Command)
+        val unknowndataresponse = OperationResponseFormatter.toResponse(datarequest, unknownresponse, RunMode.Command)
+
+        Then("business fields retain camelCase names and JSON types while standard execution metadata stays outside data")
+        registered.toOption should not be empty
+        operationresponse shouldBe a[OperationResponse.Json]
+        val business = _json_response(dataresponse)
+        val envelope = _json_response(enveloperesponse)
+        business.asObject.get.keys.toSet shouldBe Set(
+          "protocolVersion", "observedAt", "componentId", "instanceId", "controlCenter", "overallHealth",
+          "runtimes", "dashboardUrl", "refreshAfterSeconds"
+        )
+        val root = business.hcursor
+        root.get[Int]("protocolVersion").toOption shouldBe Some(1)
+        root.get[String]("componentId").toOption shouldBe Some(component.core.componentId.toString)
+        root.get[String]("instanceId").toOption shouldBe Some(component.core.instanceId.toString)
+        root.get[String]("observedAt").toOption shouldBe Some(operator.clock.instant().toString)
+        root.get[String]("dashboardUrl").toOption shouldBe Some("/web/textus-control-center")
+        root.get[Int]("refreshAfterSeconds").toOption shouldBe Some(15)
+        val controlcenter = root.downField("controlCenter")
+        controlcenter.keys.get.toSet shouldBe Set("status", "version", "uptime", "runtimeVersion")
+        controlcenter.downField("version").get[String]("state").toOption shouldBe Some("available")
+        controlcenter.downField("version").get[String]("value").toOption shouldBe Some("7.8.9-summary-wire-spec")
+        controlcenter.downField("uptime").get[String]("state").toOption shouldBe Some("unavailable")
+        controlcenter.downField("uptime").downField("seconds").focus shouldBe empty
+        controlcenter.downField("runtimeVersion").get[String]("state").toOption shouldBe Some("unavailable")
+        controlcenter.downField("runtimeVersion").downField("value").focus shouldBe empty
+        val unknownversion = _json_response(unknowndataresponse).hcursor.downField("controlCenter").downField("version")
+        unknownversion.get[String]("state").toOption shouldBe Some("unavailable")
+        unknownversion.downField("value").focus shouldBe empty
+        val health = root.downField("overallHealth")
+        health.keys.get.toSet shouldBe Set("status", "scope", "checks")
+        health.get[String]("status").toOption shouldBe Some(component.healthSnapshot.status)
+        val runtimes = root.downField("runtimes")
+        Vector("total", "returned", "starting", "running", "stopped", "stale").foreach { name =>
+          runtimes.get[Int](name).toOption shouldBe Some(if (Set("total", "returned", "starting").contains(name)) 1 else 0)
+        }
+        runtimes.get[Boolean]("truncated").toOption shouldBe Some(false)
+        val entry = runtimes.downField("data").downN(0)
+        entry.keys.get.toSet shouldBe Set("instanceId", "target", "launcherState", "status", "artifactId",
+          "subsystemName", "subsystemVersion", "runtimeVersion")
+        entry.get[String]("instanceId").toOption shouldBe Some("summary-action-instance")
+        entry.get[String]("runtimeVersion").toOption shouldBe Some("4.5.6")
+        val names = _json_field_names(business)
+        names.filter(_.contains("_")) shouldBe empty
+        Vector("registrationPrincipalId", "credentials", "access_token", "developmentDirectory", "baseUrl",
+          "hostLabel", "applicationUrl", "diagnostic").foreach(name => names should not contain name)
+        Vector("private-summary-token", "/private/summary-work", "private.example.test", "private-summary-host")
+          .foreach(value => business.noSpaces should not include value)
+        envelope.hcursor.downField("data").focus shouldBe Some(business)
+        val execution = envelope.hcursor.downField("execution")
+        execution.get[String]("interface-shape").toOption shouldBe Some("json")
+        execution.get[String]("operation").toOption shouldBe Some(request.operation)
+        execution.get[String]("service").toOption shouldBe request.service
       }
 
       "read actual boot metadata only from the current execution ancestry" in {
@@ -303,8 +387,23 @@ final class OperationalSummaryActionSpec extends AnyWordSpec with GivenWhenThen 
     ))
 
   private def _response(result: Consequence[OperationResponse]): Record =
-    result.toOption.collect { case OperationResponse.RecordResponse(record) => record }
-      .getOrElse(fail(s"Summary operation failed: $result"))
+    result.toOption match {
+      case Some(OperationResponse.RecordResponse(record)) => record
+      case Some(OperationResponse.Json(json)) =>
+        new RecordDecoder().json(json.noSpaces).toOption.getOrElse(fail("Summary JSON could not decode as a record"))
+      case _ => fail(s"Expected a Summary JSON or metadata record response: $result")
+    }
+
+  private def _json_response(response: Response): io.circe.Json =
+    response match {
+      case Response.Json(text) =>
+        io.circe.parser.parse(text).fold(error => fail(s"Summary response JSON was invalid: $error"), identity)
+      case other => fail(s"Expected a normal JSON response, received: $other")
+    }
+
+  private def _json_field_names(json: io.circe.Json): Vector[String] =
+    json.asObject.map(obj => obj.toVector.flatMap { case (name, value) => name +: _json_field_names(value) })
+      .orElse(json.asArray.map(_.toVector.flatMap(_json_field_names))).getOrElse(Vector.empty)
 
   private def _record(record: Record, name: String): Record =
     record.getAny(name).collect { case value: Record => value }.getOrElse(fail(s"$name record missing"))

@@ -17,6 +17,7 @@ import org.goldenport.cncf.unitofwork.ExecUowM
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
+import org.goldenport.record.io.RecordEncoder
 import org.simplemodeling.textus.controlcenter.TextusControlCenterComponent
 import org.simplemodeling.textus.controlcenter.entity.{RegisteredSubsystem as RegisteredSubsystemEntity}
 import org.simplemodeling.textus.controlcenter.entity.query.{RegisteredSubsystem as RegisteredSubsystemQuery}
@@ -52,7 +53,16 @@ final class OperationalSummaryServiceFactoryImpl extends TextusControlCenterComp
           now,
           limit
         ))
-      } yield OperationResponse(result)
+        response <- exec_from(_summary_response(result))
+      } yield response
+
+    private def _summary_response(record: Record): Consequence[OperationResponse] =
+      Consequence(RecordEncoder.json(record)).flatMap { text =>
+        io.circe.parser.parse(text).fold(
+          _ => Consequence.operationInvalid("Operational Summary could not encode its fixed JSON contract"),
+          json => Consequence.success(OperationResponse.Json(json))
+        )
+      }
 
     private def _authorize: Consequence[Unit] = {
       val subject = SecuritySubject.current(using executionContext)

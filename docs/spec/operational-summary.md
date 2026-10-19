@@ -21,6 +21,12 @@ users, and launcher-registration credentials alone receive
 ## Response contract
 
 Field names are exactly camelCase. Optional fields are omitted when unavailable.
+The fixed versioned business JSON uses the normal typed `OperationResponse.Json`
+representation, encoded from the projected Record. This existing framework
+representation preserves business names and values without the generic Record
+name and locale conversion. Normal framework envelopes still wrap that same
+business JSON as `data` with standard execution metadata. Domain projection,
+authorization, automatic REST routing, and the business shape below are unchanged.
 
 ```json
 {
