@@ -2,7 +2,7 @@
 
 Status: planned
 Planned: 2026-10-05
-Depends on: Phase 5
+Depends on: [Phase 5.1](phase-5.1.md), completing the Phase 5 -> 5.1 sequence
 Upstream: goldenport-cncf Phase 102 Integrated Admission Management
 
 ## Goal

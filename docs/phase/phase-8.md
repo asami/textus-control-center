@@ -2,7 +2,7 @@
 
 Status: PLANNED
 Planned: 2026-10-16
-Depends on: Phase 5
+Depends on: [Phase 5.1](phase-5.1.md), configured Docker observation after Phase 5
 Upstream: textus-supervisor Phase 1
 Downstream: textus-launcher Phase 3, cncf-launcher Phase 3, development-workstation Phase 3
 Related: Phase 4 standalone operational control, Phase 7 runtime operations

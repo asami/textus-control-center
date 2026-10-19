@@ -1,15 +1,19 @@
 # Phase 5 first-route operator and successor handoff
 
 Date: 2026-10-19
-Status: actual first route passed; CC5-S2 and Phase 5 IN-PROGRESS
+Status: CLOSED; first route, CC5-S1/S2 and Phase 5 accepted
 
 The connected Summary API → macOS Menu Bar → Open Dashboard route passed
 through the first normal parent-bundled CAR installation. This is operator
 and successor input for the [Phase 5 plan](../../../phase/phase-5.md) and
-[checklist](../../../phase/phase-5-checklist.md), not Step or Phase acceptance.
-Protected Step review and local acceptance, the sole epoch-2 Phase full review,
-release and checklist closure remain pending. Phase 5.1 has not started and
-its requirements are not accepted by this handoff.
+[checklist](../../../phase/phase-5-checklist.md). Protected Step review and
+focused blocker closure passed; CC5-S2 local acceptance commits are Control
+Center `adde4135`, CNCF launcher `12f2810b`, Textus launcher `de920d6` and
+shared workflow `33db5ae`. The sole epoch-2 comprehensive Phase review passed
+without blockers. The approved shared completed-receipt correction then passed
+the complete workflow driver and independent focused Phase closure. The local
+release closes Phase 5 and its six checklist rows. Phase 5.1 has not started
+and its requirements are not accepted by this handoff.
 
 ## Supported first route and operator setup
 

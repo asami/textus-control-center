@@ -1,6 +1,6 @@
 # Phase 5 Checklist: Summary API and First Menu Bar Launch
 
-Status: IN-PROGRESS; CC5-S1 accepted, actual HTTP/native human route passed; CC5-S2 acceptance pending
+Status: CLOSED; CC5-S1/S2 accepted, actual first route and independent Phase closure passed
 Plan: [Phase 5](phase-5.md)
 Design: [Operational View and native presentation](../design/macos-menu-bar-and-operational-view.md)
 Handoff: [First-route operator and successor input](../journal/2026/10/2026-10-19-phase-5-first-route-handoff.md)
@@ -12,28 +12,28 @@ relocated, still unaccepted and with unchanged meaning, to the sole
 [Phase 5.1 ledger](phase-5.1-checklist.md); this is relocation, not deletion or
 a completion claim. Do not duplicate their unchecked rows here.
 
-- [ ] CC5-01: Existing operational/catalog/Launcher/CNCF sources are reconciled
+- [x] CC5-01: Existing operational/catalog/Launcher/CNCF sources are reconciled
       and the minimum common Summary input/result/state contract is specified.
       Actual Operation signatures, target/instance identity, overall-health and
       unavailable/not-applicable semantics, URL handling and bounded refresh are
       settled before implementing their callers; no duplicated runtime registry.
-- [ ] CC5-02: The normal Control Center Operation/HTTP JSON surface returns
+- [x] CC5-02: The normal Control Center Operation/HTTP JSON surface returns
       attributable status, version, uptime, overall health, configured runtime
       summary and Dashboard URL. It is reusable by Web/native presentations,
       with normal access rules and no HTML/private-dashboard-JSON scraping.
-- [ ] CC5-03: A thin Swift/SwiftUI Menu Bar application consumes that actual API,
+- [x] CC5-03: A thin Swift/SwiftUI Menu Bar application consumes that actual API,
       shows status/summary, refreshes, distinguishes disconnection from service
       health and opens the Dashboard. No duplicated discovery or health logic.
-- [ ] CC5-04: The same built .app is packaged and actually launched through the
+- [x] CC5-04: The same built .app is packaged and actually launched through the
       first selected supported parent-bundled or separate-CAR path, with normal
       launcher/login integration demonstrated. Record the selected mode and host;
       allocation, compilation or a mocked UI response alone is insufficient.
-- [ ] CC5-A1: The narrowed API -> Menu Bar -> Dashboard -> first packaged
+- [x] CC5-A1: The narrowed API -> Menu Bar -> Dashboard -> first packaged
       install/login route has attributable actual results, meaningful focused
       and affected regression validation, independent Phase review without
       unresolved blockers and accepted Steps. Setup, selected host/profile/form
       and limitations are documented.
-- [ ] CC5-A2: Closure ledger, durable API/native/producer/first-form handoff and
+- [x] CC5-A2: Closure ledger, durable API/native/producer/first-form handoff and
       this Phase's release are recorded. Control Center repository-complete
       validation is explicitly deferred-not-run to PHASE-5.1 under the reciprocal
       final-only/sbt-full-suite policy; no full-suite pass is claimed.
@@ -58,7 +58,9 @@ all failed automation runs and original repair counters remain unchanged.
 - Actual Open Dashboard button opens the expected Dashboard: human PASS in r22.
   Exact button-feedback wording was not separately reported; none is inferred.
 - Incomplete native AX diagnostic additions: already parked privately and excluded.
-- Independent Step/Phase reviews and local acceptance/release commits: still required.
+- Independent Step review, focused repair closure and the sole epoch-2 Phase
+  full review passed. The approved shared receipt repair passed complete
+  workflow validation and independent focused Phase closure before release.
 
 Normal build r3 passed 21 Swift specifications, release compilation and strict
 ad-hoc signature verification. Normal CAR r4 was parent-bundled for macOS 13+ /
@@ -71,8 +73,7 @@ only the new serverURL key deleted, exact native and owned groups/readers
 ended, port reusable. Exit 0, no timeout/signal/force, terminal success.
 
 These actual human observations remain separate from the old failed automation
-receipts. No further host action is required. Successful route execution does
-not close a whole checklist item, accept CC5-S2 or close the Phase. The
+receipts. No further host action is required. Formal Step acceptance and independent Phase closure now accompany that route. The
 [handoff](../journal/2026/10/2026-10-19-phase-5-first-route-handoff.md) records
 validation at its actual scope; only Control Center complete validation is
 `deferred-not-run` to Phase 5.1. That successor has not started.
@@ -81,7 +82,10 @@ validation at its actual scope; only Control Center complete validation is
 
 Current CC5-S2 route result is recorded above. Earlier pending statements below
 remain historical at their original attempt scope; all failures, IDs, counters,
-Step7/Phase0 and epoch2 are retained. Step/Phase acceptance is still pending.
+Step7/Phase0 and epoch2 are retained. The following pending statements are historical; CC5-S2 is now CLOSED / accepted
+with Control Center `adde4135`, CNCF launcher `12f2810b`, Textus launcher
+`de920d6` and shared workflow `33db5ae`. Phase closure follows the sole full
+review and its focused shared-receipt closure. Step7/Phase0 remain unchanged.
 
 - CC5-S1: CLOSED / accepted; Summary Operation, source projection and protected
   reads; focused Scala 36/36, CAR lint success, independent Step review PASS;

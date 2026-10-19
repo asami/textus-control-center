@@ -1,6 +1,6 @@
 # Phase 5: Summary API and First Menu Bar Launch
 
-status=in-progress
+status=closed
 split_full_test_policy=final-only
 split_full_validation_method=sbt-full-suite
 split_validation_bootstrap=none
@@ -88,10 +88,17 @@ host action is required for this documented result.
 
 See the [durable handoff](../journal/2026/10/2026-10-19-phase-5-first-route-handoff.md)
 for producer boundaries, setup links, validation scope and successor limits.
-CC5-S2 and Phase 5 remain IN-PROGRESS: protected Step review and acceptance,
-the sole epoch-2 Phase full review, release and checklist closure are pending.
-Successful route execution is not formal closure. Control Center complete
-validation remains `deferred-not-run` to Phase 5.1, which has not started.
+CC5-S1 and CC5-S2 are CLOSED / accepted. The latter's local commits are
+Control Center `adde4135`, CNCF launcher `12f2810b`, Textus launcher `de920d6`
+and shared workflow `33db5ae`. The sole epoch-2 comprehensive Phase review
+passed without blockers; the approved shared completed-SBT-receipt correction
+passed the complete workflow driver and fresh independent focused closure.
+This release closes all six rows in the canonical checklist. Canonical Hygiene
+and Development Candidate journals retain nonblocking follow-ups. Control
+Center complete validation remains `deferred-not-run` to Phase 5.1, which has
+not started. Producer complete validation passed; it is not deferred.
+The exact final release identity is supplied by native Git and its local
+closure receipt, rather than a self-referential hash in this document.
 
 ## Retained Step and failed-attempt history — 2026-10-18 onward
 

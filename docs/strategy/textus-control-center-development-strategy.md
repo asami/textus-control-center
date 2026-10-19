@@ -16,7 +16,8 @@ operators to the authoritative per-Subsystem administration surfaces.
 ## 2. Development Principles
 
 - Build `textus-control-center` as a Cozy-generated CAR project.
-- Keep launcher process ownership in the launcher; Textus Control Center must not infer
+- Keep lifecycle execution with the owning Supervisor and registration/evidence
+  with Launchers, following accepted Phase 4; Textus Control Center must not infer
   ownership from arbitrary operating-system processes.
 - Use one operation model and project it to command, REST, and Web UI.
 - Keep the Web UI operation-backed. It must not maintain a separate UI-only
@@ -317,29 +318,97 @@ failed validation remain historical under the explicit human decision. The
 original bases and repair/review/failure history and canonical nonblocking
 follow-ups remain retained. This closure does not start Phase 5 or Phase 6.
 
-### Phase 5: Runtime Health and Observability Summary
+### Phase 5: Summary API and First Menu Bar Launch
 
-Goal: enrich operating components and their registered instances with bounded
-health, version, component, and low-cardinality runtime metric summaries
-obtained from stable CNCF Operations.
+The [Phase 5 plan](../phase/phase-5.md) and
+[checklist](../phase/phase-5-checklist.md) own CC5-01..04: existing attributable
+state -> common Summary Operation/HTTP JSON -> thin Swift/SwiftUI Menu Bar ->
+Open Dashboard -> actual installation/launch/login through one supported CAR
+route. Normal authentication, identity, bounded refresh and unavailable semantics
+are settled before callers; no private Dashboard protocol or copied monitoring
+engine. Reuse Phase 4 evidence at its actual scope.
 
-This phase must use each Subsystem's authenticated Operation/REST boundary. It
-must not scrape HTML or treat a Web dashboard JSON implementation detail as the
-long-term management API.
+The 2026-10-18 explicit split retains Phase 5 as the first unit and inserts 5.1
+before unchanged Phase 6. Both members target six expected hours (range 5..8h)
+at gpt-6.1-sol / high, standard parent mode. This Phase retains focused validation,
+independent review, Step acceptance and release; its Control Center complete
+sbt-full-suite is deferred-not-run to Phase 5.1 under final-only. First-route
+closure does not satisfy the complete original scope.
 
-### Phase 6: Multi-Host Lifecycle Control and Audit
+Phase 5 is CLOSED on 2026-10-19. The actual parent-bundled macOS route passed
+manual Summary/API comparison and Open Dashboard browser observation, with
+enabled login registration and terminal owned cleanup. CC5-S1/S2 acceptance,
+the sole independent full Phase review, focused repair closure and the local
+release complete the first unit. The reciprocal Phase 5.1 remains PLANNED /
+NOT STARTED and owns the deferred Control Center full suite and remaining
+observations/distribution form. Original failure history and Step7/Phase0 are
+retained; no successor execution follows from this closure.
 
-Goal: operate registered Subsystems across hosts with explicit host identity,
-credential rotation, role policy, audit history, and connectivity status.
+### Phase 5.1: Configured Operational View and Dual CAR Distribution
 
-The standalone Launcher evidence and lifecycle boundary from Phase 4 is
-replaceable by a host agent without changing operational-component,
-lifecycle-request, or audit contracts.
+Split from Phase 5. The [Phase 5.1 plan](../phase/phase-5.1.md) and
+[checklist](../phase/phase-5.1-checklist.md) own CC5-05..10 after Phase 5 closure:
+configured runtime/named middleware and host profiles, Docker observation,
+development-CAR sm-workflow/journal projection, and the other CAR distribution
+model. Both parent-bundled and separate-CAR forms use the same app/API and logical
+identity and require actual results.
 
-### Phase 7: Operational Automation
+Consume the predecessor's accepted Summary/native/build/first-form contracts,
+producer revisions, actual host/profile results and deferred-validation release
+handoff. Phase 5.1 owns integrated regressions, the one Control Center complete
+sbt-full-suite for PHASE-5 and PHASE-5.1, independent integrated Phase review,
+setup/limitations and release closure before Phase 6. Producer repositories keep
+their own authority/validation; this is a serial same-repository aggregate chain.
+No child execution is started by the split.
 
-Goal: add alerting, maintenance policy, rollout coordination, and bounded
-automatic remediation on top of the explicit lifecycle and audit contracts.
+### Phase 6: Integrated Admission Console
+
+The [Phase 6 plan](../phase/phase-6.md) owns the Human-in-the-Loop Admission Inbox
+using CNCF Phase 102 for sm-workflow, GitHub Phase/Plan PRs and Git-managed BoK
+editorial candidates. It consumes authoritative provider actions/results rather
+than becoming a second admission authority. Phase 5.1 read-only development status
+does not implement these actions or require this whole successor to finish.
+
+### Phase 7: Subsystem Availability and Immutable Runtime Operations
+
+The [Phase 7 plan](../phase/phase-7.md) owns CNCF Active/Standby availability,
+authorized replacement/rotation, Deployment Transaction presentation and CAR
+security/update posture through CNCF108/109 contracts. Control Center projects
+and requests operations; it does not grant Active authority or orchestrate its
+own replacement engine. This is more specific than the previous automation label.
+
+### Phase 8: Docker Execution Boundary and Supervisor Integration
+
+The [Phase 8 plan](../phase/phase-8.md) consumes textus-supervisor Phase 1 for
+authorized Docker lifecycle through the existing request/result boundary.
+Phase 5.1 observes configured Docker services; Docker control is not pulled forward.
+
+### Phase 9: Native Host Supervisor Execution
+
+The [Phase 9 plan](../phase/phase-9.md) adds genuine host-native requirements using
+textus-supervisor Phase 2, preserving the same operational-component, lifecycle
+and audit contracts. It does not turn Control Center into a host process manager.
+
+### Retained roadmap topics and reconciliation — 2026-10-18
+
+The former Phase 5/6/7 titles here conflicted with the detailed Phase plans.
+The allocation above follows those plans and is recorded in the
+[handoff](../journal/2026/10/2026-10-18-phase-5-main-route-plan-handoff.md).
+It starts no Phase and claims no implementation of the following retained topics:
+
+- Broader multi-host lifecycle, credential rotation and role-policy management
+  remain future scoped work unless explicitly covered by an adopted plan. They
+  are not silently assigned to the current Phase 6 Admission Console or Phase 5.
+- General alerting, maintenance policy and bounded remediation remain future
+  work; only the concrete availability/deployment operations in current Phase 7
+  belong there. Preserve the broad intent without restoring an unlimited scope.
+- Mobile/wearable presentations and native notifications remain future targets;
+  they are not completion gates for the macOS read-only route.
+
+No unrelated upstream roadmap, full device matrix or new assurance framework is
+required to deliver the Phase 5 -> 5.1 sequence. Exact remaining producer gaps
+are identified at the first contract/connection package and retain their own
+implementation authority.
 
 ## 8. Cross-Repository Policy
 

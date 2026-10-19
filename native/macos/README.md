@@ -91,8 +91,8 @@ requested Summary values matched the API and Open Dashboard opened the browser.
 Exact button-feedback wording was not reported. Owned cleanup completed,
 including login unregistration, deletion of only the new serverURL key,
 native/group/reader termination and reusable port. No further host action is
-required for this result. Step and Phase review, acceptance and release remain
-pending; see the [first-route handoff](../../docs/journal/2026/10/2026-10-19-phase-5-first-route-handoff.md)
+required for this result. Step acceptance and the sole independent Phase review
+with focused closure passed; Phase 5 is closed by its local release. See the [first-route handoff](../../docs/journal/2026/10/2026-10-19-phase-5-first-route-handoff.md)
 for validation scope and successor limits.
 
 The parent CAR carries the built Presentation Subcomponent; the CNCF launcher
